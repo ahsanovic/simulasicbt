@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+[x-cloak] {
+    display: none !important;
+}
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #818cf8;
+    --color-primary-500: #6366f1;
+    --color-primary-600: #4f46e5;
+    --color-primary-700: #4338ca;
+    --color-primary-800: #3730a3;
+    --color-primary-900: #312e81;
+
+    --color-surface: #ffffff;
+    --color-surface-muted: #f8fafc;
+    --color-border: #e2e8f0;
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before {
+        border-color: var(--color-border);
+    }
+
+    body {
+        @apply bg-surface-muted text-slate-800 antialiased;
+    }
+}
+
+@layer components {
+    .ui-input {
+        @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10;
+    }
+
+    .ui-select {
+        @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10;
+    }
+
+    .ui-label {
+        @apply mb-1.5 block text-sm font-medium text-slate-700;
+    }
+
+    .ui-btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50;
+        @apply bg-primary-600 text-white shadow-sm shadow-primary-600/20 hover:bg-primary-700 focus:ring-primary-500/20;
+    }
+
+    .ui-btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50;
+        @apply border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-200;
+    }
+
+    .ui-btn-danger {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50;
+        @apply bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500/20;
+    }
+
+    .ui-btn-success {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50;
+        @apply bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700 focus:ring-emerald-500/20;
+    }
+
+    .ui-btn-ghost {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50;
+        @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-200;
+    }
+
+    .ui-card {
+        @apply rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50;
+    }
+
+    .ui-badge {
+        @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+    }
+
+    .ui-table-wrap {
+        @apply overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50;
+    }
+
+    .ui-filter-toolbar__fields {
+        @apply flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center;
+    }
+
+    .ui-filter-toolbar__fields--grid {
+        @apply sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-3;
+    }
+
+    .ui-btn-reset-filter {
+        @apply inline-flex h-[42px] shrink-0 items-center justify-center gap-2 self-end rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-600 shadow-sm transition;
+        @apply hover:border-rose-300 hover:bg-rose-100 hover:text-rose-700;
+        @apply focus:outline-none focus:ring-4 focus:ring-rose-500/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+        @apply sm:self-auto;
+    }
+
+    .prose-exam {
+        @apply text-slate-800 leading-relaxed [&_img]:max-w-full [&_p]:mb-3;
+    }
+}
+
+.swal2-popup {
+    font-family: var(--font-sans);
+    border-radius: 1rem;
+}
+
+.swal2-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.swal2-html-container,
+.swal2-input {
+    font-size: 0.875rem;
+    color: #475569;
+}
+
+.swal2-confirm-custom,
+.swal2-cancel-custom {
+    border-radius: 0.75rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    padding: 0.625rem 1.25rem !important;
+}
+
+.swal2-toast-custom {
+    font-family: var(--font-sans);
+    border-radius: 0.875rem !important;
+    box-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.12), 0 4px 10px -4px rgb(15 23 42 / 0.08) !important;
+}
+
+.swal2-toast-title {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+}

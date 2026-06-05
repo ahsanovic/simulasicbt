@@ -1,0 +1,51 @@
+<?php
+
+if (! function_exists('format_exam_score')) {
+    function format_exam_score(mixed $score, string $empty = '—'): string
+    {
+        if ($score === null || $score === '') {
+            return $empty;
+        }
+
+        return (string) (int) round((float) $score);
+    }
+}
+
+if (! function_exists('exam_passing_grades')) {
+    /** @return array{twk: int, tiu: int, tkp: int, total: int} */
+    function exam_passing_grades(): array
+    {
+        return config('exam.passing_grades');
+    }
+}
+
+if (! function_exists('exam_score_max')) {
+    /** @return array{twk: int, tiu: int, tkp: int, total: int} */
+    function exam_score_max(): array
+    {
+        return config('exam.score_max');
+    }
+}
+
+if (! function_exists('exam_score_passes')) {
+    function exam_score_passes(mixed $score, int $threshold): bool
+    {
+        if ($score === null || $score === '') {
+            return false;
+        }
+
+        return (int) round((float) $score) >= $threshold;
+    }
+}
+
+if (! function_exists('exam_attempt_passes')) {
+    function exam_attempt_passes(mixed $twk, mixed $tiu, mixed $tkp, mixed $total): bool
+    {
+        $grades = exam_passing_grades();
+
+        return exam_score_passes($twk, $grades['twk'])
+            && exam_score_passes($tiu, $grades['tiu'])
+            && exam_score_passes($tkp, $grades['tkp'])
+            && exam_score_passes($total, $grades['total']);
+    }
+}

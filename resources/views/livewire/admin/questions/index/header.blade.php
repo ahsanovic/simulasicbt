@@ -27,7 +27,7 @@
         <select wire:model.live="materialFilter" class="ui-select" @disabled(! $subjectFilter)>
             <option value="">{{ $subjectFilter ? 'Semua Materi' : 'Pilih jenis terlebih dahulu' }}</option>
             @foreach ($materials as $material)
-                <option value="{{ $material->id }}">{{ $material->name }}</option>
+                <option value="{{ $material->id }}">{{ $material->display_name }}</option>
             @endforeach
         </select>
     </x-ui.filter-toolbar>

@@ -339,21 +339,23 @@ class Index extends Component
         }
     }
 
+    private function materialsForSelect(?int $subjectId)
+    {
+        return Material::query()
+            ->with('materialGroup')
+            ->orderedForSelect()
+            ->when($subjectId, fn ($q) => $q->where('materials.subject_id', $subjectId))
+            ->get();
+    }
+
     public function render()
     {
         $subjects = Subject::query()->orderBy('sort_order')->get();
-        $materials = Material::query()
-            ->when($this->subjectFilter, fn ($q) => $q->where('subject_id', $this->subjectFilter))
-            ->orderBy('sort_order')
-            ->get();
-
-        $modalMaterials = Material::query()
-            ->when($this->subject_id, fn ($q) => $q->where('subject_id', $this->subject_id))
-            ->orderBy('sort_order')
-            ->get();
+        $materials = $this->materialsForSelect($this->subjectFilter ?: null);
+        $modalMaterials = $this->materialsForSelect($this->subject_id);
 
         $questions = Question::query()
-            ->with(['subject', 'material'])
+            ->with(['subject', 'material.materialGroup'])
             ->when($this->search, fn ($q) => $q->where('content', 'like', "%{$this->search}%"))
             ->when($this->subjectFilter, fn ($q) => $q->where('subject_id', $this->subjectFilter))
             ->when($this->materialFilter, fn ($q) => $q->where('material_id', $this->materialFilter))

@@ -21,7 +21,7 @@
                                 'bg-violet-100 text-violet-700' => $question->subject->code->value === 'tkp',
                             ])>{{ $question->subject->code->label() }}</span>
                         </td>
-                        <td class="px-5 py-4 font-medium text-slate-700">{{ $question->material->name }}</td>
+                        <td class="px-5 py-4 font-medium text-slate-700">{{ $question->material->display_name }}</td>
                         <td class="max-w-xs truncate px-5 py-4 text-slate-600">{!! Str::limit(strip_tags($question->content), 70) !!}</td>
                         <td class="px-5 py-4">
                             <span @class(['ui-badge', 'bg-emerald-100 text-emerald-700' => $question->is_active, 'bg-slate-100 text-slate-600' => ! $question->is_active])>

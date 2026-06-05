@@ -26,7 +26,7 @@
                         <select wire:model="material_id" class="ui-select" @disabled(! $subject_id)>
                             <option value="">{{ $subject_id ? 'Pilih materi' : 'Pilih jenis soal terlebih dahulu' }}</option>
                             @foreach ($modalMaterials as $material)
-                                <option value="{{ $material->id }}">{{ $material->name }}</option>
+                                <option value="{{ $material->id }}">{{ $material->display_name }}</option>
                             @endforeach
                         </select>
                         @error('material_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror

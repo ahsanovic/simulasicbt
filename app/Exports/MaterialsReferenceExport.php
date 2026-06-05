@@ -18,6 +18,7 @@ class MaterialsReferenceExport implements FromCollection, WithHeadings, WithTitl
     {
         return [
             'subject_code',
+            'material_group',
             'material_slug',
             'material_name',
         ];
@@ -26,14 +27,14 @@ class MaterialsReferenceExport implements FromCollection, WithHeadings, WithTitl
     public function collection()
     {
         return Material::query()
-            ->with('subject')
-            ->orderBy('subject_id')
-            ->orderBy('sort_order')
+            ->with(['subject', 'materialGroup'])
+            ->orderedForSelect()
             ->get()
             ->map(fn (Material $material) => [
                 'subject_code' => $material->subject->code->value,
+                'material_group' => $material->materialGroup?->name,
                 'material_slug' => $material->slug,
-                'material_name' => $material->name,
+                'material_name' => $material->display_name,
             ]);
     }
 }

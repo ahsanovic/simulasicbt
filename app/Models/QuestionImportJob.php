@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\QuestionImportStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class QuestionImportJob extends Model
 {
@@ -32,18 +33,18 @@ class QuestionImportJob extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function progressPercent(): int
-    {
-        if ($this->total_rows === 0) {
-            return 0;
-        }
+    // public function progressPercent(): int
+    // {
+    //     if ($this->total_rows === 0) {
+    //         return 0;
+    //     }
 
-        if ($this->status === QuestionImportStatus::Completed) {
-            return 100;
-        }
+    //     if ($this->status === QuestionImportStatus::Completed) {
+    //         return 100;
+    //     }
 
-        return min(99, (int) round(($this->processed_rows / $this->total_rows) * 100));
-    }
+    //     return min(99, (int) round(($this->processed_rows / $this->total_rows) * 100));
+    // }
 
     public function isStale(): bool
     {
@@ -66,6 +67,55 @@ class QuestionImportJob extends Model
         ]);
     }
 
+    // public function advance(int $rows): void
+    // {
+    //     if ($rows <= 0) {
+    //         return;
+    //     }
+
+    //     if ($this->status === QuestionImportStatus::Pending) {
+    //         $this->markProcessing();
+    //     }
+
+    //     $this->increment('processed_rows', $rows);
+    // }
+
+    // public function markCompleted(): void
+    // {
+    //     $this->update([
+    //         'status' => QuestionImportStatus::Completed,
+    //         'processed_rows' => $this->total_rows,
+    //         'completed_at' => now(),
+    //     ]);
+    // }
+
+    // public function markFailed(string $message): void
+    // {
+    //     $this->update([
+    //         'status' => QuestionImportStatus::Failed,
+    //         'error_message' => $message,
+    //         'completed_at' => now(),
+    //     ]);
+    // }
+
+    public function progressPercent(): int
+    {
+        // KUNCI 1: Cek apakah ada data progress real-time di Cache terlebih dahulu
+        if (Cache::has("import-progress-{$this->id}")) {
+            return (int) Cache::get("import-progress-{$this->id}");
+        }
+
+        if ($this->total_rows === 0) {
+            return 0;
+        }
+
+        if ($this->status === QuestionImportStatus::Completed) {
+            return 100;
+        }
+
+        return min(99, (int) round(($this->processed_rows / $this->total_rows) * 100));
+    }
+
     public function advance(int $rows): void
     {
         if ($rows <= 0) {
@@ -77,6 +127,12 @@ class QuestionImportJob extends Model
         }
 
         $this->increment('processed_rows', $rows);
+
+        // KUNCI 2: Hitung persentase saat ini dan lempar langsung ke Cache (Bypass DB Lock)
+        if ($this->total_rows > 0) {
+            $percent = min(99, (int) round(($this->processed_rows / $this->total_rows) * 100));
+            Cache::put("import-progress-{$this->id}", $percent, now()->addMinutes(10));
+        }
     }
 
     public function markCompleted(): void
@@ -86,6 +142,9 @@ class QuestionImportJob extends Model
             'processed_rows' => $this->total_rows,
             'completed_at' => now(),
         ]);
+
+        // KUNCI 3: Hapus sampah cache setelah proses import resmi selesai sempurna
+        Cache::forget("import-progress-{$this->id}");
     }
 
     public function markFailed(string $message): void
@@ -95,5 +154,7 @@ class QuestionImportJob extends Model
             'error_message' => $message,
             'completed_at' => now(),
         ]);
+
+        Cache::forget("import-progress-{$this->id}");
     }
 }

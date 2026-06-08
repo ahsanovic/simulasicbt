@@ -10,6 +10,7 @@ use App\Models\ExamAttempt;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class ExamService
 {
@@ -47,9 +48,22 @@ class ExamService
         });
     }
 
-    public function submitAttempt(ExamAttempt $attempt): ExamAttempt
+    public function submitAttempt(ExamAttempt $attempt, ?User $user = null): ExamAttempt
     {
-        return DB::transaction(function () use ($attempt) {
+        return DB::transaction(function () use ($attempt, $user) {
+            $attempt = ExamAttempt::query()
+                ->whereKey($attempt->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($user !== null && $attempt->user_id !== $user->id) {
+                throw new AccessDeniedHttpException('Attempt tidak dimiliki oleh pengguna ini.');
+            }
+
+            if ($attempt->status !== ExamAttemptStatus::InProgress) {
+                return $attempt->fresh();
+            }
+
             $attempt->load(['answers.selectedOption', 'answers.question.subject']);
 
             $scores = [
@@ -65,6 +79,10 @@ class ExamService
 
                 $subjectCode = $answer->question->subject->code;
                 $option = $answer->selectedOption;
+
+                if (! $option || $option->question_id !== $answer->question_id) {
+                    continue;
+                }
 
                 $scores[$subjectCode->value] += $subjectCode->pointsFromSelectedOption(
                     $option->score_weight,

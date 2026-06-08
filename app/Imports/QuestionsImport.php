@@ -7,6 +7,7 @@ use App\Models\Material;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Subject;
+use App\Services\HtmlSanitizer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -19,7 +20,9 @@ class QuestionsImport implements ToCollection, WithHeadingRow, WithValidation
 
     public function collection(Collection $rows): void
     {
-        DB::transaction(function () use ($rows) {
+        $sanitizer = app(HtmlSanitizer::class);
+
+        DB::transaction(function () use ($rows, $sanitizer) {
             foreach ($rows as $row) {
                 $subject = Subject::query()->where('code', $row['subject_code'])->firstOrFail();
                 $material = Material::query()
@@ -30,8 +33,8 @@ class QuestionsImport implements ToCollection, WithHeadingRow, WithValidation
                 $question = Question::query()->create([
                     'subject_id' => $subject->id,
                     'material_id' => $material->id,
-                    'content' => $row['content'],
-                    'explanation' => $row['explanation'] ?? null,
+                    'content' => $sanitizer->sanitize($row['content']),
+                    'explanation' => $sanitizer->sanitize($row['explanation'] ?? null),
                     'difficulty' => $row['difficulty'] ?? 'medium',
                     'is_active' => true,
                     'created_by' => $this->createdBy,
@@ -50,7 +53,7 @@ class QuestionsImport implements ToCollection, WithHeadingRow, WithValidation
                         'question_id' => $question->id,
                         'label' => strtoupper($label),
                         'content_type' => 'text',
-                        'content' => $row[$contentKey],
+                        'content' => $sanitizer->sanitize($row[$contentKey]),
                         'is_correct' => ! $isTkp && strtoupper($row['correct_option'] ?? '') === strtoupper($label),
                         'score_weight' => $isTkp ? (int) ($row["weight_{$label}"] ?? 1) : null,
                         'sort_order' => $index + 1,

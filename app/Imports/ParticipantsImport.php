@@ -36,7 +36,7 @@ class ParticipantsImport implements ShouldQueue, ToModel, WithChunkReading, With
             'name' => $row['name'],
             'email' => $row['email'],
             'username' => $row['username'] ?? null,
-            'password' => Hash::make($row['password'] ?? 'password'),
+            'password' => Hash::make($row['password']),
             'nip' => $isPegawai ? ($row['nip'] ?? null) : null,
             'instansi_id' => $isPegawai && ! empty($row['instansi_id']) ? (int) $row['instansi_id'] : null,
             'is_pegawai' => $isPegawai,
@@ -51,6 +51,7 @@ class ParticipantsImport implements ShouldQueue, ToModel, WithChunkReading, With
         return [
             '*.name' => ['required', 'string'],
             '*.email' => ['required', 'email', 'unique:users,email'],
+            '*.password' => ['required', 'string', 'min:8'],
             '*.nip' => ['nullable', 'string', 'unique:users,nip'],
             '*.instansi_id' => ['nullable', 'integer', 'exists:instansis,id'],
             '*.is_pegawai' => ['nullable'],

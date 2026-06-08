@@ -9,14 +9,16 @@ use App\Models\Material;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Subject;
+use App\Services\HtmlSanitizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
-use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 
 #[Layout('layouts.admin')]
@@ -67,7 +69,10 @@ class Index extends Component
         // Add score_weight validation for TKP
         $rules = [
             'subject_id' => ['required', 'exists:subjects,id'],
-            'material_id' => ['required', 'exists:materials,id'],
+            'material_id' => [
+                'required',
+                Rule::exists('materials', 'id')->where('subject_id', $this->subject_id),
+            ],
             'content' => ['required', 'string'],
             'explanation' => ['nullable', 'string'],
             'difficulty' => ['required', 'in:easy,medium,hard'],
@@ -76,8 +81,8 @@ class Index extends Component
             'options.*.label' => ['required', 'string', 'max:2'],
             'options.*.content_type' => ['required', 'in:text,image'],
             'options.*.content' => ['nullable', 'string'],
-            'options.*.image_path' => ['nullable', 'string'],
-            'optionImages.*' => ['nullable', 'image', 'max:5120'],
+            'options.*.image_path' => ['nullable', 'string', 'regex:/^question-options\/[a-zA-Z0-9_\-\.]+$/'],
+            'optionImages.*' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
         ];
 
         // Optionally handle validation for score_weight if subject is TKP
@@ -163,25 +168,28 @@ class Index extends Component
 
             if (count($scoreWeights) !== count(array_unique($scoreWeights))) {
                 session()->flash('error', 'Pada soal TKP, skor setiap opsi tidak boleh duplikat.');
+
                 return;
             }
 
             sort($scoreWeights);
             if (count($scoreWeights) !== 5 || array_values($scoreWeights) !== [1, 2, 3, 4, 5]) {
                 session()->flash('error', 'Pada soal TKP, skor setiap opsi harus unik dan bernilai 1, 2, 3, 4, dan 5.');
+
                 return;
             }
         }
 
-        DB::transaction(function () use ($validated, $isTkp) {
+        $sanitizer = app(HtmlSanitizer::class);
+
+        DB::transaction(function () use ($validated, $isTkp, $sanitizer) {
             $questionData = [
                 'subject_id' => $validated['subject_id'],
                 'material_id' => $validated['material_id'],
-                'content' => $validated['content'],
-                'explanation' => $validated['explanation'] ?: null,
+                'content' => $sanitizer->sanitize($validated['content']),
+                'explanation' => $sanitizer->sanitize($validated['explanation'] ?: null),
                 'difficulty' => $validated['difficulty'],
                 'is_active' => $validated['is_active'],
-                'created_by' => auth()->id(),
             ];
 
             if ($this->editingId) {
@@ -189,7 +197,10 @@ class Index extends Component
                 $question->update($questionData);
                 $question->options()->delete();
             } else {
-                $question = Question::query()->create($questionData);
+                $question = Question::query()->create([
+                    ...$questionData,
+                    'created_by' => auth()->id(),
+                ]);
             }
 
             foreach ($validated['options'] as $index => $option) {
@@ -207,10 +218,10 @@ class Index extends Component
 
                         $imagePath = $this->optionImages[$index]->store('question-options', 'public');
                     } else {
-                        $imagePath = $existingImagePath;
+                        $imagePath = $this->resolveExistingImagePath($existingImagePath);
                     }
                 } else {
-                    $content = $option['content'] ?? '';
+                    $content = $sanitizer->sanitize($option['content'] ?? '');
                 }
 
                 QuestionOption::query()->create([
@@ -220,7 +231,7 @@ class Index extends Component
                     'content' => $content,
                     'image_path' => $imagePath,
                     // If TKP, never set is_correct TRUE (should be FALSE for all); if non TKP, only one is_correct true
-                    'is_correct' => !$isTkp && $index === $this->correctOptionIndex,
+                    'is_correct' => ! $isTkp && $index === $this->correctOptionIndex,
                     // For TKP, always set the score_weight, for NON-TKP null
                     'score_weight' => $isTkp ? ($option['score_weight'] ?? 1) : null,
                     'sort_order' => $index + 1,
@@ -244,7 +255,13 @@ class Index extends Component
             'importFile' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ]);
 
-        Excel::import(new QuestionsImport(auth()->id()), $this->importFile->getRealPath());
+        $storedPath = $this->importFile->store('imports/questions', 'local');
+
+        try {
+            Excel::import(new QuestionsImport(auth()->id()), Storage::disk('local')->path($storedPath));
+        } finally {
+            Storage::disk('local')->delete($storedPath);
+        }
 
         $this->showImportModal = false;
         $this->importFile = null;
@@ -337,6 +354,21 @@ class Index extends Component
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    private function resolveExistingImagePath(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            throw ValidationException::withMessages([
+                'options' => 'File gambar yang direferensikan tidak ditemukan.',
+            ]);
+        }
+
+        return $path;
     }
 
     private function materialsForSelect(?int $subjectId)

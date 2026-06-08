@@ -8,6 +8,7 @@ use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Services\ExamService;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -15,10 +16,13 @@ use Livewire\Component;
 #[Title('Ruang Ujian')]
 class ExamRoom extends Component
 {
+    #[Locked]
     public Exam $exam;
 
+    #[Locked]
     public ExamAttempt $attempt;
 
+    #[Locked]
     public int $currentIndex = 0;
 
     public ?int $selectedOptionId = null;
@@ -86,6 +90,10 @@ class ExamRoom extends Component
 
     public function selectOption(int $optionId): void
     {
+        if (! $this->isValidOptionForCurrentQuestion($optionId)) {
+            return;
+        }
+
         $this->selectedOptionId = $optionId;
     }
 
@@ -95,10 +103,21 @@ class ExamRoom extends Component
             return;
         }
 
-        ExamAnswer::query()->whereKey($this->currentAnswer->id)->update([
-            'selected_option_id' => $this->selectedOptionId,
-            'answered_at' => $this->selectedOptionId ? now() : null,
-        ]);
+        $this->authorizedAttempt();
+
+        $optionId = $this->selectedOptionId;
+
+        if ($optionId !== null && ! $this->isValidOptionForCurrentQuestion($optionId)) {
+            $optionId = null;
+        }
+
+        ExamAnswer::query()
+            ->whereKey($this->currentAnswer->id)
+            ->where('exam_attempt_id', $this->attempt->id)
+            ->update([
+                'selected_option_id' => $optionId,
+                'answered_at' => $optionId ? now() : null,
+            ]);
 
         $this->refreshAttemptData();
     }
@@ -109,17 +128,26 @@ class ExamRoom extends Component
             return;
         }
 
+        $this->authorizedAttempt();
+
         $newMarked = ! $this->currentAnswer->is_marked;
 
-        ExamAnswer::query()->whereKey($this->currentAnswer->id)->update([
-            'is_marked' => $newMarked,
-        ]);
+        ExamAnswer::query()
+            ->whereKey($this->currentAnswer->id)
+            ->where('exam_attempt_id', $this->attempt->id)
+            ->update([
+                'is_marked' => $newMarked,
+            ]);
 
         $this->refreshAttemptData();
     }
 
     public function goToQuestion(int $index): void
     {
+        if ($index < 0 || $index >= $this->answers->count()) {
+            return;
+        }
+
         $this->saveAnswer();
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
@@ -145,7 +173,7 @@ class ExamRoom extends Component
     public function submitExam(ExamService $examService): void
     {
         $this->saveAnswer();
-        $attempt = $examService->submitAttempt($this->attempt);
+        $attempt = $examService->submitAttempt($this->attempt, auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
         $this->redirect(route('peserta.history'), navigate: true);
     }
@@ -153,17 +181,36 @@ class ExamRoom extends Component
     public function checkExpiry(): void
     {
         if ($this->remainingSeconds <= 0) {
-            $attempt = app(ExamService::class)->submitAttempt($this->attempt);
+            $attempt = app(ExamService::class)->submitAttempt($this->attempt, auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
             $this->redirect(route('peserta.history'), navigate: true);
         }
     }
 
+    private function authorizedAttempt(): ExamAttempt
+    {
+        return ExamAttempt::query()
+            ->whereKey($this->attempt->id)
+            ->where('user_id', auth()->id())
+            ->where('status', ExamAttemptStatus::InProgress)
+            ->firstOrFail();
+    }
+
+    private function isValidOptionForCurrentQuestion(int $optionId): bool
+    {
+        if (! $this->currentAnswer) {
+            return false;
+        }
+
+        return $this->currentAnswer->question->options->contains('id', $optionId);
+    }
+
     private function refreshAttemptData(): void
     {
         $this->attempt = ExamAttempt::query()
             ->whereKey($this->attempt->id)
+            ->where('user_id', auth()->id())
             ->with(['answers.question.options', 'answers.question.subject'])
             ->firstOrFail();
 

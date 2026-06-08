@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Admin\Questions;
 
+use App\Enums\QuestionImportStatus;
 use App\Enums\QuestionOptionContentType;
 use App\Enums\SubjectCode;
 use App\Livewire\Concerns\HandlesImportErrorModal;
 use App\Models\Material;
 use App\Models\Question;
+use App\Models\QuestionImportJob;
 use App\Models\QuestionOption;
 use App\Models\Subject;
 use App\Services\HtmlSanitizer;
@@ -56,10 +58,22 @@ class Index extends Component
 
     public int $correctOptionIndex = 0;
 
+    public ?int $dismissedImportJobId = null;
+
     public function mount(): void
     {
         $this->resetOptions();
         $this->mountImportErrorModal();
+    }
+
+    public function refreshImportProgress(): void
+    {
+        // Livewire re-render akan memuat ulang status import terbaru.
+    }
+
+    public function dismissImportProgress(int $importJobId): void
+    {
+        $this->dismissedImportJobId = $importJobId;
     }
 
     protected function rules(): array
@@ -359,11 +373,33 @@ class Index extends Component
             ->get();
     }
 
+    private function activeImportJob(): ?QuestionImportJob
+    {
+        return QuestionImportJob::query()
+            ->where('user_id', auth()->id())
+            ->when($this->dismissedImportJobId, fn ($query) => $query->where('id', '!=', $this->dismissedImportJobId))
+            ->where(function ($query) {
+                $query->whereIn('status', [
+                    QuestionImportStatus::Pending,
+                    QuestionImportStatus::Processing,
+                ])->orWhere(function ($query) {
+                    $query->where('status', QuestionImportStatus::Completed)
+                        ->where('completed_at', '>=', now()->subHour());
+                })->orWhere(function ($query) {
+                    $query->where('status', QuestionImportStatus::Failed)
+                        ->where('updated_at', '>=', now()->subHour());
+                });
+            })
+            ->latest()
+            ->first();
+    }
+
     public function render()
     {
         $subjects = Subject::query()->orderBy('sort_order')->get();
         $materials = $this->materialsForSelect($this->subjectFilter ?: null);
         $modalMaterials = $this->materialsForSelect($this->subject_id);
+        $importJob = $this->activeImportJob();
 
         $questions = Question::query()
             ->with(['subject', 'material.materialGroup'])
@@ -373,6 +409,6 @@ class Index extends Component
             ->latest()
             ->paginate(10);
 
-        return view('livewire.admin.questions.index', compact('questions', 'subjects', 'materials', 'modalMaterials'));
+        return view('livewire.admin.questions.index', compact('questions', 'subjects', 'materials', 'modalMaterials', 'importJob'));
     }
 }

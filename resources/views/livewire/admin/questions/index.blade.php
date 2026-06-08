@@ -1,5 +1,6 @@
 <div>
     @include('livewire.admin.questions.index.header')
+    @include('livewire.admin.questions.index.import-progress')
     @include('livewire.admin.questions.index.table')
     @include('livewire.admin.questions.index.form-modal')
     @include('livewire.admin.questions.index.import-modal')

@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\QuestionImportStatus;
 use App\Exceptions\ImportFailedException;
 use App\Imports\Concerns\ValidatesQuestionImportRows;
 use App\Imports\QuestionsImport;
 use App\Imports\QuestionsImportValidator;
 use App\Imports\QuestionsQueuedImport;
 use App\Imports\QuestionsRowCounter;
+use App\Models\QuestionImportJob;
 use App\Support\ImportErrorReport;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +23,7 @@ class QuestionImportService
     public const BACKGROUND_ROW_THRESHOLD = 100;
 
     /**
-     * @return array{queued: bool, message: string, count: int}
+     * @return array{queued: bool, message: string, count: int, import_job_id?: int}
      */
     public function import(string $storedPath, int $createdBy): array
     {
@@ -43,8 +45,14 @@ class QuestionImportService
         Excel::clearResolvedInstance();
 
         if ($rowCount > self::BACKGROUND_ROW_THRESHOLD) {
+            $importJob = QuestionImportJob::query()->create([
+                'user_id' => $createdBy,
+                'total_rows' => $rowCount,
+                'status' => QuestionImportStatus::Pending,
+            ]);
+
             Excel::queueImport(
-                new QuestionsQueuedImport($createdBy, $storedPath),
+                new QuestionsQueuedImport($createdBy, $storedPath, $importJob->id),
                 $storedPath,
                 'local',
             );
@@ -52,7 +60,8 @@ class QuestionImportService
             return [
                 'queued' => true,
                 'count' => $rowCount,
-                'message' => "Import {$rowCount} soal sedang diproses di background. Pastikan queue worker berjalan (`php artisan queue:work`). Soal akan muncul setelah proses selesai.",
+                'import_job_id' => $importJob->id,
+                'message' => "Import {$rowCount} soal sedang diproses di background. Progress dapat dipantau di halaman ini.",
             ];
         }
 

@@ -6,6 +6,7 @@ use App\Enums\SubjectCode;
 use App\Imports\Concerns\ValidatesQuestionImportRows;
 use App\Models\Material;
 use App\Models\Question;
+use App\Models\QuestionImportJob;
 use App\Models\QuestionOption;
 use App\Models\Subject;
 use App\Services\HtmlSanitizer;
@@ -27,6 +28,7 @@ class QuestionsSheetImport implements ToCollection, WithChunkReading, WithHeadin
 
     public function __construct(
         private readonly ?int $createdBy = null,
+        private readonly ?int $importJobId = null,
     ) {}
 
     public function chunkSize(): int
@@ -43,6 +45,8 @@ class QuestionsSheetImport implements ToCollection, WithChunkReading, WithHeadin
         }
 
         $sanitizer = app(HtmlSanitizer::class);
+
+        $importedCount = $rows->count();
 
         DB::transaction(function () use ($rows, $sanitizer) {
             foreach ($rows as $row) {
@@ -62,6 +66,10 @@ class QuestionsSheetImport implements ToCollection, WithChunkReading, WithHeadin
                 $this->createOptions($question, $subject, $row, $sanitizer);
             }
         });
+
+        if ($this->importJobId) {
+            QuestionImportJob::query()->find($this->importJobId)?->advance($importedCount);
+        }
     }
 
     private function resolveSubject(string $code): Subject

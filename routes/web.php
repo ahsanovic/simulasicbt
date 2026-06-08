@@ -1,5 +1,11 @@
 <?php
 
+use App\Exports\ParticipantsExport;
+use App\Exports\ParticipantsImportTemplate;
+use App\Exports\QuestionsImportTemplateExport;
+use App\Http\Controllers\Admin\ParticipantImportController;
+use App\Http\Controllers\Admin\QuestionImportController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
 use App\Livewire\Admin\Questions\Index as QuestionsIndex;
@@ -7,17 +13,13 @@ use App\Livewire\Admin\Reports\Index as ReportsIndex;
 use App\Livewire\Admin\Results\Index as ResultsIndex;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Livewire\Admin\Users\Index as UsersIndex;
-use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Livewire\Auth\Login;
-use App\Exports\ParticipantsExport;
-use App\Exports\ParticipantsImportTemplate;
-use App\Exports\QuestionsImportTemplateExport;
-use App\Models\Instansi;
-use Illuminate\Support\Str;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamRoom;
+use App\Models\Instansi;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 Route::redirect('/', '/login');
@@ -39,6 +41,7 @@ Route::post('logout', function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', Dashboard::class)->name('dashboard');
     Route::get('/users', UsersIndex::class)->name('users.index');
+    Route::post('/users/import', [ParticipantImportController::class, 'store'])->name('users.import');
     Route::get('/users/import-template', function () {
         return Excel::download(
             new ParticipantsImportTemplate,
@@ -46,6 +49,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         );
     })->name('users.import-template');
     Route::get('/questions', QuestionsIndex::class)->name('questions.index');
+    Route::post('/questions/import', [QuestionImportController::class, 'store'])->name('questions.import');
     Route::get('/questions/import-template', function () {
         return Excel::download(
             new QuestionsImportTemplateExport,

@@ -5,20 +5,18 @@ namespace App\Livewire\Admin\Users;
 use App\Enums\UserRole;
 use App\Models\Instansi;
 use App\Models\User;
-use App\Services\ParticipantImportService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 #[Layout('layouts.admin')]
 #[Title('Manajemen Pengguna')]
 class Index extends Component
 {
-    use WithFileUploads, WithPagination;
+    use WithPagination;
 
     public string $search = '';
 
@@ -47,8 +45,6 @@ class Index extends Component
     public string $role = 'peserta';
 
     public bool $is_active = true;
-
-    public $importFile;
 
     public bool $showImportModal = false;
 
@@ -195,24 +191,6 @@ class Index extends Component
 
         User::query()->whereKey($userId)->delete();
         session()->flash('success', 'Pengguna berhasil dihapus.');
-    }
-
-    public function importParticipants(ParticipantImportService $importService): void
-    {
-        $this->validate([
-            'importFile' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
-        ]);
-
-        $storedPath = $this->importFile->store('imports/participants', 'local');
-        $result = $importService->import($storedPath);
-
-        $this->showImportModal = false;
-        $this->importFile = null;
-
-        session()->flash(
-            $result['queued'] ? 'info' : 'success',
-            $result['message'],
-        );
     }
 
     public function closeModal(): void

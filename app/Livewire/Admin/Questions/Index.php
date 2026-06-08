@@ -4,7 +4,6 @@ namespace App\Livewire\Admin\Questions;
 
 use App\Enums\QuestionOptionContentType;
 use App\Enums\SubjectCode;
-use App\Imports\QuestionsImport;
 use App\Models\Material;
 use App\Models\Question;
 use App\Models\QuestionOption;
@@ -19,7 +18,6 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
-use Maatwebsite\Excel\Facades\Excel;
 
 #[Layout('layouts.admin')]
 #[Title('Manajemen Soal')]
@@ -56,8 +54,6 @@ class Index extends Component
     public array $optionImages = [];
 
     public int $correctOptionIndex = 0;
-
-    public $importFile;
 
     public function mount(): void
     {
@@ -247,25 +243,6 @@ class Index extends Component
     {
         Question::query()->whereKey($questionId)->delete();
         session()->flash('success', 'Soal berhasil dihapus.');
-    }
-
-    public function importQuestions(): void
-    {
-        $this->validate([
-            'importFile' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
-        ]);
-
-        $storedPath = $this->importFile->store('imports/questions', 'local');
-
-        try {
-            Excel::import(new QuestionsImport(auth()->id()), Storage::disk('local')->path($storedPath));
-        } finally {
-            Storage::disk('local')->delete($storedPath);
-        }
-
-        $this->showImportModal = false;
-        $this->importFile = null;
-        session()->flash('success', 'Soal berhasil diimpor.');
     }
 
     public function setOptionScoreWeight(int $index, mixed $value): void

@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Exceptions\ImportFailedException;
 use App\Imports\ParticipantsImport;
 use App\Imports\ParticipantsRowCounter;
+use App\Support\ImportErrorReport;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException as ExcelValidationException;
 
 class ParticipantImportService
 {
@@ -18,6 +21,15 @@ class ParticipantImportService
     {
         $rowCount = $this->countRows($storedPath);
 
+        if ($rowCount === 0) {
+            throw new ImportFailedException(new ImportErrorReport('Import Peserta Gagal', [[
+                'row' => null,
+                'column' => null,
+                'value' => null,
+                'message' => 'File Excel tidak memiliki baris data. Pastikan sheet berisi header dan minimal 1 baris peserta.',
+            ]]));
+        }
+
         if ($rowCount > self::BACKGROUND_ROW_THRESHOLD) {
             (new ParticipantsImport($storedPath))
                 ->queue($storedPath, 'local');
@@ -29,14 +41,18 @@ class ParticipantImportService
             ];
         }
 
-        Excel::import(new ParticipantsImport($storedPath), Storage::disk('local')->path($storedPath));
+        try {
+            Excel::import(new ParticipantsImport($storedPath), Storage::disk('local')->path($storedPath));
+        } catch (ExcelValidationException $exception) {
+            throw new ImportFailedException(
+                ImportErrorReport::fromExcelValidation($exception, 'Import Peserta Gagal'),
+            );
+        }
 
         return [
             'queued' => false,
             'count' => $rowCount,
-            'message' => $rowCount > 0
-                ? "{$rowCount} peserta berhasil diimpor."
-                : 'Tidak ada data peserta untuk diimpor.',
+            'message' => "{$rowCount} peserta berhasil diimpor.",
         ];
     }
 

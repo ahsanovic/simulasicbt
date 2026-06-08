@@ -5,6 +5,7 @@ namespace App\Providers;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -31,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureDefaults(): void
     {
+        $this->configureLivewireFileUploads();
+
         Date::use(CarbonImmutable::class);
 
         DB::prohibitDestructiveCommands(
@@ -46,5 +49,18 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    protected function configureLivewireFileUploads(): void
+    {
+        $disk = env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK', 'local');
+
+        config(['livewire.temporary_file_upload.disk' => $disk]);
+
+        $directory = config('livewire.temporary_file_upload.directory') ?: 'livewire-tmp';
+
+        if (! Storage::disk($disk)->exists($directory)) {
+            Storage::disk($disk)->makeDirectory($directory);
+        }
     }
 }

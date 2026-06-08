@@ -14,13 +14,21 @@ trait HandlesImportErrors
         string $title,
         Throwable $throwable,
     ): RedirectResponse {
-        if ($throwable instanceof ValidationException) {
-            throw $throwable;
+        $report = ImportErrorReport::fromThrowable($throwable, $title);
+
+        if ($report->total() === 0) {
+            $report = new ImportErrorReport($title, [[
+                'row' => null,
+                'column' => null,
+                'value' => null,
+                'message' => $throwable->getMessage() ?: 'Terjadi kesalahan saat memproses file Excel.',
+            ]]);
         }
 
         return redirect()
             ->route($route)
-            ->with('import_errors', ImportErrorReport::fromThrowable($throwable, $title)->toSession());
+            ->with('import_errors', $report->toSession())
+            ->with('error', $title);
     }
 
     protected function redirectWithValidationImportErrors(
@@ -30,6 +38,7 @@ trait HandlesImportErrors
     ): RedirectResponse {
         return redirect()
             ->route($route)
-            ->with('import_errors', ImportErrorReport::fromValidationException($exception, $title)->toSession());
+            ->with('import_errors', ImportErrorReport::fromValidationException($exception, $title)->toSession())
+            ->with('error', $title);
     }
 }

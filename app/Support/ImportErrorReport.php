@@ -60,6 +60,15 @@ class ImportErrorReport
             ->values()
             ->all();
 
+        if ($errors === []) {
+            $errors[] = [
+                'row' => null,
+                'column' => null,
+                'value' => null,
+                'message' => $exception->getMessage() ?: 'Data Excel tidak valid.',
+            ];
+        }
+
         return new self($title, $errors);
     }
 

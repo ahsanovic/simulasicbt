@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Users;
 
 use App\Enums\UserRole;
+use App\Livewire\Concerns\HandlesImportErrorModal;
 use App\Models\Instansi;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,7 @@ use Livewire\WithPagination;
 #[Title('Manajemen Pengguna')]
 class Index extends Component
 {
-    use WithPagination;
+    use HandlesImportErrorModal, WithPagination;
 
     public string $search = '';
 
@@ -47,6 +48,11 @@ class Index extends Component
     public bool $is_active = true;
 
     public bool $showImportModal = false;
+
+    public function mount(): void
+    {
+        $this->mountImportErrorModal();
+    }
 
     protected function rules(): array
     {

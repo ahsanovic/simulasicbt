@@ -31,6 +31,8 @@ class ParticipantImportService
         }
 
         if ($rowCount > self::BACKGROUND_ROW_THRESHOLD) {
+            Excel::clearResolvedInstance();
+
             (new ParticipantsImport($storedPath))
                 ->queue($storedPath, 'local');
 

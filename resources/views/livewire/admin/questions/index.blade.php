@@ -3,7 +3,7 @@
     @include('livewire.admin.questions.index.table')
     @include('livewire.admin.questions.index.form-modal')
     @include('livewire.admin.questions.index.import-modal')
-    <x-ui.import-error-modal />
+    <x-ui.import-error-modal :show="$showImportErrorModal" :report="$importErrorReport" />
 </div>
 
 @push('scripts')

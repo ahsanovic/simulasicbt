@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Questions;
 
 use App\Enums\QuestionOptionContentType;
 use App\Enums\SubjectCode;
+use App\Livewire\Concerns\HandlesImportErrorModal;
 use App\Models\Material;
 use App\Models\Question;
 use App\Models\QuestionOption;
@@ -23,7 +24,7 @@ use Livewire\WithPagination;
 #[Title('Manajemen Soal')]
 class Index extends Component
 {
-    use WithFileUploads, WithPagination;
+    use HandlesImportErrorModal, WithFileUploads, WithPagination;
 
     public string $search = '';
 
@@ -58,6 +59,7 @@ class Index extends Component
     public function mount(): void
     {
         $this->resetOptions();
+        $this->mountImportErrorModal();
     }
 
     protected function rules(): array

@@ -4,7 +4,7 @@
 
         <div class="mb-8 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 p-6 text-white shadow-xl shadow-primary-500/20 sm:p-8">
             <h1 class="text-2xl font-bold tracking-tight">Halo, {{ auth()->user()->name }} 👋</h1>
-            <p class="mt-2 max-w-lg text-primary-100">Platform simulasi — Anda dapat mengulang tes berkali-kali. Setiap hasil tersimpan di riwayat tes.</p>
+            <p class="mt-2 max-w-lg text-primary-100">Platform simulasi — Anda dapat mengulang tes berkali-kali. <br> Setiap hasil tersimpan di riwayat tes.</p>
         </div>
 
         <div class="mb-6 flex items-center justify-between">
@@ -39,14 +39,14 @@
                             @if($exam->in_progress_attempt)
                                 <button wire:click="startExam({{ $exam->id }})"
                                         @disabled(! $exam->isAvailable())
-                                        class="ui-btn-primary px-6">
+                                        class="ui-btn-success px-6">
                                     Lanjutkan Simulasi →
                                 </button>
                             @else
                                 <button wire:click="startExam({{ $exam->id }})"
                                         @disabled(! $exam->isAvailable())
                                         @class([
-                                            'ui-btn-primary px-6',
+                                            'ui-btn-success px-6',
                                             'opacity-50 cursor-not-allowed' => ! $exam->isAvailable(),
                                         ])>
                                     @if($exam->attempt_count > 0)

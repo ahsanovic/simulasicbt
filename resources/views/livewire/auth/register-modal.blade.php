@@ -63,7 +63,7 @@
                     </div>
                     <div>
                         <label class="ui-label">NIP (PPPK / PPPK Paruh Waktu / Non ASN)</label>
-                        <input type="text" wire:model="registerNip" class="ui-input" placeholder="Nomor Induk Pegawai">
+                        <input type="text" wire:model="registerNip" class="ui-input" placeholder="Nomor Induk Pegawai tanpa spasi atau tanda -">
                         @error('registerNip') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>

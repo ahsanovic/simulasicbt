@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +25,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        URL::forceRootUrl(config('app.url'));
+    
+        // Jika APP_URL menggunakan https, paksa skema URL-nya ke https
+        if (str_contains(config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
         $this->configureDefaults();
     }
 

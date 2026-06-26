@@ -132,7 +132,7 @@ class Login extends Component
             'registerName' => ['required', 'string', 'max:255'],
             'registerEmail' => ['required', 'email', 'max:255', 'unique:users,email'],
             'registerPassword' => ['required', 'string', 'min:8', 'same:registerPasswordConfirmation'],
-            'registerNip' => ['required', 'numeric', 'max:50', 'unique:users,nip'],
+            'registerNip' => ['required', 'string', 'max:50', 'unique:users,nip'],
             'registerInstansiId' => ['required', 'integer', 'exists:instansis,id'],
         ], [
             'registerName.required' => 'nama harus diisi',
@@ -143,7 +143,7 @@ class Login extends Component
             'registerPassword.min' => 'password harus minimal 8 karakter',
             'registerPassword.same' => 'password tidak sama',
             'registerNip.required' => 'nip harus diisi',
-            'registerNip.numeric' => 'nip harus berupa angka',
+            'registerNip.max' => 'nip maksimal 50 karakter',
             'registerNip.unique' => 'nip sudah terdaftar',
             'registerInstansiId.required' => 'instansi harus dipilih',
             'registerInstansiId.integer' => 'instansi harus berupa angka',

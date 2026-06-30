@@ -75,6 +75,18 @@
                     <h1 class="mt-4 text-2xl font-bold text-slate-900">Simulasi CBT</h1>
                     <p class="mt-1 text-sm text-slate-500">Masuk ke akun Anda</p>
                 </div>
+                <div class="mb-6 flex items-center justify-center gap-6 sm:gap-8">
+                    <img
+                        src="{{ asset('images/jatimlogo.png') }}"
+                        alt="Pemerintah Provinsi Jawa Timur"
+                        class="h-14 w-auto max-w-[42%] object-contain sm:h-16"
+                    >
+                    <img
+                        src="{{ asset('images/bkdlogo.png') }}"
+                        alt="BKD Provinsi Jawa Timur"
+                        class="h-14 w-auto max-w-[42%] object-contain sm:h-16"
+                    >
+                </div>
                 <div class="ui-card p-8 shadow-xl shadow-slate-200/60">
                     {{ $slot }}
                 </div>

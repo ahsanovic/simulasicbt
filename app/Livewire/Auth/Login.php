@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -49,15 +48,15 @@ class Login extends Component
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ], [
-            'login.required' => 'email atau username harus diisi',
-            'login.string' => 'email atau username harus berupa string',
+            'login.required' => 'email atau nip harus diisi',
+            'login.string' => 'email atau nip harus berupa string',
             'password.required' => 'password harus diisi',
             'password.string' => 'password harus berupa string',
         ]);
 
         $this->ensureIsNotRateLimited();
 
-        $field = filter_var($this->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $field = filter_var($this->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'nip';
 
         if (! Auth::attempt([$field => $this->login, 'password' => $this->password, 'is_active' => true], $this->remember)) {
             RateLimiter::hit($this->throttleKey());

@@ -41,19 +41,19 @@
                 <div class="mt-8 flex flex-row gap-5">
                     <div class="flex items-center gap-2 bg-white/10 border border-primary-200/20 rounded-xl px-3 py-1.5 text-primary-100 text-sm font-medium shadow-sm">
                         <svg class="w-5 h-5 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-8.66h-1m-14 0h-1m12.02 7.09l-.71-.7m-7.57-7.56l-.71-.71m0 9.2l.71-.7m7.57-7.56l.71-.7"/>
+                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
                         </svg>
                         Terang & Aman
                     </div>
                     <div class="flex items-center gap-2 bg-white/10 border border-primary-200/20 rounded-xl px-3 py-1.5 text-primary-100 text-sm font-medium shadow-sm">
                         <svg class="w-5 h-5 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>
+                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Waktu Real-Time
                     </div>
                     <div class="flex items-center gap-2 bg-white/10 border border-primary-200/20 rounded-xl px-3 py-1.5 text-primary-100 text-sm font-medium shadow-sm">
                         <svg class="w-5 h-5 text-pink-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                         </svg>
                         Simulasi Resmi
                     </div>

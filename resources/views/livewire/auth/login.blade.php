@@ -1,14 +1,14 @@
 <div class="space-y-5">
     <div class="mb-2 hidden lg:block">
         <h2 class="text-xl font-bold text-slate-900">Selamat datang</h2>
-        <p class="mt-1 text-sm text-slate-500">Masuk dengan email atau username Anda</p>
+        <p class="mt-1 text-sm text-slate-500">Masuk dengan email atau NIP Anda</p>
     </div>
 
     <x-ui.flash-toast />
 
     <div>
-        <label for="login" class="ui-label">Email atau Username</label>
-        <input id="login" type="text" wire:model="login" autocomplete="username" class="ui-input" placeholder="username atau email@domain.com">
+        <label for="login" class="ui-label">Email atau NIP</label>
+        <input id="login" type="text" wire:model="login" autocomplete="username" class="ui-input" placeholder="email atau NIP">
         @error('login') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
     </div>
 

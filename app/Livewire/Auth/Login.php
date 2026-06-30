@@ -48,23 +48,37 @@ class Login extends Component
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ], [
-            'login.required' => 'email atau nip harus diisi',
-            'login.string' => 'email atau nip harus berupa string',
+            'login.required' => 'username atau nip harus diisi',
+            'login.string' => 'username atau nip harus berupa string',
             'password.required' => 'password harus diisi',
             'password.string' => 'password harus berupa string',
         ]);
 
         $this->ensureIsNotRateLimited();
 
-        $field = filter_var($this->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'nip';
+        $user = User::query()
+            ->where('is_active', true)
+            ->where('username', $this->login)
+            ->where('role', UserRole::Admin)
+            ->first();
 
-        if (! Auth::attempt([$field => $this->login, 'password' => $this->password, 'is_active' => true], $this->remember)) {
+        if ($user === null) {
+            $user = User::query()
+                ->where('is_active', true)
+                ->where('nip', $this->login)
+                ->where('role', UserRole::Peserta)
+                ->first();
+        }
+
+        if ($user === null || ! Hash::check($this->password, $user->password)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'login' => 'kredensial tidak valid atau akun nonaktif.',
             ]);
         }
+
+        Auth::login($user, $this->remember);
 
         RateLimiter::clear($this->throttleKey());
         session()->regenerate();
@@ -169,7 +183,7 @@ class Login extends Component
         ]);
 
         $this->closeRegisterModal();
-        session()->flash('success', 'Pendaftaran berhasil. Silakan masuk dengan email dan password Anda.');
+        session()->flash('success', 'Pendaftaran berhasil. Silakan masuk dengan NIP dan password Anda.');
     }
 
     protected function redirectAfterLogin(): void

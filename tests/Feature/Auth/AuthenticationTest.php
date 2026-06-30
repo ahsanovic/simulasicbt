@@ -23,7 +23,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create(['role' => UserRole::Admin]);
 
         Livewire::test(Login::class)
-            ->set('login', $user->email)
+            ->set('login', $user->username)
             ->set('password', 'password')
             ->call('authenticate')
             ->assertRedirect(route('admin.dashboard', absolute: false));
@@ -33,10 +33,10 @@ class AuthenticationTest extends TestCase
 
     public function test_peserta_can_authenticate_via_livewire(): void
     {
-        $user = User::factory()->create(['role' => UserRole::Peserta]);
+        $user = User::factory()->pegawai()->create(['role' => UserRole::Peserta]);
 
         Livewire::test(Login::class)
-            ->set('login', $user->email)
+            ->set('login', $user->nip)
             ->set('password', 'password')
             ->call('authenticate')
             ->assertRedirect(route('peserta.dashboard', absolute: false));
@@ -46,10 +46,10 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->pegawai()->create();
 
         Livewire::test(Login::class)
-            ->set('login', $user->email)
+            ->set('login', $user->nip)
             ->set('password', 'wrong-password')
             ->call('authenticate')
             ->assertHasErrors('login');

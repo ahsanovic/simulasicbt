@@ -63,7 +63,7 @@
     <p class="text-center text-xs text-slate-500">Untuk peserta umum (non-pegawai Pemprov Jatim)</p>
 
     <p class="text-center text-sm text-slate-600">
-        Belum punya akun?
+        Anda pegawai Pemprov Jatim?
         <button type="button" wire:click="openRegisterModal" class="font-semibold text-primary-600 hover:text-primary-700">Daftar sekarang</button>
     </p>
 

@@ -22,7 +22,7 @@
 
             @if ($registerStep === 'choose')
                 <div class="space-y-3 p-6">
-                    <a href="{{ route('auth.google.redirect') }}"
+                    {{-- <a href="{{ route('auth.google.redirect') }}"
                        class="flex items-start gap-4 rounded-2xl border-2 border-slate-200 p-4 transition hover:border-primary-300 hover:bg-primary-50/40">
                         <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700">
                             <x-ui.icon name="users" class="h-6 w-6" />
@@ -31,7 +31,7 @@
                             <p class="font-bold text-slate-900">Peserta Umum</p>
                             <p class="mt-1 text-sm text-slate-500">Daftar dan masuk menggunakan akun Google</p>
                         </div>
-                    </a>
+                    </a> --}}
 
                     <button type="button"
                             wire:click="selectRegisterPegawai"

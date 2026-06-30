@@ -36,6 +36,10 @@
     body {
         @apply bg-surface-muted text-slate-800 antialiased;
     }
+
+    button {
+        @apply cursor-pointer disabled:cursor-not-allowed;
+    }
 }
 
 @layer components {

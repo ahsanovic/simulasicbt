@@ -50,6 +50,7 @@
         <div class="relative flex justify-center text-xs font-medium uppercase tracking-wider text-slate-400"><span class="bg-white px-3">atau</span></div>
     </div>
 
+    <p class="text-center text-xs text-slate-500">Untuk masyarakat umum (non-pegawai Pemprov Jatim)</p>
     <a href="{{ route('auth.google.redirect') }}"
        class="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
         <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -60,7 +61,11 @@
         </svg>
         Masuk / Daftar dengan Google
     </a>
-    <p class="text-center text-xs text-slate-500">Untuk peserta umum (non-pegawai Pemprov Jatim)</p>
+
+    <div class="relative py-1">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+        <div class="relative flex justify-center text-xs font-medium uppercase tracking-wider text-slate-400"><span class="bg-white px-3">atau</span></div>
+    </div>
 
     <p class="text-center text-sm text-slate-600">
         Anda pegawai Pemprov Jatim?

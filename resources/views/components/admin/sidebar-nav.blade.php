@@ -4,6 +4,7 @@
         ['route' => 'admin.users.index', 'label' => 'Pengguna', 'icon' => 'users'],
         ['route' => 'admin.questions.index', 'label' => 'Bank Soal', 'icon' => 'questions'],
         ['route' => 'admin.exams.index', 'label' => 'Ujian', 'icon' => 'exams'],
+        ['route' => 'admin.online-participants.index', 'label' => 'Peserta Ujian', 'icon' => 'online'],
         ['route' => 'admin.results.index', 'label' => 'Hasil Ujian', 'icon' => 'results'],
         ['route' => 'admin.reports.index', 'label' => 'Laporan', 'icon' => 'reports'],
         ['route' => 'admin.settings.index', 'label' => 'Pengaturan', 'icon' => 'settings'],

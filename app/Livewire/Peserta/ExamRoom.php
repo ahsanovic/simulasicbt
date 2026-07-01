@@ -81,11 +81,7 @@ class ExamRoom extends Component
 
     public function getRemainingSecondsProperty(): int
     {
-        if (now()->gte($this->attempt->expires_at)) {
-            return 0;
-        }
-
-        return (int) now()->diffInSeconds($this->attempt->expires_at);
+        return $this->attempt->remainingSeconds();
     }
 
     public function selectOption(int $optionId): void

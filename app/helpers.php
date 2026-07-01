@@ -38,6 +38,32 @@ if (! function_exists('exam_score_passes')) {
     }
 }
 
+if (! function_exists('format_exam_remaining_time')) {
+    function format_exam_remaining_time(int $seconds): string
+    {
+        if ($seconds <= 0) {
+            return '0 menit';
+        }
+
+        if ($seconds < 60) {
+            return $seconds.' detik';
+        }
+
+        $minutes = (int) ceil($seconds / 60);
+
+        if ($minutes < 60) {
+            return $minutes.' menit';
+        }
+
+        $hours = intdiv($minutes, 60);
+        $remainingMinutes = $minutes % 60;
+
+        return $remainingMinutes > 0
+            ? "{$hours} jam {$remainingMinutes} menit"
+            : "{$hours} jam";
+    }
+}
+
 if (! function_exists('exam_attempt_passes')) {
     function exam_attempt_passes(mixed $twk, mixed $tiu, mixed $tkp, mixed $total): bool
     {

@@ -58,6 +58,15 @@ class ExamAttempt extends Model
             && now()->lt($this->expires_at);
     }
 
+    public function remainingSeconds(): int
+    {
+        if (now()->gte($this->expires_at)) {
+            return 0;
+        }
+
+        return (int) now()->diffInSeconds($this->expires_at);
+    }
+
     public function isReviewable(): bool
     {
         return in_array($this->status, [

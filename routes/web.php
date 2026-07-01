@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
+use App\Livewire\Admin\OnlineParticipants\Index as OnlineParticipantsIndex;
 use App\Livewire\Admin\Questions\Index as QuestionsIndex;
 use App\Livewire\Admin\Reports\Index as ReportsIndex;
 use App\Livewire\Admin\Results\Index as ResultsIndex;
@@ -60,6 +61,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         );
     })->name('questions.import-template');
     Route::get('/exams', ExamsIndex::class)->name('exams.index');
+    Route::get('/peserta-ujian', OnlineParticipantsIndex::class)->name('online-participants.index');
     Route::get('/results', ResultsIndex::class)->name('results.index');
     Route::get('/reports', ReportsIndex::class)->name('reports.index');
     Route::get('/reports/export-participants', function () {

@@ -17,7 +17,12 @@ class Index extends Component
     public function activeAttempts()
     {
         return ExamAttempt::query()
-            ->with(['user.instansi', 'exam'])
+            ->with([
+                'user.instansi',
+                'exam',
+                'answers.selectedOption',
+                'answers.question.subject',
+            ])
             ->where('status', ExamAttemptStatus::InProgress)
             ->where('expires_at', '>', now())
             ->latest('started_at')
@@ -26,6 +31,8 @@ class Index extends Component
 
     public function render()
     {
-        return view('livewire.admin.online-participants.index');
+        return view('livewire.admin.online-participants.index', [
+            'passingGrades' => exam_passing_grades(),
+        ]);
     }
 }

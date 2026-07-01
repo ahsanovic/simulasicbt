@@ -67,6 +67,30 @@ class ExamAttempt extends Model
         return (int) now()->diffInSeconds($this->expires_at);
     }
 
+    /** @return array{twk: int, tiu: int, tkp: int, total: int} */
+    public function calculateScores(): array
+    {
+        $this->loadMissing(['answers.selectedOption', 'answers.question.subject']);
+
+        $scores = [
+            'twk' => 0,
+            'tiu' => 0,
+            'tkp' => 0,
+        ];
+
+        foreach ($this->answers as $answer) {
+            if (! $answer->selected_option_id || ! $answer->question?->subject) {
+                continue;
+            }
+
+            $scores[$answer->question->subject->code->value] += $answer->earnedPoints();
+        }
+
+        $scores['total'] = array_sum($scores);
+
+        return $scores;
+    }
+
     public function isReviewable(): bool
     {
         return in_array($this->status, [

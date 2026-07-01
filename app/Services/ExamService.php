@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\ExamAttemptStatus;
-use App\Enums\SubjectCode;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
@@ -66,37 +65,15 @@ class ExamService
 
             $attempt->load(['answers.selectedOption', 'answers.question.subject']);
 
-            $scores = [
-                SubjectCode::Twk->value => 0,
-                SubjectCode::Tiu->value => 0,
-                SubjectCode::Tkp->value => 0,
-            ];
-
-            foreach ($attempt->answers as $answer) {
-                if (! $answer->selected_option_id) {
-                    continue;
-                }
-
-                $subjectCode = $answer->question->subject->code;
-                $option = $answer->selectedOption;
-
-                if (! $option || $option->question_id !== $answer->question_id) {
-                    continue;
-                }
-
-                $scores[$subjectCode->value] += $subjectCode->pointsFromSelectedOption(
-                    $option->score_weight,
-                    $option->is_correct,
-                );
-            }
+            $scores = $attempt->calculateScores();
 
             $attempt->update([
                 'status' => ExamAttemptStatus::Submitted,
                 'submitted_at' => now(),
-                'score_twk' => $scores[SubjectCode::Twk->value],
-                'score_tiu' => $scores[SubjectCode::Tiu->value],
-                'score_tkp' => $scores[SubjectCode::Tkp->value],
-                'total_score' => array_sum($scores),
+                'score_twk' => $scores['twk'],
+                'score_tiu' => $scores['tiu'],
+                'score_tkp' => $scores['tkp'],
+                'total_score' => $scores['total'],
             ]);
 
             return $attempt->fresh();

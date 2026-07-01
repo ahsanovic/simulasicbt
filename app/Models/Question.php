@@ -47,4 +47,28 @@ class Question extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function usesWeightedScoring(): bool
+    {
+        return $this->subject->code->usesWeightedScoring();
+    }
+
+    public function correctOption(): ?QuestionOption
+    {
+        return $this->options->firstWhere('is_correct', true);
+    }
+
+    public function maxScoreWeight(): int
+    {
+        return (int) ($this->options->max('score_weight') ?? 1);
+    }
+
+    public function isKeyOption(QuestionOption $option): bool
+    {
+        if ($this->usesWeightedScoring()) {
+            return (int) $option->score_weight === $this->maxScoreWeight();
+        }
+
+        return $option->is_correct;
+    }
 }

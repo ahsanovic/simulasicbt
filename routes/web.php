@@ -16,6 +16,7 @@ use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\ExamHistory;
+use App\Livewire\Peserta\ExamReview;
 use App\Livewire\Peserta\ExamRoom;
 use App\Models\Instansi;
 use Illuminate\Support\Facades\Route;
@@ -78,5 +79,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 Route::middleware(['auth', 'peserta'])->prefix('peserta')->name('peserta.')->group(function () {
     Route::get('/', PesertaDashboard::class)->name('dashboard');
     Route::get('/riwayat', ExamHistory::class)->name('history');
+    Route::get('/riwayat/{attempt}/review', ExamReview::class)->name('exam.review');
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
 });

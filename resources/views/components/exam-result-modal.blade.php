@@ -162,13 +162,20 @@
                 </p>
             </div>
 
-            <button
-                type="button"
-                wire:click="closeResultModal"
-                class="ui-btn-primary w-full py-3 text-sm font-semibold"
-            >
-                Tutup & Lihat Riwayat
-            </button>
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <a href="{{ route('peserta.exam.review', $attempt) }}"
+                   wire:navigate
+                   class="ui-btn-success flex-1 py-3 text-center text-sm font-semibold">
+                    Kunci Jawaban dan Pembahasan
+                </a>
+                <button
+                    type="button"
+                    wire:click="closeResultModal"
+                    class="ui-btn-primary flex-1 py-3 text-sm font-semibold"
+                >
+                    Tutup & Lihat Riwayat
+                </button>
+            </div>
         </div>
     </div>
 </div>

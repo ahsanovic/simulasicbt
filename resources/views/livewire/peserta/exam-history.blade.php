@@ -16,19 +16,19 @@
         </div>
 
         <div class="mb-6 grid gap-4 sm:grid-cols-3">
-            <div class="ui-card p-5">
+            <div class="ui-card border-slate-200/70 bg-gradient-to-br from-slate-50 to-slate-100/60 p-5">
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Simulasi</p>
                 <p class="mt-1 text-3xl font-bold text-slate-900">{{ number_format($stats['total']) }}</p>
             </div>
-            <div class="ui-card p-5">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Rata-rata Skor Total</p>
+            <div class="ui-card border-primary-100 bg-gradient-to-br from-primary-50/90 via-white to-indigo-50/70 p-5">
+                <p class="text-xs font-semibold uppercase tracking-wider text-primary-600/80">Rata-rata Skor Total</p>
                 <p class="mt-1 text-3xl font-bold text-primary-700">{{ format_exam_score($stats['average']) }}</p>
             </div>
-            <div class="ui-card p-5">
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lulus Ambang Batas</p>
+            <div class="ui-card border-emerald-100 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/70 p-5">
+                <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600/80">Lulus Ambang Batas</p>
                 <p class="mt-1 text-3xl font-bold text-emerald-700">{{ number_format($stats['passed']) }}</p>
                 @if ($stats['total'] > 0)
-                    <p class="mt-1 text-xs text-slate-500">{{ round(($stats['passed'] / $stats['total']) * 100) }}% dari total simulasi</p>
+                    <p class="mt-1 text-xs text-emerald-600/70">{{ round(($stats['passed'] / $stats['total']) * 100) }}% dari total simulasi</p>
                 @endif
             </div>
         </div>
@@ -46,10 +46,16 @@
                     );
                 @endphp
                 <article wire:key="history-{{ $attempt->id }}" @class([
-                    'ui-card overflow-hidden transition hover:shadow-md hover:shadow-slate-200/60',
+                    'overflow-hidden rounded-2xl border shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-lg',
+                    'border-emerald-200/70 bg-gradient-to-br from-emerald-50/40 via-white to-teal-50/50 shadow-emerald-100/50 hover:shadow-emerald-200/40' => $passes,
+                    'border-rose-200/60 bg-gradient-to-br from-rose-50/35 via-white to-amber-50/45 shadow-rose-100/40 hover:shadow-rose-200/35' => ! $passes,
                     'ring-2 ring-primary-400 ring-offset-2' => $resultAttempt && $attempt->id === $resultAttempt->id,
                 ])>
-                    <div class="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/40 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div @class([
+                        'flex flex-col gap-4 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between',
+                        'border-emerald-100/80 bg-gradient-to-r from-emerald-50/90 to-teal-50/60' => $passes,
+                        'border-rose-100/70 bg-gradient-to-r from-rose-50/80 to-orange-50/50' => ! $passes,
+                    ])>
                         <div class="min-w-0">
                             <h2 class="truncate text-base font-bold text-slate-900">{{ $attempt->exam->title }}</h2>
                             <p class="mt-1 text-sm text-slate-500">
@@ -78,7 +84,11 @@
                         </div>
                     </div>
 
-                    <div class="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+                    <div @class([
+                        'grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4',
+                        'bg-white/40' => $passes,
+                        'bg-white/50' => ! $passes,
+                    ])>
                         <x-exam-score-threshold
                             label="TWK"
                             :value="$attempt->score_twk"
@@ -108,9 +118,22 @@
                             color="primary"
                         />
                     </div>
+
+                    <div @class([
+                        'border-t px-5 py-4',
+                        'border-emerald-100/70 bg-gradient-to-r from-emerald-50/50 to-white/80' => $passes,
+                        'border-rose-100/60 bg-gradient-to-r from-rose-50/40 to-white/80' => ! $passes,
+                    ])>
+                        <a href="{{ route('peserta.exam.review', $attempt) }}"
+                           wire:navigate
+                           class="ui-btn-success inline-flex w-full items-center justify-center gap-2 sm:w-auto">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Kunci Jawaban dan Pembahasan
+                        </a>
+                    </div>
                 </article>
             @empty
-                <div class="ui-card flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div class="ui-card flex flex-col items-center justify-center border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-primary-50/30 px-6 py-16 text-center">
                     <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
                         <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
                     </div>

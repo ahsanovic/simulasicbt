@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ExamAttemptStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -55,5 +56,36 @@ class ExamAttempt extends Model
     {
         return $this->status === ExamAttemptStatus::InProgress
             && now()->lt($this->expires_at);
+    }
+
+    public function isReviewable(): bool
+    {
+        return in_array($this->status, [
+            ExamAttemptStatus::Submitted,
+            ExamAttemptStatus::Expired,
+        ], true);
+    }
+
+    public function scopeReviewableForUser(Builder $query, int $userId): Builder
+    {
+        return $query
+            ->where('user_id', $userId)
+            ->whereIn('status', [
+                ExamAttemptStatus::Submitted,
+                ExamAttemptStatus::Expired,
+            ]);
+    }
+
+    public static function findReviewableForUser(int $attemptId, int $userId): self
+    {
+        return static::query()
+            ->reviewableForUser($userId)
+            ->with([
+                'exam',
+                'answers.question.subject',
+                'answers.question.options',
+                'answers.selectedOption',
+            ])
+            ->findOrFail($attemptId);
     }
 }

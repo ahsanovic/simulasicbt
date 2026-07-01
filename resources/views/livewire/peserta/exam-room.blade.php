@@ -1,6 +1,5 @@
 <div class="min-h-screen bg-slate-100"
      wire:key="exam-room-{{ $attempt->id }}"
-     x-data="examTimer({{ $this->remainingSeconds }})"
      wire:poll.30s="checkExpiry">
 
     @include('livewire.peserta.exam-room.header')

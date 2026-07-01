@@ -34,6 +34,14 @@
         />
     </div>
 
+    <div class="mt-8">
+        @island(name: 'active-exams')
+            <div wire:poll.10s.visible>
+                @include('livewire.admin.dashboard.active-exams')
+            </div>
+        @endisland
+    </div>
+
     <div class="mt-8 grid gap-5 lg:grid-cols-2">
         <div class="ui-card p-6">
             <h2 class="text-base font-bold text-slate-900">Selamat datang kembali</h2>

@@ -89,13 +89,27 @@ trait ValidatesQuestionImportRows
         $weights = [];
 
         foreach (['a', 'b', 'c', 'd', 'e'] as $label) {
-            $weight = (int) ($row["weight_{$label}"] ?? 0);
+            $weightKey = "weight_{$label}";
+            $rawWeight = $row[$weightKey] ?? null;
+
+            if ($this->importCellIsBlank($rawWeight)) {
+                $errors[] = [
+                    'row' => $rowNumber,
+                    'column' => 'Bobot '.strtoupper($label),
+                    'value' => $rawWeight,
+                    'message' => 'Bobot TKP wajib diisi.',
+                ];
+
+                continue;
+            }
+
+            $weight = (int) $rawWeight;
 
             if ($weight < 1 || $weight > 5) {
                 $errors[] = [
                     'row' => $rowNumber,
                     'column' => 'Bobot '.strtoupper($label),
-                    'value' => $row["weight_{$label}"] ?? null,
+                    'value' => $rawWeight,
                     'message' => 'Bobot TKP harus bernilai 1 sampai 5.',
                 ];
             } else {
@@ -141,17 +155,37 @@ trait ValidatesQuestionImportRows
      */
     protected function collectNonTkpQuestionErrors(Collection|array $row, int $rowNumber): array
     {
+        $errors = [];
+
+        foreach (['a', 'b', 'c', 'd', 'e'] as $label) {
+            $optionKey = "option_{$label}";
+
+            if ($this->importCellIsBlank($row[$optionKey] ?? null)) {
+                $errors[] = [
+                    'row' => $rowNumber,
+                    'column' => 'Opsi '.strtoupper($label),
+                    'value' => $row[$optionKey] ?? null,
+                    'message' => 'Pilihan jawaban wajib diisi.',
+                ];
+            }
+        }
+
         $correctOption = strtoupper(trim((string) ($row['correct_option'] ?? '')));
 
         if ($correctOption === '' || ! in_array($correctOption, ['A', 'B', 'C', 'D', 'E'], true)) {
-            return [[
+            $errors[] = [
                 'row' => $rowNumber,
                 'column' => 'Jawaban Benar',
                 'value' => $row['correct_option'] ?? null,
                 'message' => 'Jawaban benar wajib diisi dengan A, B, C, D, atau E.',
-            ]];
+            ];
         }
 
-        return [];
+        return $errors;
+    }
+
+    protected function importCellIsBlank(mixed $value): bool
+    {
+        return trim((string) ($value ?? '')) === '';
     }
 }

@@ -43,16 +43,16 @@
                         </td>
                         <td class="px-5 py-4 font-medium text-slate-700">{{ $attempt->exam->title }}</td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['twk']" :threshold="$passingGrades['twk']" color="blue" />
+                            <x-exam-score-cell :value="$scores['twk']" :threshold="$this->passingGrades['twk']" color="blue" />
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['tiu']" :threshold="$passingGrades['tiu']" color="amber" />
+                            <x-exam-score-cell :value="$scores['tiu']" :threshold="$this->passingGrades['tiu']" color="amber" />
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['tkp']" :threshold="$passingGrades['tkp']" color="violet" />
+                            <x-exam-score-cell :value="$scores['tkp']" :threshold="$this->passingGrades['tkp']" color="violet" />
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['total']" :threshold="$passingGrades['total']" color="primary" />
+                            <x-exam-score-cell :value="$scores['total']" :threshold="$this->passingGrades['total']" color="primary" />
                         </td>
                         <td class="px-5 py-4 text-center">
                             <span @class([

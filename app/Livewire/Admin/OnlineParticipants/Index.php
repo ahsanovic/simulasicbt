@@ -14,6 +14,12 @@ use Livewire\Component;
 class Index extends Component
 {
     #[Computed]
+    public function passingGrades(): array
+    {
+        return exam_passing_grades();
+    }
+
+    #[Computed]
     public function activeAttempts()
     {
         return ExamAttempt::query()
@@ -31,8 +37,6 @@ class Index extends Component
 
     public function render()
     {
-        return view('livewire.admin.online-participants.index', [
-            'passingGrades' => exam_passing_grades(),
-        ]);
+        return view('livewire.admin.online-participants.index');
     }
 }

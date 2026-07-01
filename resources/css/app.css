@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 
 @source '../views';
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../views/vendor/pagination/*.blade.php';
+@source '../views/vendor/livewire/*.blade.php';
 
 [x-cloak] {
     display: none !important;

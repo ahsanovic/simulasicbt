@@ -170,15 +170,26 @@ trait ValidatesQuestionImportRows
             }
         }
 
-        $correctOption = strtoupper(trim((string) ($row['correct_option'] ?? '')));
+        $correctOptionRaw = $row['correct_option'] ?? null;
 
-        if ($correctOption === '' || ! in_array($correctOption, ['A', 'B', 'C', 'D', 'E'], true)) {
+        if ($this->importCellIsBlank($correctOptionRaw)) {
             $errors[] = [
                 'row' => $rowNumber,
                 'column' => 'Jawaban Benar',
-                'value' => $row['correct_option'] ?? null,
-                'message' => 'Jawaban benar wajib diisi dengan A, B, C, D, atau E.',
+                'value' => $correctOptionRaw,
+                'message' => 'Jawaban benar wajib diisi.',
             ];
+        } else {
+            $correctOption = strtoupper(trim((string) $correctOptionRaw));
+
+            if (! in_array($correctOption, ['A', 'B', 'C', 'D', 'E'], true)) {
+                $errors[] = [
+                    'row' => $rowNumber,
+                    'column' => 'Jawaban Benar',
+                    'value' => $correctOptionRaw,
+                    'message' => 'Jawaban benar harus A, B, C, D, atau E.',
+                ];
+            }
         }
 
         return $errors;

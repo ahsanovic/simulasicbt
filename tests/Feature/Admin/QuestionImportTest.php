@@ -120,6 +120,58 @@ class QuestionImportTest extends TestCase
         $followUp->assertSee('Bobot TKP wajib diisi.', false);
     }
 
+    public function test_twk_import_requires_correct_option(): void
+    {
+        $this->createImportSubjectsAndMaterials();
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = implode("\n", [
+            self::CSV_HEADER,
+            'twk,nasionalisme,Soal TWK,,,Pilihan A,Pilihan B,Pilihan C,Pilihan D,Pilihan E,,,,,,',
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('soal.csv', $csv);
+
+        $response = $this->actingAs($admin)
+            ->post(route('admin.questions.import'), ['file' => $file]);
+
+        $response->assertRedirect(route('admin.questions.index'));
+        $response->assertSessionHas('import_errors');
+
+        $followUp = $this->actingAs($admin)->get(route('admin.questions.index'));
+
+        $followUp->assertOk();
+        $followUp->assertSee('Jawaban Benar', false);
+        $followUp->assertSee('Jawaban benar wajib diisi.', false);
+    }
+
+    public function test_tiu_import_requires_correct_option(): void
+    {
+        $this->createImportSubjectsAndMaterials();
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = implode("\n", [
+            self::CSV_HEADER,
+            'tiu,analogi-verbal,Soal TIU,,,Pilihan A,Pilihan B,Pilihan C,Pilihan D,Pilihan E,,,,,,',
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('soal.csv', $csv);
+
+        $response = $this->actingAs($admin)
+            ->post(route('admin.questions.import'), ['file' => $file]);
+
+        $response->assertRedirect(route('admin.questions.index'));
+        $response->assertSessionHas('import_errors');
+
+        $followUp = $this->actingAs($admin)->get(route('admin.questions.index'));
+
+        $followUp->assertOk();
+        $followUp->assertSee('Jawaban Benar', false);
+        $followUp->assertSee('Jawaban benar wajib diisi.', false);
+    }
+
     private function createImportSubjectsAndMaterials(): void
     {
         $twkSubject = Subject::query()->create([

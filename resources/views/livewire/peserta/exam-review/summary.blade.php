@@ -2,8 +2,16 @@
     @php
         $outcome = $this->currentAnswer->reviewOutcome();
         $question = $this->currentAnswer->question;
-        $subjectCode = $question->subject->code->value;
     @endphp
+
+    @if (! $question)
+        <div class="ui-card flex flex-wrap items-center gap-3 p-4">
+            <span class="ui-badge bg-amber-100 text-amber-800">Soal tidak tersedia</span>
+        </div>
+    @else
+        @php
+            $subjectCode = $question->subject->code->value;
+        @endphp
 
     <div class="ui-card flex flex-wrap items-center gap-3 p-4">
         <span @class([
@@ -26,4 +34,5 @@
             </span>
         @endif
     </div>
+    @endif
 @endif

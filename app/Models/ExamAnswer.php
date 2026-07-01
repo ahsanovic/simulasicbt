@@ -42,6 +42,10 @@ class ExamAnswer extends Model
 
     public function reviewOutcome(): AnswerReviewOutcome
     {
+        if (! $this->question) {
+            return AnswerReviewOutcome::Unanswered;
+        }
+
         if (! $this->selected_option_id || ! $this->selectedOption) {
             return AnswerReviewOutcome::Unanswered;
         }
@@ -62,7 +66,7 @@ class ExamAnswer extends Model
 
     public function earnedPoints(): int
     {
-        if (! $this->selectedOption) {
+        if (! $this->question || ! $this->selectedOption) {
             return 0;
         }
 

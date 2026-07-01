@@ -77,6 +77,26 @@ class ExamReviewTest extends TestCase
             ->assertSee(route('peserta.exam.review', $attempt, false));
     }
 
+    public function test_review_handles_deleted_question_without_server_error(): void
+    {
+        [$user, $attempt] = $this->createSubmittedAttemptWithQuestions();
+
+        $deletedAnswer = $attempt->answers()->orderBy('sort_order')->first();
+        Question::query()->whereKey($deletedAnswer->question_id)->delete();
+
+        $this->actingAs($user)
+            ->get(route('peserta.exam.review', $attempt))
+            ->assertOk()
+            ->assertDontSee('Server Error', false);
+
+        Livewire::actingAs($user)
+            ->test(ExamReview::class, ['attempt' => $attempt->fresh()])
+            ->call('goToQuestion', 0)
+            ->assertHasNoErrors()
+            ->assertSet('currentIndex', 1)
+            ->assertSessionHas('warning', 'Soal tidak tersedia karena telah dihapus.');
+    }
+
     /**
      * @return array{0: User, 1: ExamAttempt}
      */

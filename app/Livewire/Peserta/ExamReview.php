@@ -23,6 +23,7 @@ class ExamReview extends Component
     public function mount(ExamAttempt $attempt): void
     {
         $this->attempt = ExamAttempt::findReviewableForUser($attempt->id, auth()->id());
+        $this->ensureCurrentQuestionExists();
     }
 
     public function getAnswersProperty()
@@ -50,25 +51,65 @@ class ExamReview extends Component
 
     public function goToQuestion(int $index): void
     {
-        if ($index < 0 || $index >= $this->answers->count()) {
-            return;
-        }
-
-        $this->currentIndex = $index;
+        $this->tryNavigateToIndex($index, notifyWhenMissing: true);
     }
 
     public function previous(): void
     {
-        if ($this->currentIndex > 0) {
-            $this->currentIndex--;
+        if ($this->currentIndex <= 0) {
+            return;
         }
+
+        $this->tryNavigateToIndex($this->currentIndex - 1, notifyWhenMissing: true);
     }
 
     public function next(): void
     {
-        if ($this->currentIndex < $this->answers->count() - 1) {
-            $this->currentIndex++;
+        if ($this->currentIndex >= $this->answers->count() - 1) {
+            return;
         }
+
+        $this->tryNavigateToIndex($this->currentIndex + 1, notifyWhenMissing: true);
+    }
+
+    private function ensureCurrentQuestionExists(): void
+    {
+        if ($this->answers->isEmpty()) {
+            return;
+        }
+
+        if ($this->answers[$this->currentIndex]?->question) {
+            return;
+        }
+
+        foreach ($this->answers as $index => $answer) {
+            if ($answer->question) {
+                $this->currentIndex = $index;
+
+                return;
+            }
+        }
+    }
+
+    private function tryNavigateToIndex(int $index, bool $notifyWhenMissing = false): bool
+    {
+        if ($index < 0 || $index >= $this->answers->count()) {
+            return false;
+        }
+
+        $answer = $this->answers[$index];
+
+        if (! $answer->question) {
+            if ($notifyWhenMissing) {
+                session()->flash('warning', 'Soal tidak tersedia karena telah dihapus.');
+            }
+
+            return false;
+        }
+
+        $this->currentIndex = $index;
+
+        return true;
     }
 
     public function render()

@@ -12,6 +12,7 @@ use App\Livewire\Admin\Questions\Index as QuestionsIndex;
 use App\Livewire\Admin\Reports\Index as ReportsIndex;
 use App\Livewire\Admin\Results\Index as ResultsIndex;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
+use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
@@ -42,6 +43,7 @@ Route::post('logout', function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', Dashboard::class)->name('dashboard');
     Route::get('/users', UsersIndex::class)->name('users.index');
+    Route::get('/users/{user}/riwayat', UserExamHistory::class)->name('users.exam-history');
     Route::post('/users/import', [ParticipantImportController::class, 'store'])->name('users.import');
     Route::get('/users/import-template', function () {
         return Excel::download(

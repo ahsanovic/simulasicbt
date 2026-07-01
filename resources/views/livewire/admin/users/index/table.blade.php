@@ -7,6 +7,8 @@
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Kontak</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Role</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Waktu Daftar</th>
+                    <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Riwayat Tes</th>
                     <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Aksi</th>
                 </tr>
             </thead>
@@ -49,6 +51,17 @@
                                 'bg-rose-100 text-rose-700' => ! $user->is_active,
                             ])>{{ $user->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                         </td>
+                        <td class="px-5 py-4 text-slate-500">
+                            <p>{{ $user->created_at->format('d M Y') }}</p>
+                            <p class="text-xs">{{ $user->created_at->format('H:i') }}</p>
+                        </td>
+                        <td class="px-5 py-4 text-center">
+                            @if ($user->role->value === 'peserta')
+                                <a href="{{ route('admin.users.exam-history', $user) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5">Lihat</a>
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
                         <td class="px-5 py-4 text-right">
                             <button wire:click="openEditModal({{ $user->id }})" class="ui-btn-ghost px-3 py-1.5">Edit</button>
                             <button wire:click="delete({{ $user->id }})" wire:confirm="Hapus pengguna ini?" class="ui-btn-ghost px-3 py-1.5 text-rose-600 hover:bg-rose-50 hover:text-rose-700">Hapus</button>
@@ -56,7 +69,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-5 py-12 text-center text-slate-500">Belum ada data pengguna.</td>
+                        <td colspan="7" class="px-5 py-12 text-center text-slate-500">Belum ada data pengguna.</td>
                     </tr>
                 @endforelse
             </tbody>

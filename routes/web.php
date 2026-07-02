@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ParticipantImportController;
 use App\Http\Controllers\Admin\QuestionContentImageController;
 use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\PublicStorageController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
 use App\Livewire\Admin\OnlineParticipants\Index as OnlineParticipantsIndex;
@@ -25,6 +26,18 @@ use App\Models\Instansi;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+
+Route::get('storage/{path}', [PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('storage.public');
+
+$appBasePath = trim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
+
+if ($appBasePath !== '') {
+    Route::get($appBasePath.'/storage/{path}', [PublicStorageController::class, 'show'])
+        ->where('path', '.*')
+        ->name('storage.public.prefixed');
+}
 
 Route::redirect('/', '/login');
 

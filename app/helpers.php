@@ -10,7 +10,7 @@ if (! function_exists('storage_asset')) {
         $path = ltrim($path, '/');
 
         if (str_starts_with($path, 'storage/')) {
-            return asset($path);
+            $path = substr($path, strlen('storage/'));
         }
 
         return asset('storage/'.$path);

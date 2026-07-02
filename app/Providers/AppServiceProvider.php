@@ -33,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureDefaults(): void
     {
+        $this->configureAppUrl();
         $this->configureLivewireFileUploads();
 
         Date::use(CarbonImmutable::class);
@@ -50,6 +51,17 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    protected function configureAppUrl(): void
+    {
+        $appUrl = config('app.url');
+
+        if (! is_string($appUrl) || $appUrl === '') {
+            return;
+        }
+
+        URL::forceRootUrl(rtrim($appUrl, '/'));
     }
 
     protected function configureLivewireFileUploads(): void

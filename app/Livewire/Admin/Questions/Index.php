@@ -175,6 +175,12 @@ class Index extends Component
         $path = $this->editorImage->store('question-content', 'public');
         $this->editorImage = null;
 
+        if (! Storage::disk('public')->exists($path)) {
+            throw ValidationException::withMessages([
+                'editorImage' => 'File gambar gagal disimpan ke storage.',
+            ]);
+        }
+
         return storage_asset($path);
     }
 

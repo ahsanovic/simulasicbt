@@ -23,7 +23,7 @@ class QuestionContentImageController extends Controller
         $path = $validated['image']->store('question-content', 'public');
 
         return response()->json([
-            'url' => '/storage/'.$path,
+            'url' => storage_asset($path),
         ]);
     }
 }

@@ -19,11 +19,34 @@ class HtmlSanitizer
         return $this->normalizeStorageUrls($html);
     }
 
+    public function resolveForDisplay(?string $html): ?string
+    {
+        if ($html === null || trim($html) === '') {
+            return $html;
+        }
+
+        return preg_replace_callback(
+            '#\bsrc=(["\'])(?!https?://)((?:/)?storage/[^"\']+)\1#i',
+            function (array $matches): string {
+                $path = ltrim($matches[2], '/');
+
+                return 'src='.$matches[1].storage_asset($path).$matches[1];
+            },
+            $html
+        ) ?? $html;
+    }
+
     private function normalizeStorageUrls(string $html): string
     {
+        $html = preg_replace(
+            '#https?://[^/"\'\s]+(?:/[^/"\']*)*/storage/([^"\'\s>]+)#i',
+            'storage/$1',
+            $html
+        ) ?? $html;
+
         return preg_replace(
-            '#https?://[^/"\'\s]+(/storage/[^"\'\s>]+)#i',
-            '$1',
+            '#(?<=["\'])/storage/([^"\'\s>]+)#i',
+            'storage/$1',
             $html
         ) ?? $html;
     }

@@ -19,6 +19,10 @@ class StorageImage extends BaseImage {
 
 Quill.register(StorageImage, true);
 
+function appUrl() {
+    return document.querySelector('meta[name="app-url"]')?.content?.replace(/\/$/, '') ?? window.location.origin;
+}
+
 function editorImageUrl(path) {
     if (typeof path !== 'string' || path === '') {
         return '';
@@ -28,7 +32,23 @@ function editorImageUrl(path) {
         return path;
     }
 
-    return `${window.location.origin}${path.startsWith('/') ? path : `/${path}`}`;
+    const normalized = path.replace(/^\/+/, '');
+
+    return `${appUrl()}/${normalized}`;
+}
+
+function resolveStorageUrlsInHtml(html) {
+    if (typeof html !== 'string' || html === '') {
+        return html;
+    }
+
+    const base = appUrl();
+
+    return html.replace(/\bsrc=(["'])(?!https?:\/\/)(\/?storage\/[^"']+)\1/gi, (match, quote, path) => {
+        const normalized = path.replace(/^\/+/, '');
+
+        return `src=${quote}${base}/${normalized}${quote}`;
+    });
 }
 
 function insertImage(quill, index, path) {
@@ -136,7 +156,7 @@ window.initQuestionContentEditor = function initQuestionContentEditor(editorEl, 
     let isBooting = true;
 
     if (initial !== '') {
-        quill.root.innerHTML = initial;
+        quill.root.innerHTML = resolveStorageUrlsInHtml(initial);
     }
 
     isBooting = false;

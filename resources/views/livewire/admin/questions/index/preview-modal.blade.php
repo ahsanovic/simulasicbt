@@ -36,7 +36,7 @@
                 </div>
 
                 <div class="prose-exam text-base text-slate-800">
-                    {!! $previewQuestion->content !!}
+                    {!! html_for_display($previewQuestion->content) !!}
                 </div>
 
                 <div class="space-y-2.5">

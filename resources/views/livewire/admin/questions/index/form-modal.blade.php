@@ -158,7 +158,7 @@
                                                     @if (isset($optionImages[$index]) && $optionImages[$index])
                                                         <img src="{{ $optionImages[$index]->temporaryUrl() }}" alt="Pratinjau {{ $option['label'] }}" class="max-h-28 max-w-[200px] rounded object-contain">
                                                     @else
-                                                        <img src="{{ Storage::disk('public')->url($option['image_path']) }}" alt="Pilihan {{ $option['label'] }}" class="max-h-28 max-w-[200px] rounded object-contain">
+                                                        <img src="{{ storage_asset($option['image_path']) }}" alt="Pilihan {{ $option['label'] }}" class="max-h-28 max-w-[200px] rounded object-contain">
                                                     @endif
                                                 </div>
                                                 <div class="flex items-center gap-2">

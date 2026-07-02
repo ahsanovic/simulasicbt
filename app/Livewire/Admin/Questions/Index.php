@@ -175,7 +175,7 @@ class Index extends Component
         $path = $this->editorImage->store('question-content', 'public');
         $this->editorImage = null;
 
-        return '/storage/'.$path;
+        return storage_asset($path);
     }
 
     public function openEditModal(int $questionId): void

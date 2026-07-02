@@ -20,7 +20,7 @@
 
     <div class="ui-card p-6 sm:p-8">
         <div class="prose-exam mb-8 text-base">
-            {!! $question->content !!}
+            {!! html_for_display($question->content) !!}
         </div>
 
         <div class="space-y-3">

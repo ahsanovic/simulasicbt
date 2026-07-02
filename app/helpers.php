@@ -1,5 +1,29 @@
 <?php
 
+if (! function_exists('storage_asset')) {
+    function storage_asset(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        $path = ltrim($path, '/');
+
+        if (str_starts_with($path, 'storage/')) {
+            return asset($path);
+        }
+
+        return asset('storage/'.$path);
+    }
+}
+
+if (! function_exists('html_for_display')) {
+    function html_for_display(?string $html): ?string
+    {
+        return app(\App\Services\HtmlSanitizer::class)->resolveForDisplay($html);
+    }
+}
+
 if (! function_exists('format_exam_score')) {
     function format_exam_score(mixed $score, string $empty = '—'): string
     {

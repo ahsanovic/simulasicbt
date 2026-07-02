@@ -14,7 +14,7 @@
         </div>
 
         <div class="prose-exam mb-8 text-base">
-            {!! $this->currentAnswer->question->content !!}
+            {!! html_for_display($this->currentAnswer->question->content) !!}
         </div>
 
         <div class="space-y-3">

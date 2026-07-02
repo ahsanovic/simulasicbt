@@ -53,6 +53,6 @@ class QuestionOption extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->image_path);
+        return storage_asset($this->image_path);
     }
 }

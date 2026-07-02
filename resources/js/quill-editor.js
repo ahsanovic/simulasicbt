@@ -5,46 +5,153 @@ import 'katex/dist/katex.min.css';
 
 window.katex = katex;
 
-function registerQuillEditor() {
-    Alpine.data('quillEditor', (content) => ({
-        content,
-        quill: null,
+const BaseImage = Quill.import('formats/image');
 
-        init() {
-            this.quill = new Quill(this.$refs.editor, {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        [{ header: [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline'],
-                        [{ list: 'ordered' }, { list: 'bullet' }],
-                        ['link', 'image'],
-                        ['clean'],
-                    ],
-                },
-            });
+class StorageImage extends BaseImage {
+    static sanitize(url) {
+        if (typeof url === 'string' && (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://'))) {
+            return url;
+        }
 
-            if (this.content) {
-                this.quill.root.innerHTML = this.content;
-            }
+        return BaseImage.sanitize(url);
+    }
+}
 
-            this.quill.on('text-change', () => {
-                this.content = this.quill.root.innerHTML;
-            });
+Quill.register(StorageImage, true);
 
-            this.$watch('content', (value) => {
-                if (this.quill && value !== this.quill.root.innerHTML) {
-                    this.quill.root.innerHTML = value ?? '';
+function editorImageUrl(path) {
+    if (typeof path !== 'string' || path === '') {
+        return '';
+    }
+
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+    }
+
+    return `${window.location.origin}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+function insertImage(quill, index, path) {
+    const url = editorImageUrl(path);
+
+    if (! url) {
+        return false;
+    }
+
+    quill.insertEmbed(index, 'image', url, 'user');
+    quill.setSelection(index + 1);
+
+    return true;
+}
+
+function syncContent(quill, wire) {
+    wire.$set('content', quill.root.innerHTML, false);
+}
+
+window.syncQuestionContentEditor = function syncQuestionContentEditor(wire) {
+    const editorEl = document.getElementById('question-content-editor');
+
+    return editorEl?.__questionQuill?.root?.innerHTML ?? '';
+};
+
+window.saveQuestionForm = async function saveQuestionForm(wire) {
+    const content = window.syncQuestionContentEditor(wire);
+
+    await wire.save(content);
+};
+
+function pickImage(quill, wire) {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/jpeg,image/png,image/webp,image/gif');
+    input.click();
+
+    input.onchange = () => {
+        const file = input.files?.[0];
+
+        if (! file) {
+            return;
+        }
+
+        const range = quill.getSelection(true) ?? { index: Math.max(0, quill.getLength() - 1), length: 0 };
+
+        wire.$upload(
+            'editorImage',
+            file,
+            async () => {
+                try {
+                    const path = await wire.processEditorImage();
+
+                    if (! insertImage(quill, range.index, path)) {
+                        window.alert('URL gambar tidak valid.');
+
+                        return;
+                    }
+
+                    syncContent(quill, wire);
+                } catch (error) {
+                    const message = error?.message
+                        ?? Object.values(error?.errors ?? {})[0]?.[0]
+                        ?? 'Gagal mengunggah gambar.';
+
+                    window.alert(message);
                 }
-            });
-        },
-    }));
+            },
+            () => {
+                window.alert('Gagal mengunggah gambar.');
+            },
+        );
+    };
 }
 
-if (window.Alpine) {
-    registerQuillEditor();
-} else {
-    document.addEventListener('alpine:init', registerQuillEditor);
-}
+window.initQuestionContentEditor = function initQuestionContentEditor(editorEl, wire) {
+    if (! editorEl || ! wire) {
+        return null;
+    }
+
+    editorEl.innerHTML = '';
+
+    const quill = new Quill(editorEl, {
+        theme: 'snow',
+        modules: {
+            toolbar: {
+                container: [
+                    [{ header: [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['link', 'image'],
+                    ['clean'],
+                ],
+                handlers: {
+                    image() {
+                        pickImage(quill, wire);
+                    },
+                },
+            },
+        },
+    });
+
+    const initial = wire.$get('content') || '';
+
+    let isBooting = true;
+
+    if (initial !== '') {
+        quill.root.innerHTML = initial;
+    }
+
+    isBooting = false;
+
+    quill.on('text-change', () => {
+        if (isBooting) {
+            return;
+        }
+
+        syncContent(quill, wire);
+    });
+
+    editorEl.__questionQuill = quill;
+
+    return quill;
+};
 
 export default {};

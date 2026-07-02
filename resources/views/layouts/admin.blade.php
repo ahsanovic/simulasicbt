@@ -50,7 +50,7 @@
         </div>
     </div>
 
-    @stack('scripts')
     @livewireScripts
+    @stack('scripts')
 </body>
 </html>

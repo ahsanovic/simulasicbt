@@ -9,7 +9,7 @@
                 </button>
             </div>
 
-            <form wire:submit="save" class="space-y-4 p-5">
+            <form class="space-y-4 p-5" x-on:submit.prevent>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
                         <label class="ui-label">Jenis Soal</label>
@@ -35,8 +35,13 @@
 
                 <div>
                     <label class="ui-label">Isi Soal</label>
-                    <div wire:ignore x-data="quillEditor(@entangle('content'))" class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                        <div x-ref="editor" class="min-h-[160px]"></div>
+                    <div
+                        wire:ignore
+                        x-data
+                        class="overflow-hidden rounded-xl border border-slate-200 bg-white"
+                        x-init="$nextTick(() => initQuestionContentEditor($refs.editor, $wire))"
+                    >
+                        <div x-ref="editor" id="question-content-editor" class="min-h-[160px]"></div>
                     </div>
                     @error('content') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
@@ -75,16 +80,11 @@
                             @php
                                 $contentType = $option['content_type'] ?? 'text';
                                 $hasUploadedImage = (isset($optionImages[$index]) && $optionImages[$index]) || ! empty($option['image_path']);
-                                $isCorrect = $correctOptionIndex === $index;
                             @endphp
 
                             <div
                                 wire:key="question-option-{{ $index }}-{{ $isTkpSubject ? 'tkp' : 'std' }}"
-                                @class([
-                                    'rounded-lg border bg-white',
-                                    'border-emerald-300 bg-emerald-50/40' => ! $isTkpSubject && $isCorrect,
-                                    'border-slate-200' => $isTkpSubject || ! $isCorrect,
-                                ])
+                                class="rounded-lg border border-slate-200 bg-white"
                             >
                                 {{-- Baris kontrol: label, tipe konten, jawaban benar/bobot --}}
                                 <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
@@ -151,6 +151,7 @@
                                         >
                                         @error("options.{$index}.content") <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                                     @else
+                                        <input type="hidden" wire:model="options.{{ $index }}.image_path">
                                         @if ($hasUploadedImage)
                                             <div class="flex flex-wrap items-center gap-3">
                                                 <div class="rounded-lg border border-slate-200 bg-slate-50 p-1.5">
@@ -192,7 +193,13 @@
 
                 <div class="flex justify-end gap-2 border-t border-slate-100 pt-3">
                     <button type="button" wire:click="closeModal" class="ui-btn-secondary">Batal</button>
-                    <button type="submit" class="ui-btn-primary">Simpan Soal</button>
+                    <button
+                        type="button"
+                        class="ui-btn-primary"
+                        wire:loading.attr="disabled"
+                        wire:target="save, optionImages"
+                        x-on:click="saveQuestionForm($wire)"
+                    >Simpan Soal</button>
                 </div>
             </form>
         </div>

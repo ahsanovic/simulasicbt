@@ -4,6 +4,7 @@ use App\Exports\ParticipantsExport;
 use App\Exports\ParticipantsImportTemplate;
 use App\Exports\QuestionsImportTemplateExport;
 use App\Http\Controllers\Admin\ParticipantImportController;
+use App\Http\Controllers\Admin\QuestionContentImageController;
 use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Livewire\Admin\Dashboard;
@@ -53,6 +54,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         );
     })->name('users.import-template');
     Route::get('/questions', QuestionsIndex::class)->name('questions.index');
+    Route::post('/questions/upload-image', [QuestionContentImageController::class, 'store'])->name('questions.upload-image');
     Route::post('/questions/import', [QuestionImportController::class, 'store'])->name('questions.import');
     Route::get('/questions/import-template', function () {
         return Excel::download(

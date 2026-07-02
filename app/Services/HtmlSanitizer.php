@@ -12,6 +12,19 @@ class HtmlSanitizer
             return $html;
         }
 
-        return Purify::clean($html);
+        $html = Purify::clean($html, [
+            'HTML.Allowed' => 'p,br,strong,b,em,i,u,h1,h2,h3,ol,ul,li,a[href|title|target],img[src|alt|width|height|class]',
+        ]);
+
+        return $this->normalizeStorageUrls($html);
+    }
+
+    private function normalizeStorageUrls(string $html): string
+    {
+        return preg_replace(
+            '#https?://[^/"\'\s]+(/storage/[^"\'\s>]+)#i',
+            '$1',
+            $html
+        ) ?? $html;
     }
 }

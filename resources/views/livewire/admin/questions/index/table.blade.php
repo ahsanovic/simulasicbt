@@ -29,6 +29,7 @@
                             </span>
                         </td>
                         <td class="px-5 py-4 text-right">
+                            <button wire:click="openPreviewModal({{ $question->id }})" class="ui-btn-ghost px-3 py-1.5">Pratinjau</button>
                             <button wire:click="openEditModal({{ $question->id }})" class="ui-btn-ghost px-3 py-1.5">Edit</button>
                             <button wire:click="delete({{ $question->id }})" wire:confirm="Hapus soal ini?" class="ui-btn-ghost px-3 py-1.5 text-rose-600 hover:bg-rose-50">Hapus</button>
                         </td>

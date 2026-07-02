@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Renderless;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -35,6 +36,10 @@ class Index extends Component
     public string $materialFilter = '';
 
     public bool $showModal = false;
+
+    public bool $showPreviewModal = false;
+
+    public ?int $previewQuestionId = null;
 
     public bool $showImportModal = false;
 
@@ -55,6 +60,8 @@ class Index extends Component
     public array $options = [];
 
     public array $optionImages = [];
+
+    public $editorImage = null;
 
     public int $correctOptionIndex = 0;
 
@@ -141,6 +148,36 @@ class Index extends Component
         $this->showModal = true;
     }
 
+    public function openPreviewModal(int $questionId): void
+    {
+        $this->previewQuestionId = $questionId;
+        $this->showPreviewModal = true;
+    }
+
+    public function closePreviewModal(): void
+    {
+        $this->showPreviewModal = false;
+        $this->previewQuestionId = null;
+    }
+
+    #[Renderless]
+    public function processEditorImage(): string
+    {
+        $this->validate([
+            'editorImage' => ['required', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
+        ], [
+            'editorImage.required' => 'Gambar wajib dipilih.',
+            'editorImage.image' => 'File harus berupa gambar.',
+            'editorImage.mimes' => 'Format gambar harus JPG, PNG, WEBP, atau GIF.',
+            'editorImage.max' => 'Ukuran gambar maksimal 5 MB.',
+        ]);
+
+        $path = $this->editorImage->store('question-content', 'public');
+        $this->editorImage = null;
+
+        return '/storage/'.$path;
+    }
+
     public function openEditModal(int $questionId): void
     {
         $question = Question::query()->with('options')->findOrFail($questionId);
@@ -166,8 +203,12 @@ class Index extends Component
         $this->showModal = true;
     }
 
-    public function save(): void
+    public function save(?string $editorContent = null): void
     {
+        if ($editorContent !== null) {
+            $this->content = $editorContent;
+        }
+
         $validated = $this->validate();
         $this->validateOptionContents();
 
@@ -204,16 +245,26 @@ class Index extends Component
                 'is_active' => $validated['is_active'],
             ];
 
+            $oldImagePaths = [];
+
             if ($this->editingId) {
                 $question = Question::query()->findOrFail($this->editingId);
                 $question->update($questionData);
-                $question->options()->delete();
+
+                $oldImagePaths = $question->options()
+                    ->whereNotNull('image_path')
+                    ->pluck('image_path')
+                    ->all();
+
+                QuestionOption::withoutEvents(fn () => $question->options()->delete());
             } else {
                 $question = Question::query()->create([
                     ...$questionData,
                     'created_by' => auth()->id(),
                 ]);
             }
+
+            $savedImagePaths = [];
 
             foreach ($validated['options'] as $index => $option) {
                 $contentType = QuestionOptionContentType::from($option['content_type']);
@@ -224,13 +275,13 @@ class Index extends Component
                     $existingImagePath = $option['image_path'] ?? null;
 
                     if (isset($this->optionImages[$index]) && $this->optionImages[$index]) {
-                        if ($existingImagePath) {
-                            Storage::disk('public')->delete($existingImagePath);
-                        }
-
                         $imagePath = $this->optionImages[$index]->store('question-options', 'public');
                     } else {
                         $imagePath = $this->resolveExistingImagePath($existingImagePath);
+                    }
+
+                    if ($imagePath) {
+                        $savedImagePaths[] = $imagePath;
                     }
                 } else {
                     $content = $sanitizer->sanitize($option['content'] ?? '');
@@ -248,6 +299,12 @@ class Index extends Component
                     'score_weight' => $isTkp ? ($option['score_weight'] ?? 1) : null,
                     'sort_order' => $index + 1,
                 ]);
+            }
+
+            foreach ($oldImagePaths as $oldPath) {
+                if (! in_array($oldPath, $savedImagePaths, true)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
             }
         });
 
@@ -303,7 +360,7 @@ class Index extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'subject_id', 'material_id', 'content', 'explanation', 'correctOptionIndex', 'optionImages']);
+        $this->reset(['editingId', 'subject_id', 'material_id', 'content', 'explanation', 'correctOptionIndex', 'optionImages', 'editorImage']);
         $this->difficulty = 'medium';
         $this->is_active = true;
         $this->resetOptions();
@@ -409,6 +466,10 @@ class Index extends Component
             ->latest()
             ->paginate(10);
 
-        return view('livewire.admin.questions.index', compact('questions', 'subjects', 'materials', 'modalMaterials', 'importJob'));
+        $previewQuestion = $this->previewQuestionId
+            ? Question::query()->with(['subject', 'material.materialGroup', 'options'])->find($this->previewQuestionId)
+            : null;
+
+        return view('livewire.admin.questions.index', compact('questions', 'subjects', 'materials', 'modalMaterials', 'importJob', 'previewQuestion'));
     }
 }

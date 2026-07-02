@@ -1,7 +1,7 @@
 <div class="space-y-5">
     <div class="mb-2 hidden lg:block">
         <h2 class="text-xl font-bold text-slate-900">Selamat datang</h2>
-        <p class="mt-1 text-sm text-slate-500">Silahkan masuk menggunakan NIP</p>
+        <p class="mt-1 text-sm text-slate-500">Silahkan masuk menggunakan username atau NIP</p>
     </div>
 
     <x-ui.flash-toast />

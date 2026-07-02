@@ -65,8 +65,11 @@ class Login extends Component
         if ($user === null) {
             $user = User::query()
                 ->where('is_active', true)
-                ->where('nip', $this->login)
                 ->where('role', UserRole::Peserta)
+                ->where(function ($query) {
+                    $query->where('username', $this->login)
+                        ->orWhere('nip', $this->login);
+                })
                 ->first();
         }
 
@@ -183,7 +186,7 @@ class Login extends Component
         ]);
 
         $this->closeRegisterModal();
-        session()->flash('success', 'Pendaftaran berhasil. Silakan masuk dengan NIP dan password Anda.');
+        session()->flash('success', 'Pendaftaran berhasil. Silakan masuk dengan username atau NIP dan password Anda.');
     }
 
     protected function redirectAfterLogin(): void

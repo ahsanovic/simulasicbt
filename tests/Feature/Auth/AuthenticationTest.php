@@ -31,12 +31,25 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_peserta_can_authenticate_via_livewire(): void
+    public function test_peserta_can_authenticate_via_livewire_with_nip(): void
     {
         $user = User::factory()->pegawai()->create(['role' => UserRole::Peserta]);
 
         Livewire::test(Login::class)
             ->set('login', $user->nip)
+            ->set('password', 'password')
+            ->call('authenticate')
+            ->assertRedirect(route('peserta.dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_peserta_can_authenticate_via_livewire_with_username(): void
+    {
+        $user = User::factory()->pegawai()->create(['role' => UserRole::Peserta]);
+
+        Livewire::test(Login::class)
+            ->set('login', $user->username)
             ->set('password', 'password')
             ->call('authenticate')
             ->assertRedirect(route('peserta.dashboard', absolute: false));

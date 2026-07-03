@@ -1,5 +1,7 @@
 <?php
 
+use App\Services\HtmlSanitizer;
+
 if (! function_exists('storage_asset')) {
     function storage_asset(?string $path): ?string
     {
@@ -20,7 +22,7 @@ if (! function_exists('storage_asset')) {
 if (! function_exists('html_for_display')) {
     function html_for_display(?string $html): ?string
     {
-        return app(\App\Services\HtmlSanitizer::class)->resolveForDisplay($html);
+        return app(HtmlSanitizer::class)->resolveForDisplay($html);
     }
 }
 
@@ -85,6 +87,23 @@ if (! function_exists('format_exam_remaining_time')) {
         return $remainingMinutes > 0
             ? "{$hours} jam {$remainingMinutes} menit"
             : "{$hours} jam";
+    }
+}
+
+if (! function_exists('format_ai_recommendation')) {
+    function format_ai_recommendation(?string $text): string
+    {
+        if ($text === null || trim($text) === '') {
+            return '';
+        }
+
+        $text = preg_replace('/\*\*(.+?)\*\*/s', '$1', $text) ?? $text;
+        $text = preg_replace('/__(.+?)__/s', '$1', $text) ?? $text;
+        $text = preg_replace('/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/s', '$1', $text) ?? $text;
+        $text = preg_replace('/^#{1,6}\s+/m', '', $text) ?? $text;
+        $text = preg_replace('/`(.+?)`/s', '$1', $text) ?? $text;
+
+        return trim($text);
     }
 }
 

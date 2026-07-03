@@ -76,6 +76,8 @@ class ExamService
                 'total_score' => $scores['total'],
             ]);
 
+            app(ExamWeaknessAnalysisService::class)->forget($attempt->user_id);
+
             return $attempt->fresh();
         });
     }

@@ -53,7 +53,7 @@ class ExamHistory extends Component
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
             ->latest('submitted_at')
             ->latest('created_at')
-            ->paginate(10);
+            ->paginate(5);
 
         $submittedAttempts = ExamAttempt::query()
             ->where('user_id', auth()->id())

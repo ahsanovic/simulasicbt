@@ -47,4 +47,10 @@ return [
         'timeout' => env('OPENAI_TIMEOUT', 120),
     ],
 
+    'deepseek' => [
+        'key' => env('DEEPSEEK_API_KEY'),
+        'model' => env('DEEPSEEK_MODEL', 'deepseek-chat'),
+        'timeout' => env('DEEPSEEK_TIMEOUT', 120),
+    ],
+
 ];

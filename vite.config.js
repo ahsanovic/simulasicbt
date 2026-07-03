@@ -13,6 +13,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/quill-editor.js',
                 'resources/js/exam-timer.js',
+                'resources/js/readiness-radar-chart.js',
             ],
             refresh: true,
             fonts: [

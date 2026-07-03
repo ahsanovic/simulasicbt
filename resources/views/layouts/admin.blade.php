@@ -14,13 +14,13 @@
         ></div>
 
         <aside
-            class="fixed inset-y-0 left-0 z-50 w-72 -translate-x-full border-r border-white/10 bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950 transition-transform duration-300 lg:static lg:translate-x-0"
+            class="fixed inset-y-0 left-0 z-50 w-72 -translate-x-full border-r border-white/10 bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950 transition-transform duration-300 lg:translate-x-0"
             :class="{ 'translate-x-0': sidebarOpen }"
         >
             @include('components.admin.sidebar-nav')
         </aside>
 
-        <div class="flex min-w-0 flex-1 flex-col">
+        <div class="flex min-w-0 flex-1 flex-col lg:ml-72">
             <header class="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
                 <button
                     type="button"

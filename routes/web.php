@@ -18,9 +18,7 @@ use App\Livewire\Admin\Results\Index as ResultsIndex;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
-use App\Livewire\Auth\ForgotPassword;
 use App\Livewire\Auth\Login;
-use App\Livewire\Auth\ResetPassword;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
@@ -46,8 +44,6 @@ Route::redirect('/', '/login');
 
 Route::middleware('guest')->group(function () {
     Route::get('login', Login::class)->name('login');
-    Route::get('forgot-password', ForgotPassword::class)->name('password.request');
-    Route::get('reset-password/{token}', ResetPassword::class)->name('password.reset');
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
     Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });

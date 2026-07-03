@@ -53,17 +53,17 @@
 
                     <div>
                         <label class="ui-label">Nama Lengkap</label>
-                        <input type="text" wire:model="registerName" class="ui-input">
+                        <input type="text" wire:model="registerName" class="ui-input" maxlength="255" autocomplete="name" required>
                         @error('registerName') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="ui-label">Email</label>
-                        <input type="email" wire:model="registerEmail" class="ui-input">
+                        <input type="email" wire:model="registerEmail" class="ui-input" maxlength="255" autocomplete="email" inputmode="email" required>
                         @error('registerEmail') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="ui-label">NIP (PPPK / PPPK Paruh Waktu / Non ASN)</label>
-                        <input type="text" wire:model="registerNip" class="ui-input" placeholder="Nomor Induk Pegawai tanpa spasi atau tanda -">
+                        <input type="text" wire:model="registerNip" class="ui-input" placeholder="Nomor Induk Pegawai tanpa spasi atau tanda -" inputmode="numeric" pattern="[0-9]*" maxlength="50" autocomplete="off" required>
                         @error('registerNip') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
@@ -78,12 +78,13 @@
                     </div>
                     <div>
                         <label class="ui-label">Password</label>
-                        <input type="password" wire:model="registerPassword" class="ui-input">
+                        <input type="password" wire:model="registerPassword" class="ui-input" autocomplete="new-password" minlength="8" required>
                         @error('registerPassword') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="ui-label">Konfirmasi Password</label>
-                        <input type="password" wire:model="registerPasswordConfirmation" class="ui-input">
+                        <input type="password" wire:model="registerPasswordConfirmation" class="ui-input" autocomplete="new-password" minlength="8" required>
+                        @error('registerPasswordConfirmation') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">

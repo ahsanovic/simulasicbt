@@ -39,7 +39,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn () => [
             'is_pegawai' => true,
-            'nip' => fake()->unique()->numerify('################'),
+            'nip' => fake()->unique()->numerify('##################'),
             'instansi_id' => 1,
         ]);
     }

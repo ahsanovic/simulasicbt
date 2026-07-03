@@ -5,10 +5,13 @@ namespace App\Livewire\Auth;
 use App\Enums\UserRole;
 use App\Models\Instansi;
 use App\Models\User;
+use App\Rules\ValidNip;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Email;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -144,20 +147,24 @@ class Login extends Component
 
     public function registerPegawai(): void
     {
+        $this->ensureRegisterIsNotRateLimited();
+
         $validated = $this->validate([
             'registerName' => ['required', 'string', 'max:255'],
-            'registerEmail' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'registerPassword' => ['required', 'string', 'min:8', 'same:registerPasswordConfirmation'],
-            'registerNip' => ['required', 'string', 'max:50', 'unique:users,nip'],
+            'registerEmail' => ['required', 'string', 'lowercase', 'max:255', Email::default(), 'unique:users,email'],
+            'registerPassword' => ['required', 'string', Password::defaults(), 'same:registerPasswordConfirmation'],
+            'registerPasswordConfirmation' => ['required', 'string'],
+            'registerNip' => ['required', 'string', 'max:50', 'unique:users,nip', new ValidNip],
             'registerInstansiId' => ['required', 'integer', 'exists:instansis,id'],
         ], [
             'registerName.required' => 'nama harus diisi',
             'registerEmail.required' => 'email harus diisi',
-            'registerEmail.email' => 'email tidak valid',
+            'registerEmail.email' => 'format email tidak valid',
             'registerEmail.unique' => 'email sudah terdaftar',
             'registerPassword.required' => 'password harus diisi',
             'registerPassword.min' => 'password harus minimal 8 karakter',
             'registerPassword.same' => 'password tidak sama',
+            'registerPasswordConfirmation.required' => 'konfirmasi password harus diisi',
             'registerNip.required' => 'nip harus diisi',
             'registerNip.max' => 'nip maksimal 50 karakter',
             'registerNip.unique' => 'nip sudah terdaftar',
@@ -174,7 +181,7 @@ class Login extends Component
         ]);
 
         User::query()->create([
-            'name' => $validated['registerName'],
+            'name' => trim($validated['registerName']),
             'email' => $validated['registerEmail'],
             'password' => Hash::make($validated['registerPassword']),
             'nip' => $validated['registerNip'],
@@ -184,6 +191,8 @@ class Login extends Component
             'is_active' => true,
             'email_verified_at' => now(),
         ]);
+
+        RateLimiter::clear($this->registerThrottleKey());
 
         $this->closeRegisterModal();
         session()->flash('success', 'Pendaftaran berhasil. Silakan masuk dengan username atau NIP dan password Anda.');
@@ -215,6 +224,26 @@ class Login extends Component
     protected function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->login).'|'.request()->ip());
+    }
+
+    protected function ensureRegisterIsNotRateLimited(): void
+    {
+        if (! RateLimiter::tooManyAttempts($this->registerThrottleKey(), 5)) {
+            RateLimiter::hit($this->registerThrottleKey(), 3600);
+
+            return;
+        }
+
+        $seconds = RateLimiter::availableIn($this->registerThrottleKey());
+
+        throw ValidationException::withMessages([
+            'registerEmail' => "Terlalu banyak percobaan pendaftaran. Coba lagi dalam {$seconds} detik.",
+        ]);
+    }
+
+    protected function registerThrottleKey(): string
+    {
+        return 'register|'.request()->ip();
     }
 
     private function resetRegisterForm(): void

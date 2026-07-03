@@ -11,13 +11,16 @@ use App\Http\Controllers\PublicStorageController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
 use App\Livewire\Admin\OnlineParticipants\Index as OnlineParticipantsIndex;
+use App\Livewire\Admin\Questions\Generate as QuestionsGenerate;
 use App\Livewire\Admin\Questions\Index as QuestionsIndex;
 use App\Livewire\Admin\Reports\Index as ReportsIndex;
 use App\Livewire\Admin\Results\Index as ResultsIndex;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
+use App\Livewire\Auth\ForgotPassword;
 use App\Livewire\Auth\Login;
+use App\Livewire\Auth\ResetPassword;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
@@ -43,6 +46,8 @@ Route::redirect('/', '/login');
 
 Route::middleware('guest')->group(function () {
     Route::get('login', Login::class)->name('login');
+    Route::get('forgot-password', ForgotPassword::class)->name('password.request');
+    Route::get('reset-password/{token}', ResetPassword::class)->name('password.reset');
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
     Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });
@@ -67,6 +72,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         );
     })->name('users.import-template');
     Route::get('/questions', QuestionsIndex::class)->name('questions.index');
+    Route::get('/questions/generate', QuestionsGenerate::class)->name('questions.generate');
     Route::post('/questions/upload-image', [QuestionContentImageController::class, 'store'])->name('questions.upload-image');
     Route::post('/questions/import', [QuestionImportController::class, 'store'])->name('questions.import');
     Route::get('/questions/import-template', function () {

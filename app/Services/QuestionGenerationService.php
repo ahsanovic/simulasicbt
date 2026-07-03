@@ -11,6 +11,8 @@ use RuntimeException;
 
 class QuestionGenerationService
 {
+    public const MAX_QUESTIONS_PER_GENERATE = 10;
+
     public function __construct(
         private GeneratedQuestionValidator $validator,
     ) {}
@@ -28,6 +30,8 @@ class QuestionGenerationService
         if (! $this->isConfigured()) {
             throw new RuntimeException('API key OpenAI belum dikonfigurasi. Tambahkan OPENAI_API_KEY di file .env.');
         }
+
+        $count = max(1, min(self::MAX_QUESTIONS_PER_GENERATE, $count));
 
         $payload = $this->callOpenAi($subject, $material, $difficulty, $count);
         $rawQuestions = $this->extractQuestions($payload);

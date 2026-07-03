@@ -29,10 +29,17 @@ class Generate extends Component
 
     public int $questionCount = 3;
 
+    public const MAX_QUESTIONS_PER_GENERATE = 10;
+
     /** @var array<int, array<string, mixed>> */
     public array $generatedQuestions = [];
 
     public ?int $regeneratingIndex = null;
+
+    public function updatedQuestionCount(mixed $value): void
+    {
+        $this->questionCount = max(1, min(self::MAX_QUESTIONS_PER_GENERATE, (int) $value));
+    }
 
     public function updatedSubjectId(): void
     {
@@ -190,11 +197,11 @@ class Generate extends Component
                 Rule::exists('materials', 'id')->where('subject_id', $this->subject_id),
             ],
             'difficulty' => ['required', 'in:easy,medium,hard'],
-            'questionCount' => ['required', 'integer', 'min:1', 'max:10'],
+            'questionCount' => ['required', 'integer', 'min:1', 'max:'.self::MAX_QUESTIONS_PER_GENERATE],
         ], [
             'subject_id.required' => 'Jenis soal wajib dipilih.',
             'material_id.required' => 'Materi wajib dipilih.',
-            'questionCount.max' => 'Maksimal 10 soal per generate.',
+            'questionCount.max' => 'Maksimal '.self::MAX_QUESTIONS_PER_GENERATE.' soal per generate.',
         ]);
     }
 
@@ -211,7 +218,7 @@ class Generate extends Component
                 'subject_id' => $this->subject_id,
                 'material_id' => $this->material_id,
                 'content' => $sanitizer->sanitize('<p>'.e($question['content']).'</p>'),
-                'explanation' => $sanitizer->sanitize('<p>'.e($question['explanation']).'</p>'),
+                'explanation' => $sanitizer->sanitize($question['explanation'] ?? ''),
                 'difficulty' => $question['difficulty'] ?? $this->difficulty,
                 'is_active' => true,
                 'created_by' => auth()->id(),
@@ -247,12 +254,14 @@ class Generate extends Component
         $materials = $this->materialsForSelect($this->subject_id);
         $selectedSubject = $this->subject_id ? Subject::query()->find($this->subject_id) : null;
         $isOpenAiConfigured = $generationService->isConfigured();
+        $maxQuestionsPerGenerate = self::MAX_QUESTIONS_PER_GENERATE;
 
         return view('livewire.admin.questions.generate', compact(
             'subjects',
             'materials',
             'selectedSubject',
             'isOpenAiConfigured',
+            'maxQuestionsPerGenerate',
         ));
     }
 }

@@ -20,7 +20,12 @@
                    'bg-white text-primary-700 shadow-sm' => $active === 'dashboard',
                    'text-slate-600 hover:text-slate-900' => $active !== 'dashboard',
                ])>
-                Simulasi
+                <span class="inline-flex items-center gap-1.5">
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    Simulasi
+                </span>
             </a>
             <a href="{{ route('peserta.history') }}"
                wire:navigate
@@ -29,8 +34,13 @@
                    'bg-white text-primary-700 shadow-sm' => $active === 'history',
                    'text-slate-600 hover:text-slate-900' => $active !== 'history',
                ])>
-                <span class="hidden sm:inline">Riwayat Tes</span>
-                <span class="sm:hidden">Riwayat</span>
+                <span class="inline-flex items-center gap-1.5">
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                    </svg>
+                    <span class="hidden sm:inline">Riwayat Tes</span>
+                    <span class="sm:hidden">Riwayat</span>
+                </span>
             </a>
             <a href="{{ route('peserta.evaluasi') }}"
                wire:navigate
@@ -39,8 +49,13 @@
                    'bg-white text-primary-700 shadow-sm' => $active === 'evaluasi',
                    'text-slate-600 hover:text-slate-900' => $active !== 'evaluasi',
                ])>
-                <span class="hidden sm:inline">Evaluasi & Rapor</span>
-                <span class="sm:hidden">Evaluasi</span>
+                <span class="inline-flex items-center gap-1.5">
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span class="hidden sm:inline">Evaluasi & Rapor</span>
+                    <span class="sm:hidden">Evaluasi</span>
+                </span>
             </a>
             <a href="{{ route('peserta.audio.index') }}"
                wire:navigate
@@ -49,8 +64,8 @@
                    'bg-white text-primary-700 shadow-sm' => $active === 'audio',
                    'text-slate-600 hover:text-slate-900' => $active !== 'audio',
                ])>
-                <span class="inline-flex items-center gap-1">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <span class="inline-flex items-center gap-1.5">
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
                     </svg>
                     <span class="hidden sm:inline">Audio Mode</span>
@@ -64,19 +79,15 @@
                    'bg-white text-primary-700 shadow-sm' => $active === 'duel',
                    'text-slate-600 hover:text-slate-900' => $active !== 'duel',
                ])>
-                Duel
+                <span class="inline-flex items-center gap-1.5">
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Duel
+                </span>
             </a>
         </nav>
 
-        <div class="flex items-center gap-3">
-            <div class="hidden text-right md:block">
-                <p class="text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</p>
-                <p class="text-xs text-slate-500">Peserta</p>
-            </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="ui-btn-danger py-2 text-xs">Keluar</button>
-            </form>
-        </div>
+        <x-peserta.user-menu />
     </div>
 </header>

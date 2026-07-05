@@ -3,12 +3,13 @@
         <x-ui.flash-toast />
 
         <div class="mb-8 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 p-6 text-white shadow-xl shadow-primary-500/20 sm:p-8">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Halo, {{ auth()->user()->name }} 👋</h1>
-                    <p class="mt-2 max-w-lg text-primary-100">Platform simulasi — Anda dapat mengulang tes berkali-kali. <br> Setiap hasil tersimpan di riwayat tes.</p>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                <div class="min-w-0 sm:flex-1">
+                    <h1 class="truncate text-2xl font-bold tracking-tight">Halo, {{ auth()->user()->name }} 👋</h1>
+                    <p class="mt-2 text-sm text-primary-100 sm:text-base">Ini adalah platform simulasi CBT BKD Jatim — Anda dapat mengulang tes berkali-kali.
+                        <br> Setiap hasil tersimpan di riwayat tes.</p>
                 </div>
-                <div class="flex flex-wrap gap-2">
+                <div class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                     <a href="{{ route('peserta.audio.index') }}"
                        wire:navigate
                        class="inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">

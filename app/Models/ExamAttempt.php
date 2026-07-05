@@ -21,6 +21,7 @@ class ExamAttempt extends Model
         'score_tiu',
         'score_tkp',
         'total_score',
+        'question_duration',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ class ExamAttempt extends Model
             'score_tiu' => 'integer',
             'score_tkp' => 'integer',
             'total_score' => 'integer',
+            'question_duration' => 'array',
         ];
     }
 

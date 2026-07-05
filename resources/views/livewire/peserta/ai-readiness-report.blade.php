@@ -12,7 +12,7 @@
             </div>
             <div class="min-w-0">
                 <h3 class="truncate text-sm font-bold tracking-tight text-white">Evaluasi & Rapor Kesiapan CPNS Berbasis AI</h3>
-                <p class="text-[10px] font-medium text-primary-100/90">Analisis kelemahan berdasarkan seluruh riwayat ujian</p>
+                <p class="text-[10px] font-medium text-primary-100/90">Analisis kelemahan & manajemen waktu dari seluruh riwayat ujian</p>
             </div>
         </div>
     </div>
@@ -74,6 +74,14 @@
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                             Rekomendasi AI
                         </button>
+                        @if (($weaknessStats['time_management']['has_data'] ?? false))
+                            <button type="button"
+                                    @click="scrollToSection('readiness-section-time')"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-orange-200/80 bg-white px-2.5 py-1 text-[11px] font-semibold text-orange-700 shadow-sm transition hover:border-orange-300 hover:bg-orange-50">
+                                <span aria-hidden="true">⏱️</span>
+                                Manajemen Waktu
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -116,6 +124,50 @@
                                     ])>{{ $material['status_label'] }}</p>
                                 </div>
                             @endforeach
+                        </div>
+                    @endif
+
+                    @if (($weaknessStats['time_management']['has_data'] ?? false))
+                        @php
+                            $timeStats = $weaknessStats['time_management'];
+                            $safeSeconds = $timeStats['safe_seconds_per_question'];
+                        @endphp
+                        <div id="readiness-section-time" class="scroll-mt-2 space-y-3 rounded-xl border border-orange-100 bg-orange-50/40 p-3.5">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-orange-700">⏱️ Analisis Manajemen Waktu</p>
+                            <p class="text-xs text-slate-600">
+                                Rata-rata kecepatan per pilar dari {{ $timeStats['total_exams_with_data'] }} simulasi (batas aman: {{ $safeSeconds }} detik/soal)
+                            </p>
+                            <div class="grid gap-2">
+                                @foreach ($timeStats['average_seconds_by_pillar'] as $code => $average)
+                                    @php
+                                        $percent = $safeSeconds > 0 ? min(100, (int) round(($average / $safeSeconds) * 100)) : 0;
+                                        $isSlow = $average > $safeSeconds;
+                                    @endphp
+                                    <div wire:key="time-pillar-{{ $code }}" class="space-y-1">
+                                        <div class="flex items-center justify-between text-[11px]">
+                                            <span class="font-semibold text-slate-700">{{ strtoupper($code) }}</span>
+                                            <span @class([
+                                                'font-bold tabular-nums',
+                                                'text-rose-600' => $isSlow,
+                                                'text-emerald-600' => ! $isSlow,
+                                            ])>{{ $average }} dtk/soal</span>
+                                        </div>
+                                        <div class="h-2 overflow-hidden rounded-full bg-white">
+                                            <div @class([
+                                                'h-full rounded-full transition-all duration-500',
+                                                'bg-rose-500' => $isSlow,
+                                                'bg-emerald-500' => ! $isSlow,
+                                            ]) style="width: {{ $percent }}%"></div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            @if ($timeStats['early_phase_average'] && $timeStats['late_phase_average'])
+                                <p class="text-xs leading-relaxed text-slate-600">
+                                    Ritme awal (25% soal pertama): <strong>{{ $timeStats['early_phase_average'] }} dtk/soal</strong>
+                                    · Ritme akhir (25% terakhir): <strong>{{ $timeStats['late_phase_average'] }} dtk/soal</strong>
+                                </p>
+                            @endif
                         </div>
                     @endif
 

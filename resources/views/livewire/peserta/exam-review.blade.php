@@ -1,6 +1,10 @@
 <div class="min-h-screen bg-gradient-to-b from-slate-50 to-primary-50/20" wire:key="exam-review-{{ $attempt->id }}">
     <x-ui.flash-toast />
 
+    @if ($showTimeManagementModal)
+        <x-exam-time-management-modal :analysis="$this->timeAnalysis" />
+    @endif
+
     @include('livewire.peserta.exam-review.header')
 
     <main class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

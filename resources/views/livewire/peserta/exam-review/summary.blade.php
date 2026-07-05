@@ -33,6 +33,25 @@
                 Poin diperoleh: <span class="font-bold text-slate-800">{{ $this->currentAnswer->earnedPoints() }}</span>
             </span>
         @endif
+
+        @if ($this->currentQuestionDurationSeconds > 0)
+            @php
+                $durationStatus = $this->currentQuestionDurationStatus;
+            @endphp
+            <span class="text-sm text-slate-500">
+                Waktu pengerjaan di nomor ini:
+                <span class="font-bold tabular-nums text-slate-800">{{ format_question_duration($this->currentQuestionDurationSeconds) }}</span> menit
+                @if ($durationStatus)
+                    <span @class([
+                        'font-semibold',
+                        'text-rose-600' => $durationStatus['color'] === 'rose',
+                        'text-amber-600' => $durationStatus['color'] === 'amber',
+                        'text-emerald-600' => $durationStatus['color'] === 'emerald',
+                        'text-slate-500' => $durationStatus['color'] === 'slate',
+                    ])>({{ $durationStatus['label'] }})</span>
+                @endif
+            </span>
+        @endif
     </div>
     @endif
 @endif

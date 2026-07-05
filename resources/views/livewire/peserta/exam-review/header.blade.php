@@ -12,6 +12,16 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
+            @if ($this->timeAnalysis['has_data'])
+                <button type="button"
+                        wire:click="openTimeManagementModal"
+                        class="inline-flex items-center gap-1.5 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100">
+                    <span aria-hidden="true">⏱️</span>
+                    Analisis Manajemen Waktu Anda
+                    <span class="text-amber-600">(Klik untuk Detail)</span>
+                </button>
+            @endif
+
             <div class="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm">
                 <div>
                     <span class="text-slate-500">Benar</span>

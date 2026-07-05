@@ -107,6 +107,20 @@ if (! function_exists('format_ai_recommendation')) {
     }
 }
 
+if (! function_exists('format_question_duration')) {
+    function format_question_duration(int $seconds): string
+    {
+        if ($seconds <= 0) {
+            return '00:00';
+        }
+
+        $minutes = intdiv($seconds, 60);
+        $remainingSeconds = $seconds % 60;
+
+        return sprintf('%02d:%02d', $minutes, $remainingSeconds);
+    }
+}
+
 if (! function_exists('exam_attempt_passes')) {
     function exam_attempt_passes(mixed $twk, mixed $tiu, mixed $tkp, mixed $total): bool
     {

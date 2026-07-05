@@ -27,7 +27,8 @@ class ExamWeaknessAnalysisService
      *     total_simulations: int,
      *     pillars: array<string, array{label: string, percentage: int, status: string, status_label: string}>,
      *     materials: array<int, array{subject_code: string, subject_label: string, name: string, display_name: string, percentage: int, status: string, status_label: string, total: int, wrong: int}>,
-     *     latest_attempt_at: ?string
+     *     latest_attempt_at: ?string,
+     *     time_management: array<string, mixed>
      * }
      */
     public function getStatsForUser(int $userId): array
@@ -44,7 +45,8 @@ class ExamWeaknessAnalysisService
      *     total_simulations: int,
      *     pillars: array<string, array{label: string, percentage: int, status: string, status_label: string}>,
      *     materials: array<int, array{subject_code: string, subject_label: string, name: string, display_name: string, percentage: int, status: string, status_label: string, total: int, wrong: int}>,
-     *     latest_attempt_at: ?string
+     *     latest_attempt_at: ?string,
+     *     time_management: array<string, mixed>
      * }
      */
     public function buildStats(int $userId): array
@@ -65,6 +67,7 @@ class ExamWeaknessAnalysisService
                 'pillars' => [],
                 'materials' => [],
                 'latest_attempt_at' => null,
+                'time_management' => app(ExamTimeManagementService::class)->analyzeUserTimePatterns($userId),
             ];
         }
 
@@ -172,6 +175,7 @@ class ExamWeaknessAnalysisService
             'latest_attempt_at' => $latestAttemptAt
                 ? Carbon::parse($latestAttemptAt)->toDateTimeString()
                 : null,
+            'time_management' => app(ExamTimeManagementService::class)->analyzeUserTimePatterns($userId),
         ];
     }
 

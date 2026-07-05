@@ -5,6 +5,7 @@ namespace App\Livewire\Peserta;
 use App\Enums\AnswerReviewOutcome;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
+use App\Services\ExamTimeManagementService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -19,6 +20,8 @@ class ExamReview extends Component
 
     #[Locked]
     public int $currentIndex = 0;
+
+    public bool $showTimeManagementModal = false;
 
     public function mount(ExamAttempt $attempt): void
     {
@@ -47,6 +50,45 @@ class ExamReview extends Component
             'incorrect' => $outcomes->reject(fn (AnswerReviewOutcome $outcome) => $outcome->isPositive() || $outcome === AnswerReviewOutcome::Unanswered)->count(),
             'unanswered' => $outcomes->filter(fn (AnswerReviewOutcome $outcome) => $outcome === AnswerReviewOutcome::Unanswered)->count(),
         ];
+    }
+
+    public function getTimeAnalysisProperty(): array
+    {
+        return app(ExamTimeManagementService::class)->analyzeAttempt($this->attempt);
+    }
+
+    public function getCurrentQuestionDurationSecondsProperty(): int
+    {
+        if (! $this->currentAnswer) {
+            return 0;
+        }
+
+        $key = (string) $this->currentAnswer->sort_order;
+        $analysis = $this->timeAnalysis;
+
+        return $analysis['by_sort_order'][$key]['seconds'] ?? 0;
+    }
+
+    public function getCurrentQuestionDurationStatusProperty(): ?array
+    {
+        if (! $this->currentAnswer) {
+            return null;
+        }
+
+        $key = (string) $this->currentAnswer->sort_order;
+        $analysis = $this->timeAnalysis;
+
+        return $analysis['by_sort_order'][$key]['status'] ?? null;
+    }
+
+    public function openTimeManagementModal(): void
+    {
+        $this->showTimeManagementModal = true;
+    }
+
+    public function closeTimeManagementModal(): void
+    {
+        $this->showTimeManagementModal = false;
     }
 
     public function goToQuestion(int $index): void

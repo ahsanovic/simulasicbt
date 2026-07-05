@@ -127,6 +127,7 @@ Aturan output:
 - Sapa peserta dengan namanya.
 - Ringkas namun substantif (2-4 paragraf pendek).
 - Sebut kekuatan dan kelemahan spesifik berdasarkan data pilar (TWK, TIU, TKP) dan sub-materi.
+- Jika tersedia data manajemen waktu, analisis ritme pengerjaan (awal vs akhir ujian) dan berikan saran pacing yang konkret.
 - Akhiri dengan baris "Saran Tindakan:" (teks biasa, tanpa tanda bintang) berisi 2-3 poin tindakan konkret yang bisa dilakukan besok atau pada simulasi berikutnya.
 - Jangan gunakan format markdown sama sekali (termasuk **tebal**, *miring*, # heading, atau backtick). Gunakan teks biasa saja.
 - Boleh gunakan bullet sederhana dengan tanda "- " untuk saran tindakan.
@@ -162,6 +163,20 @@ PROMPT;
 
         $passingGrades = exam_passing_grades();
 
+        $timeManagement = $stats['time_management'] ?? [];
+        $timeLines = collect($timeManagement['summary_lines'] ?? [])
+            ->map(fn (string $line) => '- '.$line)
+            ->implode("\n");
+
+        $timeSection = ($timeManagement['has_data'] ?? false)
+            ? <<<TIME
+
+Data manajemen waktu (dari {$timeManagement['total_exams_with_data']} simulasi dengan data durasi):
+Batas aman rata-rata per soal: {$timeManagement['safe_seconds_per_question']} detik
+{$timeLines}
+TIME
+            : "\nData manajemen waktu: belum tersedia (simulasi belum merekam durasi per soal).";
+
         return <<<PROMPT
 Nama peserta: {$user->name}
 Total simulasi selesai: {$stats['total_simulations']}
@@ -172,8 +187,9 @@ Akurasi per pilar:
 
 Detail sub-materi (diurutkan dari yang paling lemah):
 {$materialLines}
+{$timeSection}
 
-Buat evaluasi personal dan saran belajar berdasarkan data di atas.
+Buat evaluasi personal dan saran belajar berdasarkan data di atas. Sertakan analisis pola manajemen waktu jika data tersedia.
 PROMPT;
     }
 }

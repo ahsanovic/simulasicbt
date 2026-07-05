@@ -27,6 +27,11 @@ class ExamRoom extends Component
 
     public ?int $selectedOptionId = null;
 
+    /** @var array<string, int> */
+    public array $questionDurations = [];
+
+    public ?int $questionTimerStartedAt = null;
+
     public function mount(Exam $exam): void
     {
         $this->exam = $exam->load('questions.subject');
@@ -45,7 +50,13 @@ class ExamRoom extends Component
             return;
         }
 
+        $stored = $this->attempt->question_duration ?? [];
+        $this->questionDurations = collect($stored['by_sort_order'] ?? [])
+            ->mapWithKeys(fn ($seconds, $key) => [(string) $key => max(0, (int) $seconds)])
+            ->all();
+
         $this->loadCurrentAnswer();
+        $this->startQuestionTimer();
     }
 
     public function getAnswersProperty()
@@ -145,8 +156,11 @@ class ExamRoom extends Component
         }
 
         $this->saveAnswer();
+        $this->accumulateCurrentQuestionDuration();
+        $this->persistQuestionDurations();
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
+        $this->startQuestionTimer();
     }
 
     public function previous(): void
@@ -159,16 +173,21 @@ class ExamRoom extends Component
     public function next(): void
     {
         $this->saveAnswer();
+        $this->accumulateCurrentQuestionDuration();
+        $this->persistQuestionDurations();
 
         if ($this->currentIndex < $this->answers->count() - 1) {
             $this->currentIndex++;
             $this->loadCurrentAnswer();
+            $this->startQuestionTimer();
         }
     }
 
     public function submitExam(ExamService $examService): void
     {
         $this->saveAnswer();
+        $this->accumulateCurrentQuestionDuration();
+        $this->persistQuestionDurations();
         $attempt = $examService->submitAttempt($this->attempt, auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
         $this->redirect(route('peserta.history'), navigate: true);
@@ -177,6 +196,8 @@ class ExamRoom extends Component
     public function checkExpiry(): void
     {
         if ($this->remainingSeconds <= 0) {
+            $this->accumulateCurrentQuestionDuration();
+            $this->persistQuestionDurations();
             $attempt = app(ExamService::class)->submitAttempt($this->attempt, auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
@@ -217,6 +238,35 @@ class ExamRoom extends Component
     {
         unset($this->currentAnswer);
         $this->selectedOptionId = $this->currentAnswer?->selected_option_id;
+    }
+
+    private function startQuestionTimer(): void
+    {
+        $this->questionTimerStartedAt = now()->timestamp;
+    }
+
+    private function accumulateCurrentQuestionDuration(): void
+    {
+        if (! $this->currentAnswer || $this->questionTimerStartedAt === null) {
+            return;
+        }
+
+        $elapsed = max(0, now()->timestamp - $this->questionTimerStartedAt);
+        $key = (string) $this->currentAnswer->sort_order;
+        $this->questionDurations[$key] = ($this->questionDurations[$key] ?? 0) + $elapsed;
+        $this->questionTimerStartedAt = null;
+    }
+
+    private function persistQuestionDurations(): void
+    {
+        $payload = ['by_sort_order' => $this->questionDurations];
+
+        ExamAttempt::query()
+            ->whereKey($this->attempt->id)
+            ->where('user_id', auth()->id())
+            ->update(['question_duration' => $payload]);
+
+        $this->attempt->question_duration = $payload;
     }
 
     public function render()

@@ -10,12 +10,6 @@
 
     {{ $slot }}
 
-    @auth
-        @if (auth()->user()->isPeserta())
-            <livewire:peserta.duel-notification-listener />
-        @endif
-    @endauth
-
     @livewireScripts
     @stack('scripts')
 </body>

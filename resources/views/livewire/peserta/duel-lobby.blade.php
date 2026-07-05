@@ -170,4 +170,8 @@
             </aside>
         </div>
     </main>
+
+    @if ($enableNotificationPoll)
+        <livewire:peserta.duel-notification-listener />
+    @endif
 </div>

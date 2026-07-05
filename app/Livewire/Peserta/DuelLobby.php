@@ -5,6 +5,7 @@ namespace App\Livewire\Peserta;
 use App\Enums\DuelMatchType;
 use App\Enums\DuelSessionStatus;
 use App\Models\DuelSession;
+use App\Notifications\DuelChallengeReceived;
 use App\Services\DuelService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -219,6 +220,19 @@ class DuelLobby extends Component
             ->limit(5)
             ->get();
 
-        return view('livewire.peserta.duel-lobby', compact('recentDuels'));
+        $enableNotificationPoll = $this->shouldPollNotifications();
+
+        return view('livewire.peserta.duel-lobby', compact('recentDuels', 'enableNotificationPoll'));
+    }
+
+    private function shouldPollNotifications(): bool
+    {
+        if (in_array($this->mode, ['challenge_pending', 'matchmaking', 'waiting'], true)) {
+            return true;
+        }
+
+        return auth()->user()->unreadNotifications()
+            ->where('type', DuelChallengeReceived::class)
+            ->exists();
     }
 }

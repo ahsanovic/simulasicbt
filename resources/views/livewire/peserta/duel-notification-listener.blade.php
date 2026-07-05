@@ -1,1 +1,1 @@
-<div wire:poll.3s="pollChallengeNotifications" class="hidden" aria-hidden="true"></div>
+<div wire:poll.5s.visible="pollChallengeNotifications" class="hidden" aria-hidden="true"></div>

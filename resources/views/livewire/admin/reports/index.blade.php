@@ -140,6 +140,57 @@
             />
         </div>
 
+        @if ($instansiFilter && $participants)
+            <div class="ui-card mt-5 overflow-hidden p-0">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <h2 class="text-base font-bold text-slate-900">Daftar Peserta</h2>
+                    <p class="mt-1 text-sm text-slate-500">
+                        Peserta terdaftar di
+                        <span class="font-medium text-slate-700">{{ $instansis->firstWhere('id', $instansiFilter)?->nama }}</span>
+                    </p>
+                </div>
+                <div class="ui-table-wrap">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-100 bg-slate-50/80">
+                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Nama</th>
+                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">NIP</th>
+                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
+                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Terdaftar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse ($participants as $participant)
+                                    <tr wire:key="participant-{{ $participant->id }}" class="transition hover:bg-slate-50/50">
+                                        <td class="px-5 py-4 font-semibold text-slate-900">{{ $participant->name }}</td>
+                                        <td class="px-5 py-4 text-slate-600">{{ $participant->nip ?? '—' }}</td>
+                                        <td class="px-5 py-4 text-slate-600">{{ $participant->email }}</td>
+                                        <td class="px-5 py-4">
+                                            <span @class([
+                                                'ui-badge',
+                                                'bg-emerald-100 text-emerald-700' => $participant->is_active,
+                                                'bg-rose-100 text-rose-700' => ! $participant->is_active,
+                                            ])>{{ $participant->is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                                        </td>
+                                        <td class="px-5 py-4 text-slate-600">{{ $participant->created_at->translatedFormat('d M Y') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-5 py-12 text-center text-slate-500">Belum ada peserta di instansi ini.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @if ($participants->hasPages())
+                        <div class="border-t border-slate-100 px-5 py-3">{{ $participants->links() }}</div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         <div class="ui-card mt-5 overflow-hidden p-0">
             <div class="border-b border-slate-100 px-5 py-4">
                 <h2 class="text-base font-bold text-slate-900">Rekap per Instansi</h2>
@@ -207,57 +258,6 @@
                 </div>
             </div>
         </div>
-
-        @if ($instansiFilter && $participants)
-            <div class="ui-card mt-5 overflow-hidden p-0">
-                <div class="border-b border-slate-100 px-5 py-4">
-                    <h2 class="text-base font-bold text-slate-900">Daftar Peserta</h2>
-                    <p class="mt-1 text-sm text-slate-500">
-                        Peserta terdaftar di
-                        <span class="font-medium text-slate-700">{{ $instansis->firstWhere('id', $instansiFilter)?->nama }}</span>
-                    </p>
-                </div>
-                <div class="ui-table-wrap">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="border-b border-slate-100 bg-slate-50/80">
-                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Nama</th>
-                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">NIP</th>
-                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
-                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Terdaftar</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                @forelse ($participants as $participant)
-                                    <tr wire:key="participant-{{ $participant->id }}" class="transition hover:bg-slate-50/50">
-                                        <td class="px-5 py-4 font-semibold text-slate-900">{{ $participant->name }}</td>
-                                        <td class="px-5 py-4 text-slate-600">{{ $participant->nip ?? '—' }}</td>
-                                        <td class="px-5 py-4 text-slate-600">{{ $participant->email }}</td>
-                                        <td class="px-5 py-4">
-                                            <span @class([
-                                                'ui-badge',
-                                                'bg-emerald-100 text-emerald-700' => $participant->is_active,
-                                                'bg-rose-100 text-rose-700' => ! $participant->is_active,
-                                            ])>{{ $participant->is_active ? 'Aktif' : 'Nonaktif' }}</span>
-                                        </td>
-                                        <td class="px-5 py-4 text-slate-600">{{ $participant->created_at->translatedFormat('d M Y') }}</td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="px-5 py-12 text-center text-slate-500">Belum ada peserta di instansi ini.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    @if ($participants->hasPages())
-                        <div class="border-t border-slate-100 px-5 py-3">{{ $participants->links() }}</div>
-                    @endif
-                </div>
-            </div>
-        @endif
     </div>
 
     <div class="ui-card mt-8 p-6">

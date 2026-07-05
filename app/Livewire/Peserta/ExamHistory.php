@@ -19,8 +19,16 @@ class ExamHistory extends Component
 
     public ?ExamAttempt $resultAttempt = null;
 
+    public ?string $focusHighlight = null;
+
     public function mount(): void
     {
+        $focus = request()->query('focus');
+
+        if (is_string($focus) && in_array($focus, ['readiness', 'time-management', 'review'], true)) {
+            $this->focusHighlight = $focus;
+        }
+
         $resultAttemptId = session()->pull('show_result_attempt_id');
 
         if (! $resultAttemptId) {
@@ -78,6 +86,7 @@ class ExamHistory extends Component
             'stats' => $stats,
             'passingGrades' => exam_passing_grades(),
             'scoreMax' => exam_score_max(),
+            'focusHighlight' => $this->focusHighlight,
         ]);
     }
 }

@@ -1,6 +1,14 @@
-<div class="ui-card relative flex max-h-[calc(100dvh-5rem)] flex-col overflow-hidden border-primary-200/50 bg-gradient-to-b from-white via-primary-50/10 to-indigo-50/20 shadow-lg shadow-primary-100/20 lg:max-h-[calc(100dvh-6rem)]">
+<div id="feature-readiness-card" @class([
+    'ui-card relative flex max-h-[calc(100dvh-5rem)] flex-col overflow-hidden border-primary-200/50 bg-gradient-to-b from-white via-primary-50/10 to-indigo-50/20 shadow-lg shadow-primary-100/20 lg:max-h-[calc(100dvh-6rem)]',
+    'ui-tour-pointer' => $focusHighlight === 'time-management'
+        && ! ($isGenerated && ($weaknessStats['time_management']['has_data'] ?? false)),
+])>
     {{-- Header --}}
-    <div class="relative shrink-0 overflow-hidden border-b border-primary-100/80 bg-gradient-to-r from-primary-600 via-primary-600 to-indigo-600 px-4 py-3.5">
+    <div @class([
+        'relative shrink-0 overflow-hidden border-b border-primary-100/80 bg-gradient-to-r from-primary-600 via-primary-600 to-indigo-600 px-4 py-3.5 rounded-t-2xl',
+        'ui-tour-pointer ui-tour-pointer--inset' => $focusHighlight === 'readiness',
+    ])
+         id="feature-readiness-header">
         <div class="pointer-events-none absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10"></div>
         <div class="pointer-events-none absolute -bottom-6 left-1/3 h-14 w-14 rounded-full bg-indigo-400/20"></div>
 
@@ -76,8 +84,12 @@
                         </button>
                         @if (($weaknessStats['time_management']['has_data'] ?? false))
                             <button type="button"
+                                    id="feature-time-management-button"
                                     @click="scrollToSection('readiness-section-time')"
-                                    class="inline-flex items-center gap-1 rounded-lg border border-orange-200/80 bg-white px-2.5 py-1 text-[11px] font-semibold text-orange-700 shadow-sm transition hover:border-orange-300 hover:bg-orange-50">
+                                    @class([
+                                        'inline-flex items-center gap-1 rounded-lg border border-orange-200/80 bg-white px-2.5 py-1 text-[11px] font-semibold text-orange-700 shadow-sm transition hover:border-orange-300 hover:bg-orange-50',
+                                        'ui-tour-pointer' => $focusHighlight === 'time-management',
+                                    ])>
                                 <span aria-hidden="true">⏱️</span>
                                 Manajemen Waktu
                             </button>

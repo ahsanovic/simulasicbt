@@ -15,6 +15,8 @@ use Throwable;
 
 class AiReadinessReport extends Component
 {
+    public ?string $focusHighlight = null;
+
     public bool $isLoading = false;
 
     public bool $isGenerated = false;

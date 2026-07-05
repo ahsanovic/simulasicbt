@@ -111,6 +111,37 @@
     .prose-exam {
         @apply text-slate-800 leading-relaxed [&_img]:max-w-full [&_p]:mb-3;
     }
+
+    .ui-tour-pointer {
+        @apply relative z-10;
+        animation: ui-tour-blink 1s ease-in-out infinite;
+    }
+
+    .ui-tour-pointer--inset {
+        animation: ui-tour-blink-inset 1s ease-in-out infinite;
+    }
+}
+
+@keyframes ui-tour-blink {
+    0%,
+    100% {
+        box-shadow: 0 0 0 3px transparent, 0 0 0 6px transparent;
+    }
+
+    50% {
+        box-shadow: 0 0 0 3px rgb(249 115 22), 0 0 0 8px rgb(249 115 22 / 0.4);
+    }
+}
+
+@keyframes ui-tour-blink-inset {
+    0%,
+    100% {
+        box-shadow: inset 0 0 0 3px transparent, inset 0 0 0 6px transparent;
+    }
+
+    50% {
+        box-shadow: inset 0 0 0 3px rgb(249 115 22), inset 0 0 0 6px rgb(249 115 22 / 0.35);
+    }
 }
 
 .swal2-popup {

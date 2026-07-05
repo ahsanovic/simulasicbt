@@ -62,9 +62,6 @@
                                     <input type="radio" wire:model.live="subjectCode" value="{{ $code }}" class="sr-only">
                                     <p class="text-sm font-bold text-slate-900">{{ $meta['label'] }}</p>
                                     <p class="mt-1 text-xs text-slate-500">{{ $meta['desc'] }}</p>
-                                    <p class="mt-2 text-[11px] font-semibold text-slate-400">
-                                        {{ number_format($availableCounts[$code] ?? 0) }} soal tersedia
-                                    </p>
                                 </label>
                             @endforeach
                         </div>

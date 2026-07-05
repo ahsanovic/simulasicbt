@@ -48,7 +48,9 @@ class Dashboard extends Component
             ->where('status', 'published')
             ->withCount('questions')
             ->latest()
-            ->get();
+            ->get()
+            ->reject(fn (Exam $exam) => $exam->isDuel())
+            ->values();
 
         $attemptStats = ExamAttempt::query()
             ->where('user_id', auth()->id())

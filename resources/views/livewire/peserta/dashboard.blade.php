@@ -38,32 +38,30 @@
                                 @endif
                             </div>
                         </div>
-                        @unless($exam->isDuel())
-                            <div class="flex shrink-0 flex-col gap-2 sm:items-end">
-                                @if($exam->in_progress_attempt)
-                                    <button wire:click="startExam({{ $exam->id }})"
-                                            @disabled(! $exam->isAvailable())
-                                            class="ui-btn-success px-6">
-                                        Lanjutkan Simulasi →
-                                    </button>
-                                @else
-                                    <button wire:click="startExam({{ $exam->id }})"
-                                            @disabled(! $exam->isAvailable())
-                                            @class([
-                                                'ui-btn-success px-6',
-                                                'opacity-50 cursor-not-allowed' => ! $exam->isAvailable(),
-                                            ])>
-                                        @if($exam->attempt_count > 0)
-                                            Ulangi Simulasi →
-                                        @elseif($exam->isAvailable())
-                                            Mulai Simulasi →
-                                        @else
-                                            Belum Tersedia
-                                        @endif
-                                    </button>
-                                @endif
-                            </div>
-                        @endunless
+                        <div class="flex shrink-0 flex-col gap-2 sm:items-end">
+                            @if($exam->in_progress_attempt)
+                                <button wire:click="startExam({{ $exam->id }})"
+                                        @disabled(! $exam->isAvailable())
+                                        class="ui-btn-success px-6">
+                                    Lanjutkan Simulasi →
+                                </button>
+                            @else
+                                <button wire:click="startExam({{ $exam->id }})"
+                                        @disabled(! $exam->isAvailable())
+                                        @class([
+                                            'ui-btn-success px-6',
+                                            'opacity-50 cursor-not-allowed' => ! $exam->isAvailable(),
+                                        ])>
+                                    @if($exam->attempt_count > 0)
+                                        Ulangi Simulasi →
+                                    @elseif($exam->isAvailable())
+                                        Mulai Simulasi →
+                                    @else
+                                        Belum Tersedia
+                                    @endif
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </article>
             @empty

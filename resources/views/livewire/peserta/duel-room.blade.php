@@ -9,8 +9,22 @@
                     <svg class="h-8 w-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <h2 class="mt-4 text-xl font-bold text-slate-900">Jawaban Terkunci</h2>
-                <p class="mt-2 text-sm text-slate-500">Menunggu {{ $this->opponentLabel }} menyelesaikan duel...</p>
-                <p class="mt-4 text-xs text-indigo-600">Progress lawan: {{ $this->opponentProgress }}/{{ $session::TOTAL_QUESTIONS }} soal</p>
+                @if (! $this->opponentHasStarted)
+                    <p class="mt-2 text-sm text-slate-500">
+                        {{ $this->opponentLabel }} <strong>belum memulai</strong> duel ini.
+                    </p>
+                    <p class="mt-3 text-xs leading-relaxed text-slate-400">
+                        Tunggu lawan bergabung dan menyelesaikan soal. Jika waktu duel habis tanpa lawan ikut bermain, Anda menang secara walkover.
+                    </p>
+                @else
+                    <p class="mt-2 text-sm text-slate-500">Menunggu {{ $this->opponentLabel }} menyelesaikan duel...</p>
+                    <p class="mt-4 text-xs text-indigo-600">Progress lawan: {{ $this->opponentProgress }}/{{ $session::TOTAL_QUESTIONS }} soal</p>
+                @endif
+                @if ($this->remainingDuelSeconds > 0)
+                    <p class="mt-4 text-xs font-semibold tabular-nums text-rose-600">
+                        Sisa waktu duel: {{ gmdate('i:s', $this->remainingDuelSeconds) }}
+                    </p>
+                @endif
             </div>
         </main>
     @elseif ($showResult)

@@ -67,6 +67,19 @@ class DuelRoom extends Component
         }
 
         $this->attempt = $duelService->startPlayerAttempt($this->session, auth()->user());
+
+        if ($this->attempt->status !== ExamAttemptStatus::InProgress) {
+            $this->session = $this->session->fresh(['hostAttempt', 'opponentAttempt', 'winner', 'host', 'opponent']);
+
+            if ($this->session->status === DuelSessionStatus::Completed) {
+                $this->showResult = true;
+            } else {
+                $this->waitingForOpponent = true;
+            }
+
+            return;
+        }
+
         $this->loadCurrentAnswer();
     }
 
@@ -100,6 +113,26 @@ class DuelRoom extends Component
     public function getOpponentLabelProperty(): string
     {
         return $this->session->opponentLabelFor(auth()->id());
+    }
+
+    public function getOpponentHasStartedProperty(): bool
+    {
+        $session = $this->session->fresh();
+
+        if (auth()->id() === $session->host_user_id) {
+            return $session->opponent_attempt_id !== null;
+        }
+
+        return $session->host_attempt_id !== null;
+    }
+
+    public function getRemainingDuelSecondsProperty(): int
+    {
+        if ($this->session->expires_at === null) {
+            return 0;
+        }
+
+        return max(0, (int) now()->diffInSeconds($this->session->expires_at, false));
     }
 
     public function selectOption(int $optionId): void

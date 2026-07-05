@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Peserta;
 
+use App\Enums\DuelMatchType;
 use App\Enums\DuelSessionStatus;
 use App\Models\DuelSession;
 use App\Services\DuelService;
@@ -34,13 +35,57 @@ class DuelLobby extends Component
 
         if ($activeDuel) {
             $this->redirect(route('peserta.duel.room', $activeDuel), navigate: true);
+
+            return;
+        }
+
+        $queuedMatchmaking = DuelSession::query()
+            ->where('host_user_id', auth()->id())
+            ->where('status', DuelSessionStatus::Waiting)
+            ->where('match_type', DuelMatchType::Random)
+            ->latest()
+            ->first();
+
+        if ($queuedMatchmaking) {
+            $this->waitingSession = $queuedMatchmaking;
+            $this->mode = 'matchmaking';
         }
     }
 
     public function findRandomMatch(DuelService $duelService): void
     {
-        $session = $duelService->createRandomMatch(auth()->user());
-        $this->redirect(route('peserta.duel.room', $session), navigate: true);
+        $session = $duelService->enterMatchmakingQueue(auth()->user());
+
+        if ($session->status === DuelSessionStatus::InProgress) {
+            $this->redirect(route('peserta.duel.room', $session), navigate: true);
+
+            return;
+        }
+
+        $this->waitingSession = $session;
+        $this->mode = 'matchmaking';
+    }
+
+    public function checkMatchmaking(DuelService $duelService): void
+    {
+        if (! $this->waitingSession || $this->mode !== 'matchmaking') {
+            return;
+        }
+
+        $session = $duelService->pollMatchmaking($this->waitingSession, auth()->user());
+
+        if ($session->status === DuelSessionStatus::InProgress) {
+            $this->redirect(route('peserta.duel.room', $session), navigate: true);
+        } else {
+            $this->waitingSession = $session;
+        }
+    }
+
+    public function cancelMatchmaking(DuelService $duelService): void
+    {
+        $duelService->cancelMatchmaking(auth()->user());
+        $this->waitingSession = null;
+        $this->mode = 'menu';
     }
 
     public function challengeFriend(DuelService $duelService): void
@@ -75,7 +120,7 @@ class DuelLobby extends Component
 
     public function checkWaitingRoom(): void
     {
-        if (! $this->waitingSession) {
+        if (! $this->waitingSession || $this->mode !== 'waiting') {
             return;
         }
 
@@ -88,7 +133,7 @@ class DuelLobby extends Component
 
     public function cancelWaiting(): void
     {
-        if ($this->waitingSession) {
+        if ($this->waitingSession && $this->mode === 'waiting') {
             DuelSession::query()
                 ->whereKey($this->waitingSession->id)
                 ->where('host_user_id', auth()->id())

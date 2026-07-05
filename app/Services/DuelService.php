@@ -19,36 +19,78 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class DuelService
 {
+    public const MATCHMAKING_BOT_WAIT_SECONDS = 45;
+
     public function __construct(
         private readonly DuelQuestionGeneratorService $questionGenerator,
         private readonly AiShadowBotService $shadowBot,
     ) {}
 
-    public function createRandomMatch(User $host): DuelSession
+    /**
+     * Masuk antrean matchmaking. Duel hanya dimulai jika ada pemain lain
+     * yang juga sedang mengantre, atau setelah timeout lawan diganti AI.
+     */
+    public function enterMatchmakingQueue(User $user): DuelSession
     {
-        return DB::transaction(function () use ($host) {
+        return DB::transaction(function () use ($user) {
+            $ownQueue = DuelSession::query()
+                ->where('host_user_id', $user->id)
+                ->where('status', DuelSessionStatus::Waiting)
+                ->where('match_type', DuelMatchType::Random)
+                ->lockForUpdate()
+                ->first();
+
+            if ($ownQueue) {
+                return $ownQueue;
+            }
+
             $waiting = DuelSession::query()
                 ->where('status', DuelSessionStatus::Waiting)
                 ->where('match_type', DuelMatchType::Random)
-                ->where('host_user_id', '!=', $host->id)
+                ->where('host_user_id', '!=', $user->id)
                 ->where('created_at', '>=', now()->subMinutes(2))
+                ->orderBy('created_at')
                 ->lockForUpdate()
                 ->first();
 
             if ($waiting) {
-                return $this->joinSession($waiting, $host);
+                return $this->joinSession($waiting, $user);
             }
 
-            $session = $this->createSession($host, DuelMatchType::Random);
-
-            $onlineOpponent = $this->findOnlineOpponent($host->id);
-
-            if ($onlineOpponent) {
-                return $this->assignOpponentAndStart($session, $onlineOpponent);
-            }
-
-            return $this->assignBotAndStart($session);
+            return $this->createSession($user, DuelMatchType::Random);
         });
+    }
+
+    public function pollMatchmaking(DuelSession $session, User $user): DuelSession
+    {
+        return DB::transaction(function () use ($session, $user) {
+            $session = DuelSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
+
+            if ($session->status === DuelSessionStatus::InProgress) {
+                return $session;
+            }
+
+            if ($session->status !== DuelSessionStatus::Waiting
+                || $session->match_type !== DuelMatchType::Random
+                || $session->host_user_id !== $user->id) {
+                return $session;
+            }
+
+            if ($session->created_at->diffInSeconds(now()) >= self::MATCHMAKING_BOT_WAIT_SECONDS) {
+                return $this->assignBotAndStart($session);
+            }
+
+            return $session;
+        });
+    }
+
+    public function cancelMatchmaking(User $user): void
+    {
+        DuelSession::query()
+            ->where('host_user_id', $user->id)
+            ->where('status', DuelSessionStatus::Waiting)
+            ->where('match_type', DuelMatchType::Random)
+            ->update(['status' => DuelSessionStatus::Cancelled]);
     }
 
     public function challengeFriend(User $host, string $identifier): DuelSession
@@ -213,6 +255,17 @@ class DuelService
 
             if ($session->is_bot_opponent && ! $session->opponent_finished_at) {
                 $this->shadowBot->completeBotAttempt($session->fresh());
+                $session = $session->fresh(['hostAttempt', 'opponentAttempt']);
+            }
+
+            $session = $session->fresh();
+
+            if (! $session->host_finished_at && ! $session->host_attempt_id) {
+                $session->update(['host_finished_at' => $session->expires_at]);
+            }
+
+            if (! $session->is_bot_opponent && ! $session->opponent_finished_at && ! $session->opponent_attempt_id) {
+                $session->update(['opponent_finished_at' => $session->expires_at]);
             }
 
             return $this->resolveSessionIfComplete($session->fresh(['hostAttempt', 'opponentAttempt']));
@@ -366,27 +419,6 @@ class DuelService
         ]);
 
         return $session->fresh(['host', 'opponent', 'winner', 'hostAttempt', 'opponentAttempt']);
-    }
-
-    private function findOnlineOpponent(int $excludeUserId): ?User
-    {
-        $recentUserIds = ExamAttempt::query()
-            ->where('status', ExamAttemptStatus::InProgress)
-            ->where('user_id', '!=', $excludeUserId)
-            ->where('updated_at', '>=', now()->subMinutes(5))
-            ->pluck('user_id')
-            ->unique();
-
-        if ($recentUserIds->isEmpty()) {
-            return null;
-        }
-
-        return User::query()
-            ->whereIn('id', $recentUserIds)
-            ->where('role', UserRole::Peserta)
-            ->where('is_active', true)
-            ->inRandomOrder()
-            ->first();
     }
 
     private function duelExam(): Exam

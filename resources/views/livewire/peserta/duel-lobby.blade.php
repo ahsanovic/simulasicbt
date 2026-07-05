@@ -20,7 +20,21 @@
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,28%)] lg:items-start">
             <div class="space-y-6">
-                @if ($mode === 'waiting' && $waitingSession)
+                @if ($mode === 'matchmaking' && $waitingSession)
+                    <div class="ui-card p-6 text-center" wire:poll.2s="checkMatchmaking">
+                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+                            <svg class="h-8 w-8 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </div>
+                        <h2 class="mt-4 text-lg font-bold text-slate-900">Mencari Lawan...</h2>
+                        <p class="mt-2 text-sm text-slate-500">Menunggu peserta lain yang juga mengklik matchmaking.</p>
+                        <p class="mt-3 text-xs leading-relaxed text-slate-400">
+                            Duel dimulai saat ada lawan di antrean. Jika tidak ada dalam {{ \App\Services\DuelService::MATCHMAKING_BOT_WAIT_SECONDS }} detik, Anda akan melawan AI Shadow Bot.
+                        </p>
+                        <div class="mt-6 flex flex-wrap justify-center gap-3">
+                            <button type="button" wire:click="cancelMatchmaking" class="ui-btn-secondary">Batalkan</button>
+                        </div>
+                    </div>
+                @elseif ($mode === 'waiting' && $waitingSession)
                     <div class="ui-card p-6 text-center" wire:poll.3s="checkWaitingRoom">
                         <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
                             <svg class="h-8 w-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -43,7 +57,7 @@
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             </div>
                             <h3 class="mt-4 text-sm font-bold text-slate-900 group-hover:text-rose-700">Cari Lawan Acak</h3>
-                            <p class="mt-1 text-xs text-slate-500">Matchmaking instan. Jika tidak ada pemain online, Anda akan melawan AI Shadow Bot.</p>
+                            <p class="mt-1 text-xs text-slate-500">Masuk antrean matchmaking. Duel dimulai saat ada lawan lain yang juga mengantre, atau lawan AI jika tidak ada.</p>
                             <span wire:loading wire:target="findRandomMatch" class="mt-3 block text-xs font-semibold text-rose-600">Mencari lawan...</span>
                         </button>
 

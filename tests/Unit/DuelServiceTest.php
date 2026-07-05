@@ -64,12 +64,46 @@ class DuelServiceTest extends TestCase
         $this->assertSame($host->id, $session->winner_user_id);
     }
 
-    public function test_random_match_assigns_bot_when_no_opponent(): void
+    public function test_matchmaking_enters_queue_when_alone(): void
     {
         $this->seedQuestionBank();
         $host = User::factory()->create(['role' => UserRole::Peserta]);
 
-        $session = app(DuelService::class)->createRandomMatch($host);
+        $session = app(DuelService::class)->enterMatchmakingQueue($host);
+
+        $this->assertSame(DuelSessionStatus::Waiting, $session->status);
+        $this->assertFalse($session->is_bot_opponent);
+        $this->assertNull($session->opponent_user_id);
+    }
+
+    public function test_matchmaking_pairs_two_players(): void
+    {
+        $this->seedQuestionBank();
+        $playerA = User::factory()->create(['role' => UserRole::Peserta]);
+        $playerB = User::factory()->create(['role' => UserRole::Peserta]);
+
+        $duelService = app(DuelService::class);
+        $queueA = $duelService->enterMatchmakingQueue($playerA);
+        $session = $duelService->enterMatchmakingQueue($playerB);
+
+        $this->assertSame($queueA->id, $session->id);
+        $this->assertSame(DuelSessionStatus::InProgress, $session->status);
+        $this->assertFalse($session->is_bot_opponent);
+        $this->assertSame($playerA->id, $session->host_user_id);
+        $this->assertSame($playerB->id, $session->opponent_user_id);
+    }
+
+    public function test_matchmaking_assigns_bot_after_timeout(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+        $duelService = app(DuelService::class);
+
+        $session = $duelService->enterMatchmakingQueue($host);
+
+        $this->travel(DuelService::MATCHMAKING_BOT_WAIT_SECONDS + 1)->seconds();
+
+        $session = $duelService->pollMatchmaking($session, $host);
 
         $this->assertTrue($session->is_bot_opponent);
         $this->assertSame(DuelSessionStatus::InProgress, $session->status);

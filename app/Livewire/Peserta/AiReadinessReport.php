@@ -15,6 +15,8 @@ use Throwable;
 
 class AiReadinessReport extends Component
 {
+    public string $variant = 'sidebar';
+
     public ?string $focusHighlight = null;
 
     public bool $isLoading = false;
@@ -143,7 +145,7 @@ class AiReadinessReport extends Component
         $this->redirect(route('peserta.exam.room', $exam), navigate: true);
     }
 
-    private function resolveRepeatExam(): ?Exam
+    protected function resolveRepeatExam(): ?Exam
     {
         $userId = (int) auth()->id();
 

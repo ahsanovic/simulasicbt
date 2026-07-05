@@ -14,11 +14,11 @@
             </a>
         </div>
 
-        <nav class="flex items-center gap-1 rounded-xl bg-slate-100 p-1 text-sm font-semibold">
+        <nav class="flex max-w-[min(100vw-12rem,42rem)] items-center gap-0.5 overflow-x-auto rounded-xl bg-slate-100 p-1 text-sm font-semibold scrollbar-none sm:max-w-none sm:gap-1">
             <a href="{{ route('peserta.dashboard') }}"
                wire:navigate
                @class([
-                   'rounded-lg px-3 py-1.5 transition',
+                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
                    'bg-white text-primary-700 shadow-sm' => $active === 'dashboard',
                    'text-slate-600 hover:text-slate-900' => $active !== 'dashboard',
                ])>
@@ -27,16 +27,27 @@
             <a href="{{ route('peserta.history') }}"
                wire:navigate
                @class([
-                   'rounded-lg px-3 py-1.5 transition',
+                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
                    'bg-white text-primary-700 shadow-sm' => $active === 'history',
                    'text-slate-600 hover:text-slate-900' => $active !== 'history',
                ])>
-                Riwayat Tes
+                <span class="hidden sm:inline">Riwayat Tes</span>
+                <span class="sm:hidden">Riwayat</span>
+            </a>
+            <a href="{{ route('peserta.evaluasi') }}"
+               wire:navigate
+               @class([
+                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
+                   'bg-white text-primary-700 shadow-sm' => $active === 'evaluasi',
+                   'text-slate-600 hover:text-slate-900' => $active !== 'evaluasi',
+               ])>
+                <span class="hidden sm:inline">Evaluasi & Rapor</span>
+                <span class="sm:hidden">Evaluasi</span>
             </a>
             <a href="{{ route('peserta.duel.index') }}"
                wire:navigate
                @class([
-                   'rounded-lg px-3 py-1.5 transition',
+                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
                    'bg-white text-primary-700 shadow-sm' => $active === 'duel',
                    'text-slate-600 hover:text-slate-900' => $active !== 'duel',
                ])>

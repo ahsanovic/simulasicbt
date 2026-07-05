@@ -16,7 +16,7 @@
 
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {{-- 1. Evaluasi & Rapor Kesiapan CPNS --}}
-        <a href="{{ route('peserta.history', ['focus' => 'readiness']) }}"
+        <a href="{{ route('peserta.evaluasi') }}"
            wire:navigate
            class="group ui-card relative overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
             <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-primary-100/80 to-indigo-100/40 opacity-0 transition group-hover:opacity-100"></div>
@@ -44,7 +44,7 @@
         </a>
 
         {{-- 2. Analisis Manajemen Waktu --}}
-        <a href="{{ route('peserta.history', ['focus' => 'time-management']) }}"
+        <a href="{{ route('peserta.evaluasi', ['focus' => 'time-management']) }}"
            wire:navigate
            class="group ui-card relative overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2">
             <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-orange-100/80 to-amber-100/40 opacity-0 transition group-hover:opacity-100"></div>

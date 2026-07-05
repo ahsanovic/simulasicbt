@@ -25,7 +25,19 @@ class ExamHistory extends Component
     {
         $focus = request()->query('focus');
 
-        if (is_string($focus) && in_array($focus, ['readiness', 'time-management', 'review'], true)) {
+        if ($focus === 'readiness') {
+            $this->redirect(route('peserta.evaluasi'), navigate: true);
+
+            return;
+        }
+
+        if ($focus === 'time-management') {
+            $this->redirect(route('peserta.evaluasi', ['focus' => 'time-management']), navigate: true);
+
+            return;
+        }
+
+        if (is_string($focus) && $focus === 'review') {
             $this->focusHighlight = $focus;
         }
 

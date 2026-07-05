@@ -22,6 +22,7 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\DuelLobby;
 use App\Livewire\Peserta\DuelRoom;
+use App\Livewire\Peserta\Evaluasi as PesertaEvaluasi;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
 use App\Livewire\Peserta\ExamRoom;
@@ -102,6 +103,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 Route::middleware(['auth', 'peserta', \App\Http\Middleware\TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
     Route::get('/', PesertaDashboard::class)->name('dashboard');
     Route::get('/riwayat', ExamHistory::class)->name('history');
+    Route::get('/evaluasi', PesertaEvaluasi::class)->name('evaluasi');
+    Route::redirect('/rapor', '/peserta/evaluasi');
     Route::get('/riwayat/{attempt}/review', ExamReview::class)->name('exam.review');
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
     Route::get('/duel', DuelLobby::class)->name('duel.index');

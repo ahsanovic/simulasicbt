@@ -12,7 +12,9 @@ use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\User;
+use App\Notifications\DuelChallengeAccepted;
 use App\Notifications\DuelChallengeReceived;
+use App\Notifications\DuelChallengeRejected;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -116,17 +118,61 @@ class DuelService
 
         $opponentWasOnline = $this->presence->isOnline($opponent);
 
-        $session = DB::transaction(function () use ($host, $opponent) {
-            $session = $this->createSession($host, DuelMatchType::Friend, $opponent->id);
+        $session = $this->createSession($host, DuelMatchType::Friend, $opponent->id);
 
-            return $this->assignOpponentAndStart($session, $opponent);
-        });
-
-        if ($opponentWasOnline) {
-            $opponent->notify(new DuelChallengeReceived($session, $host));
-        }
+        $opponent->notify(new DuelChallengeReceived($session, $host));
 
         return new DuelChallengeResult($session, $opponent, $opponentWasOnline);
+    }
+
+    public function acceptFriendChallenge(DuelSession $session, User $opponent): DuelSession
+    {
+        return DB::transaction(function () use ($session, $opponent) {
+            $session = DuelSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
+
+            if ($session->opponent_user_id !== $opponent->id) {
+                throw new AccessDeniedHttpException('Anda bukan lawan dalam duel ini.');
+            }
+
+            if ($session->match_type !== DuelMatchType::Friend || $session->status !== DuelSessionStatus::Waiting) {
+                throw ValidationException::withMessages([
+                    'duel' => 'Tantangan duel tidak valid atau sudah tidak tersedia.',
+                ]);
+            }
+
+            $session = $this->startPendingDuel($session);
+            $session->host->notify(new DuelChallengeAccepted($session, $opponent));
+
+            return $session->fresh(['host', 'opponent']);
+        });
+    }
+
+    public function rejectFriendChallenge(DuelSession $session, User $opponent): void
+    {
+        DB::transaction(function () use ($session, $opponent) {
+            $session = DuelSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
+
+            if ($session->opponent_user_id !== $opponent->id) {
+                throw new AccessDeniedHttpException('Anda bukan lawan dalam duel ini.');
+            }
+
+            if ($session->match_type !== DuelMatchType::Friend || $session->status !== DuelSessionStatus::Waiting) {
+                return;
+            }
+
+            $session->update(['status' => DuelSessionStatus::Cancelled]);
+            $session->host->notify(new DuelChallengeRejected($session, $opponent));
+        });
+    }
+
+    public function cancelFriendChallenge(DuelSession $session, User $host): void
+    {
+        DuelSession::query()
+            ->whereKey($session->id)
+            ->where('host_user_id', $host->id)
+            ->where('match_type', DuelMatchType::Friend)
+            ->where('status', DuelSessionStatus::Waiting)
+            ->update(['status' => DuelSessionStatus::Cancelled]);
     }
 
     public function joinByCode(User $user, string $code): DuelSession
@@ -322,6 +368,17 @@ class DuelService
         $session->update([
             'opponent_user_id' => $opponent->id,
             'is_bot_opponent' => false,
+            'status' => DuelSessionStatus::InProgress,
+            'started_at' => now(),
+            'expires_at' => now()->addMinutes($session->duration_minutes),
+        ]);
+
+        return $session->fresh();
+    }
+
+    private function startPendingDuel(DuelSession $session): DuelSession
+    {
+        $session->update([
             'status' => DuelSessionStatus::InProgress,
             'started_at' => now(),
             'expires_at' => now()->addMinutes($session->duration_minutes),

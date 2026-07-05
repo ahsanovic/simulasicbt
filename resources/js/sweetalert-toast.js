@@ -23,6 +23,8 @@ const iconMap = {
     warning: 'warning',
 };
 
+const shownChallengeDialogs = new Set();
+
 export function showToast(type, message) {
     if (!message) {
         return;
@@ -59,31 +61,50 @@ document.addEventListener('DOMContentLoaded', processFlashToasts);
 document.addEventListener('livewire:navigated', processFlashToasts);
 
 document.addEventListener('livewire:init', () => {
-    Livewire.on('duel-challenge-received', ({ message, url }) => {
+    Livewire.on('duel-challenge-received', ({ message, sessionId, notificationId }) => {
+        const dialogKey = notificationId ?? sessionId;
+
+        if (shownChallengeDialogs.has(dialogKey)) {
+            return;
+        }
+
+        shownChallengeDialogs.add(dialogKey);
+
         Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'info',
-            title: message,
-            showConfirmButton: true,
-            confirmButtonText: 'Gabung Duel',
+            title: 'Tantangan Duel!',
+            text: message,
+            icon: 'question',
             showCancelButton: true,
-            cancelButtonText: 'Nanti',
-            timer: 15000,
-            timerProgressBar: true,
-            customClass: {
-                popup: 'swal2-toast-custom',
-                title: 'swal2-toast-title',
-            },
+            confirmButtonText: 'Terima',
+            cancelButtonText: 'Tolak',
+            confirmButtonColor: '#16a34a',
+            cancelButtonColor: '#dc2626',
+            allowOutsideClick: false,
+            reverseButtons: true,
         }).then((result) => {
-            if (result.isConfirmed && url) {
-                if (typeof Livewire !== 'undefined' && Livewire.navigate) {
-                    Livewire.navigate(url);
-                } else {
-                    window.location.href = url;
-                }
+            if (result.isConfirmed) {
+                Livewire.dispatch('accept-duel-challenge', { sessionId });
+                Livewire.dispatch('mark-challenge-handled', { notificationId });
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                Livewire.dispatch('reject-duel-challenge', { sessionId, notificationId });
+            } else {
+                shownChallengeDialogs.delete(dialogKey);
             }
         });
+    });
+
+    Livewire.on('duel-challenge-rejected', ({ message }) => {
+        showToast('warning', message);
+    });
+
+    Livewire.on('duel-challenge-rejected-self', ({ message }) => {
+        showToast('info', message);
+    });
+
+    Livewire.on('mark-challenge-handled', ({ notificationId }) => {
+        if (notificationId) {
+            Livewire.dispatch('mark-challenge-notification-read', { notificationId });
+        }
     });
 
     Livewire.hook('commit', ({ succeed }) => {

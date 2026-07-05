@@ -7,13 +7,13 @@ use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class DuelChallengeReceived extends Notification
+class DuelChallengeRejected extends Notification
 {
     use Queueable;
 
     public function __construct(
         public readonly DuelSession $session,
-        public readonly User $challenger,
+        public readonly User $opponent,
     ) {}
 
     /** @return list<string> */
@@ -26,11 +26,10 @@ class DuelChallengeReceived extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'kind' => 'challenge_received',
+            'kind' => 'challenge_rejected',
             'duel_session_id' => $this->session->id,
-            'challenger_id' => $this->challenger->id,
-            'challenger_name' => $this->challenger->name,
-            'message' => "{$this->challenger->name} menantang Anda dalam duel 1v1!",
+            'opponent_name' => $this->opponent->name,
+            'message' => "{$this->opponent->name} menolak tantangan duel Anda.",
         ];
     }
 }

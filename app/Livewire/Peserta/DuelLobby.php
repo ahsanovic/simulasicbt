@@ -39,6 +39,20 @@ class DuelLobby extends Component
             return;
         }
 
+        $pendingChallenge = DuelSession::query()
+            ->where('host_user_id', auth()->id())
+            ->where('status', DuelSessionStatus::Waiting)
+            ->where('match_type', DuelMatchType::Friend)
+            ->latest()
+            ->first();
+
+        if ($pendingChallenge) {
+            $this->waitingSession = $pendingChallenge->load('opponent');
+            $this->mode = 'challenge_pending';
+
+            return;
+        }
+
         $queuedMatchmaking = DuelSession::query()
             ->where('host_user_id', auth()->id())
             ->where('status', DuelSessionStatus::Waiting)
@@ -98,13 +112,53 @@ class DuelLobby extends Component
 
         $result = $duelService->challengeFriend(auth()->user(), trim($this->friendIdentifier));
 
+        $this->waitingSession = $result->session->load('opponent');
+        $this->mode = 'challenge_pending';
+
         if ($result->opponentWasOnline) {
-            session()->flash('success', "Notifikasi duel telah dikirim ke {$result->opponent->name}.");
+            session()->flash('info', "Menunggu {$result->opponent->name} menerima tantangan duel...");
         } else {
-            session()->flash('warning', "{$result->opponent->name} sedang tidak online. Duel tetap dibuat — lawan dapat bergabung saat membuka menu Duel.");
+            session()->flash('warning', "{$result->opponent->name} sedang tidak online. Tantangan akan diterima saat lawan membuka aplikasi.");
+        }
+    }
+
+    public function checkChallengeResponse(): void
+    {
+        if (! $this->waitingSession || $this->mode !== 'challenge_pending') {
+            return;
         }
 
-        $this->redirect(route('peserta.duel.room', $result->session), navigate: true);
+        $session = DuelSession::query()->find($this->waitingSession->id);
+
+        if (! $session) {
+            $this->waitingSession = null;
+            $this->mode = 'menu';
+
+            return;
+        }
+
+        if ($session->status === DuelSessionStatus::InProgress) {
+            session()->flash('success', 'Lawan menerima tantangan! Duel dimulai.');
+            $this->redirect(route('peserta.duel.room', $session), navigate: true);
+
+            return;
+        }
+
+        if ($session->status === DuelSessionStatus::Cancelled) {
+            $this->waitingSession = null;
+            $this->mode = 'menu';
+            session()->flash('warning', 'Lawan menolak tantangan duel.');
+        }
+    }
+
+    public function cancelChallengePending(DuelService $duelService): void
+    {
+        if ($this->waitingSession && $this->mode === 'challenge_pending') {
+            $duelService->cancelFriendChallenge($this->waitingSession, auth()->user());
+        }
+
+        $this->waitingSession = null;
+        $this->mode = 'menu';
     }
 
     public function createInviteCode(DuelService $duelService): void

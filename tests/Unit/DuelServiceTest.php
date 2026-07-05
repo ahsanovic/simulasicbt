@@ -10,7 +10,9 @@ use App\Models\Material;
 use App\Models\Question;
 use App\Models\Subject;
 use App\Models\User;
+use App\Notifications\DuelChallengeAccepted;
 use App\Notifications\DuelChallengeReceived;
+use App\Notifications\DuelChallengeRejected;
 use App\Services\DuelQuestionGeneratorService;
 use App\Services\DuelService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,10 +28,12 @@ class DuelServiceTest extends TestCase
         $host = User::factory()->create(['role' => UserRole::Peserta]);
         $opponent = User::factory()->create(['role' => UserRole::Peserta, 'username' => 'lawan']);
 
-        $session = $duelService->challengeFriend($host, 'lawan');
+        $duelService = app(DuelService::class);
+        $result = $duelService->challengeFriend($host, 'lawan');
+        $session = $duelService->acceptFriendChallenge($result->session, $opponent);
 
-        $hostAttempt = app(DuelService::class)->startPlayerAttempt($session->session, $host);
-        $opponentAttempt = app(DuelService::class)->startPlayerAttempt($session->session->fresh(), $opponent);
+        $hostAttempt = $duelService->startPlayerAttempt($session, $host);
+        $opponentAttempt = $duelService->startPlayerAttempt($session->fresh(), $opponent);
 
         $hostIds = $hostAttempt->answers()->orderBy('sort_order')->pluck('question_id')->all();
         $opponentIds = $opponentAttempt->answers()->orderBy('sort_order')->pluck('question_id')->all();
@@ -46,7 +50,7 @@ class DuelServiceTest extends TestCase
 
         $duelService = app(DuelService::class);
         $result = $duelService->challengeFriend($host, 'lawan2');
-        $session = $result->session;
+        $session = $duelService->acceptFriendChallenge($result->session, $opponent);
 
         $hostAttempt = $duelService->startPlayerAttempt($session, $host);
         $opponentAttempt = $duelService->startPlayerAttempt($session->fresh(), $opponent);
@@ -112,7 +116,52 @@ class DuelServiceTest extends TestCase
         $this->assertCount(15, $session->question_ids);
     }
 
-    public function test_challenge_friend_notifies_online_opponent(): void
+    public function test_challenge_friend_waits_for_acceptance(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+        $opponent = User::factory()->create(['role' => UserRole::Peserta, 'username' => 'lawan-wait']);
+
+        $result = app(DuelService::class)->challengeFriend($host, 'lawan-wait');
+
+        $this->assertSame(DuelSessionStatus::Waiting, $result->session->status);
+    }
+
+    public function test_accept_friend_challenge_starts_duel_and_notifies_host(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+        $opponent = User::factory()->create(['role' => UserRole::Peserta, 'username' => 'lawan-accept']);
+
+        $duelService = app(DuelService::class);
+        $result = $duelService->challengeFriend($host, 'lawan-accept');
+        $session = $duelService->acceptFriendChallenge($result->session, $opponent);
+
+        $this->assertSame(DuelSessionStatus::InProgress, $session->status);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $host->id,
+            'type' => DuelChallengeAccepted::class,
+        ]);
+    }
+
+    public function test_reject_friend_challenge_notifies_host(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+        $opponent = User::factory()->create(['role' => UserRole::Peserta, 'username' => 'lawan-reject']);
+
+        $duelService = app(DuelService::class);
+        $result = $duelService->challengeFriend($host, 'lawan-reject');
+        $duelService->rejectFriendChallenge($result->session, $opponent);
+
+        $this->assertSame(DuelSessionStatus::Cancelled, $result->session->fresh()->status);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $host->id,
+            'type' => DuelChallengeRejected::class,
+        ]);
+    }
+
+    public function test_challenge_friend_notifies_opponent(): void
     {
         $this->seedQuestionBank();
         $host = User::factory()->create(['role' => UserRole::Peserta]);
@@ -131,7 +180,7 @@ class DuelServiceTest extends TestCase
         ]);
     }
 
-    public function test_challenge_friend_skips_notification_when_offline(): void
+    public function test_challenge_friend_notifies_offline_opponent_for_later(): void
     {
         $this->seedQuestionBank();
         $host = User::factory()->create(['role' => UserRole::Peserta]);
@@ -144,7 +193,7 @@ class DuelServiceTest extends TestCase
         $result = app(DuelService::class)->challengeFriend($host, 'lawan-offline');
 
         $this->assertFalse($result->opponentWasOnline);
-        $this->assertDatabaseMissing('notifications', [
+        $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $opponent->id,
             'type' => DuelChallengeReceived::class,
         ]);

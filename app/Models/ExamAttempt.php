@@ -12,6 +12,7 @@ class ExamAttempt extends Model
 {
     protected $fillable = [
         'exam_id',
+        'duel_session_id',
         'user_id',
         'started_at',
         'submitted_at',
@@ -42,6 +43,11 @@ class ExamAttempt extends Model
     public function exam(): BelongsTo
     {
         return $this->belongsTo(Exam::class);
+    }
+
+    public function duelSession(): BelongsTo
+    {
+        return $this->belongsTo(DuelSession::class);
     }
 
     public function user(): BelongsTo

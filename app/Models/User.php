@@ -81,6 +81,16 @@ class User extends Authenticatable
         return $this->hasMany(ExamAttempt::class);
     }
 
+    public function hostedDuels(): HasMany
+    {
+        return $this->hasMany(DuelSession::class, 'host_user_id');
+    }
+
+    public function opponentDuels(): HasMany
+    {
+        return $this->hasMany(DuelSession::class, 'opponent_user_id');
+    }
+
     public function createdQuestions(): HasMany
     {
         return $this->hasMany(Question::class, 'created_by');

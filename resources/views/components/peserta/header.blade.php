@@ -33,6 +33,15 @@
                ])>
                 Riwayat Tes
             </a>
+            <a href="{{ route('peserta.duel.index') }}"
+               wire:navigate
+               @class([
+                   'rounded-lg px-3 py-1.5 transition',
+                   'bg-white text-primary-700 shadow-sm' => $active === 'duel',
+                   'text-slate-600 hover:text-slate-900' => $active !== 'duel',
+               ])>
+                Duel
+            </a>
         </nav>
 
         <div class="flex items-center gap-3">

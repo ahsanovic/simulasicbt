@@ -14,7 +14,7 @@
             <span class="ui-badge bg-primary-100 text-primary-700">{{ $exams->count() }} ujian</span>
         </div>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,28%)] lg:items-start">
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(520px,42%)] lg:items-start">
             <div class="grid min-w-0 gap-4">
             @forelse ($exams as $exam)
                 <article class="ui-card group overflow-hidden transition hover:shadow-lg hover:shadow-primary-500/10">
@@ -75,8 +75,9 @@
             @endforelse
             </div>
 
-            <aside class="lg:sticky lg:top-6">
+            <aside class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:sticky lg:top-6">
                 <livewire:peserta.live-leaderboard />
+                <livewire:peserta.duel-leaderboard />
             </aside>
         </div>
     </main>

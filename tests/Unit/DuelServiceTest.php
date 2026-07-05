@@ -1,0 +1,137 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Enums\DuelSessionStatus;
+use App\Enums\ExamAttemptStatus;
+use App\Enums\SubjectCode;
+use App\Enums\UserRole;
+use App\Models\Material;
+use App\Models\Question;
+use App\Models\Subject;
+use App\Models\User;
+use App\Services\DuelQuestionGeneratorService;
+use App\Services\DuelService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class DuelServiceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_both_players_receive_identical_questions(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+        $opponent = User::factory()->create(['role' => UserRole::Peserta, 'username' => 'lawan']);
+
+        $session = app(DuelService::class)->challengeFriend($host, 'lawan');
+
+        $hostAttempt = app(DuelService::class)->startPlayerAttempt($session, $host);
+        $opponentAttempt = app(DuelService::class)->startPlayerAttempt($session->fresh(), $opponent);
+
+        $hostIds = $hostAttempt->answers()->orderBy('sort_order')->pluck('question_id')->all();
+        $opponentIds = $opponentAttempt->answers()->orderBy('sort_order')->pluck('question_id')->all();
+
+        $this->assertSame($hostIds, $opponentIds);
+        $this->assertCount(15, $hostIds);
+    }
+
+    public function test_winner_determined_by_score_then_speed(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+        $opponent = User::factory()->create(['role' => UserRole::Peserta, 'username' => 'lawan2']);
+
+        $duelService = app(DuelService::class);
+        $session = $duelService->challengeFriend($host, 'lawan2');
+
+        $hostAttempt = $duelService->startPlayerAttempt($session, $host);
+        $opponentAttempt = $duelService->startPlayerAttempt($session->fresh(), $opponent);
+
+        foreach ($hostAttempt->answers as $answer) {
+            $correct = $answer->question->options->firstWhere('is_correct', true);
+            if ($correct) {
+                $answer->update(['selected_option_id' => $correct->id]);
+            }
+        }
+
+        $duelService->submitPlayerAttempt($session->fresh(), $host, $hostAttempt->fresh());
+        $duelService->submitPlayerAttempt($session->fresh(), $opponent, $opponentAttempt->fresh());
+
+        $session = $session->fresh();
+        $this->assertSame(DuelSessionStatus::Completed, $session->status);
+        $this->assertSame($host->id, $session->winner_user_id);
+    }
+
+    public function test_random_match_assigns_bot_when_no_opponent(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+
+        $session = app(DuelService::class)->createRandomMatch($host);
+
+        $this->assertTrue($session->is_bot_opponent);
+        $this->assertSame(DuelSessionStatus::InProgress, $session->status);
+        $this->assertCount(15, $session->question_ids);
+    }
+
+    public function test_duel_question_generator_produces_fifteen_questions(): void
+    {
+        $this->seedQuestionBank();
+
+        $ids = app(DuelQuestionGeneratorService::class)->generate();
+
+        $this->assertCount(15, $ids);
+    }
+
+    private function seedQuestionBank(): void
+    {
+        foreach (SubjectCode::cases() as $code) {
+            $subject = Subject::query()->create([
+                'code' => $code,
+                'name' => $code->label(),
+                'slug' => $code->value,
+                'sort_order' => 1,
+            ]);
+
+            $material = Material::query()->create([
+                'subject_id' => $subject->id,
+                'slug' => 'materi-'.$code->value,
+                'name' => 'Materi '.$code->label(),
+                'sort_order' => 1,
+            ]);
+
+            $count = $code === SubjectCode::Tkp ? 6 : 6;
+
+            for ($i = 0; $i < $count; $i++) {
+                $question = Question::query()->create([
+                    'subject_id' => $subject->id,
+                    'material_id' => $material->id,
+                    'content' => "Soal {$code->value} #{$i}",
+                    'difficulty' => 'medium',
+                    'is_active' => true,
+                ]);
+
+                if ($code === SubjectCode::Tkp) {
+                    foreach (['A', 'B', 'C', 'D', 'E'] as $idx => $label) {
+                        $question->options()->create([
+                            'label' => $label,
+                            'content' => "Opsi {$label}",
+                            'score_weight' => $idx + 1,
+                            'is_correct' => false,
+                        ]);
+                    }
+                } else {
+                    foreach (['A', 'B', 'C', 'D', 'E'] as $label) {
+                        $question->options()->create([
+                            'label' => $label,
+                            'content' => "Opsi {$label}",
+                            'is_correct' => $label === 'A',
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+}

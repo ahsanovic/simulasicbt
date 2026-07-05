@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Livewire\Peserta;
+
+use App\Enums\DuelSessionStatus;
+use App\Models\DuelSession;
+use App\Services\DuelService;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+#[Layout('layouts.peserta', ['activeNav' => 'duel', 'showNav' => true])]
+#[Title('Challenge a Friend')]
+class DuelLobby extends Component
+{
+    public string $mode = 'menu';
+
+    public string $friendIdentifier = '';
+
+    public string $joinCode = '';
+
+    public ?DuelSession $waitingSession = null;
+
+    public function mount(): void
+    {
+        $activeDuel = DuelSession::query()
+            ->where(function ($query) {
+                $query->where('host_user_id', auth()->id())
+                    ->orWhere('opponent_user_id', auth()->id());
+            })
+            ->where('status', DuelSessionStatus::InProgress)
+            ->latest()
+            ->first();
+
+        if ($activeDuel) {
+            $this->redirect(route('peserta.duel.room', $activeDuel), navigate: true);
+        }
+    }
+
+    public function findRandomMatch(DuelService $duelService): void
+    {
+        $session = $duelService->createRandomMatch(auth()->user());
+        $this->redirect(route('peserta.duel.room', $session), navigate: true);
+    }
+
+    public function challengeFriend(DuelService $duelService): void
+    {
+        $this->validate([
+            'friendIdentifier' => ['required', 'string', 'min:3'],
+        ], [
+            'friendIdentifier.required' => 'Masukkan username, NIP, atau email teman.',
+        ]);
+
+        $session = $duelService->challengeFriend(auth()->user(), trim($this->friendIdentifier));
+        $this->redirect(route('peserta.duel.room', $session), navigate: true);
+    }
+
+    public function createInviteCode(DuelService $duelService): void
+    {
+        $this->waitingSession = $duelService->createInviteCode(auth()->user());
+        $this->mode = 'waiting';
+    }
+
+    public function joinByCode(DuelService $duelService): void
+    {
+        $this->validate([
+            'joinCode' => ['required', 'string', 'min:4'],
+        ], [
+            'joinCode.required' => 'Masukkan kode duel.',
+        ]);
+
+        $session = $duelService->joinByCode(auth()->user(), $this->joinCode);
+        $this->redirect(route('peserta.duel.room', $session), navigate: true);
+    }
+
+    public function checkWaitingRoom(): void
+    {
+        if (! $this->waitingSession) {
+            return;
+        }
+
+        $session = DuelSession::query()->find($this->waitingSession->id);
+
+        if ($session && $session->status === DuelSessionStatus::InProgress) {
+            $this->redirect(route('peserta.duel.room', $session), navigate: true);
+        }
+    }
+
+    public function cancelWaiting(): void
+    {
+        if ($this->waitingSession) {
+            DuelSession::query()
+                ->whereKey($this->waitingSession->id)
+                ->where('host_user_id', auth()->id())
+                ->where('status', DuelSessionStatus::Waiting)
+                ->update(['status' => DuelSessionStatus::Cancelled]);
+        }
+
+        $this->waitingSession = null;
+        $this->mode = 'menu';
+    }
+
+    public function render()
+    {
+        $recentDuels = DuelSession::query()
+            ->where(function ($query) {
+                $query->where('host_user_id', auth()->id())
+                    ->orWhere('opponent_user_id', auth()->id());
+            })
+            ->where('status', DuelSessionStatus::Completed)
+            ->with(['host', 'opponent', 'winner', 'hostAttempt', 'opponentAttempt'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('livewire.peserta.duel-lobby', compact('recentDuels'));
+    }
+}

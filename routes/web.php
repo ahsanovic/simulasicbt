@@ -20,6 +20,8 @@ use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
+use App\Livewire\Peserta\DuelLobby;
+use App\Livewire\Peserta\DuelRoom;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
 use App\Livewire\Peserta\ExamRoom;
@@ -102,4 +104,6 @@ Route::middleware(['auth', 'peserta'])->prefix('peserta')->name('peserta.')->gro
     Route::get('/riwayat', ExamHistory::class)->name('history');
     Route::get('/riwayat/{attempt}/review', ExamReview::class)->name('exam.review');
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
+    Route::get('/duel', DuelLobby::class)->name('duel.index');
+    Route::get('/duel/{session}', DuelRoom::class)->name('duel.room');
 });

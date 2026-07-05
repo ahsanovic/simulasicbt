@@ -53,10 +53,34 @@
         <span wire:loading wire:target="generateRecommendation">AI sedang menganalisis...</span>
     </button>
 
-    <div wire:loading wire:target="generateRecommendation" @class(['mt-5 space-y-3', 'w-full' => $compact ?? false, 'w-full max-w-md' => ! ($compact ?? false)])>
-        <div class="h-3 animate-pulse rounded-full bg-slate-200"></div>
-        <div class="h-3 w-5/6 animate-pulse rounded-full bg-slate-200"></div>
-        <div class="h-3 w-4/6 animate-pulse rounded-full bg-slate-200"></div>
-        <div class="h-20 animate-pulse rounded-xl bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100"></div>
+    <div wire:loading wire:target="generateRecommendation" @class([
+        'mt-5',
+        'w-full space-y-3' => $compact ?? false,
+        'w-full max-w-2xl space-y-4' => ! ($compact ?? false),
+    ])>
+        <div @class([
+            'animate-pulse rounded-full bg-slate-200',
+            'h-3' => $compact ?? false,
+            'h-4' => ! ($compact ?? false),
+        ])></div>
+        <div @class([
+            'w-5/6 animate-pulse rounded-full bg-slate-200',
+            'h-3' => $compact ?? false,
+            'h-4' => ! ($compact ?? false),
+        ])></div>
+        <div @class([
+            'w-4/6 animate-pulse rounded-full bg-slate-200',
+            'h-3' => $compact ?? false,
+            'h-4' => ! ($compact ?? false),
+        ])></div>
+        @unless ($compact ?? false)
+            <div class="h-4 w-11/12 animate-pulse rounded-full bg-slate-200"></div>
+            <div class="h-4 w-3/4 animate-pulse rounded-full bg-slate-200"></div>
+        @endunless
+        <div @class([
+            'animate-pulse rounded-xl bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100',
+            'h-20' => $compact ?? false,
+            'h-40 sm:h-48' => ! ($compact ?? false),
+        ])></div>
     </div>
 </div>

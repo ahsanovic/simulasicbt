@@ -185,7 +185,7 @@
                         </table>
                     </div>
                     @if ($participants->hasPages())
-                        <div class="border-t border-slate-100 px-5 py-3">{{ $participants->links() }}</div>
+                        <div class="border-t border-slate-100 px-5 py-3">{{ $participants->links(['scrollTo' => false]) }}</div>
                     @endif
                 </div>
             </div>

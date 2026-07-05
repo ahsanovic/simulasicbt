@@ -94,7 +94,7 @@ class DuelService
             ->where('host_user_id', $user->id)
             ->where('status', DuelSessionStatus::Waiting)
             ->where('match_type', DuelMatchType::Random)
-            ->update(['status' => DuelSessionStatus::Cancelled]);
+            ->delete();
     }
 
     public function challengeFriend(User $host, string $identifier): DuelChallengeResult

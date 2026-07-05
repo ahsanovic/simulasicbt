@@ -199,6 +199,19 @@ class DuelServiceTest extends TestCase
         ]);
     }
 
+    public function test_cancel_matchmaking_deletes_waiting_session(): void
+    {
+        $this->seedQuestionBank();
+        $host = User::factory()->create(['role' => UserRole::Peserta]);
+
+        $duelService = app(DuelService::class);
+        $session = $duelService->enterMatchmakingQueue($host);
+
+        $duelService->cancelMatchmaking($host);
+
+        $this->assertDatabaseMissing('duel_sessions', ['id' => $session->id]);
+    }
+
     public function test_cancel_invite_code_deletes_waiting_session(): void
     {
         $this->seedQuestionBank();

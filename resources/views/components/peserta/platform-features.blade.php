@@ -18,41 +18,162 @@
         x-data="{
             activeIndex: 0,
             cardCount: 5,
-            get maxIndex() {
-                if (window.innerWidth >= 1024) return this.cardCount - 3;
-                if (window.innerWidth >= 640) return this.cardCount - 2;
-                return this.cardCount - 1;
+            autoplayMs: 3000,
+            autoplayTimer: null,
+            isPaused: false,
+            prefersReducedMotion: false,
+            _isNormalizing: false,
+            getAllCards() {
+                return [...(this.$refs.track?.querySelectorAll('[data-carousel-card]') ?? [])];
+            },
+            getClosestDomIndex() {
+                const track = this.$refs.track;
+                const cards = this.getAllCards();
+                const scrollLeft = track.scrollLeft;
+                let idx = 0;
+                let minDist = Infinity;
+                cards.forEach((card, i) => {
+                    const dist = Math.abs(card.offsetLeft - scrollLeft);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        idx = i;
+                    }
+                });
+                return idx;
+            },
+            scrollToDomIndex(index, smooth = true) {
+                const card = this.getAllCards()[index];
+                if (! card) return;
+                card.scrollIntoView({
+                    behavior: smooth ? 'smooth' : 'auto',
+                    inline: 'start',
+                    block: 'nearest',
+                });
             },
             scrollTo(index) {
                 const track = this.$refs.track;
-                const card = track?.querySelector(`[data-carousel-card='${index}']`);
+                const card = track?.querySelector(`[data-carousel-card='${index}']:not([data-clone])`);
                 if (! card) return;
-                this.activeIndex = Math.max(0, Math.min(index, this.maxIndex));
+                this.activeIndex = index;
                 card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+                this.resetAutoplay();
             },
-            prev() { this.scrollTo(this.activeIndex - 1); },
-            next() { this.scrollTo(this.activeIndex + 1); },
+            prev() {
+                const idx = this.getClosestDomIndex();
+                if (idx > 0) this.scrollToDomIndex(idx - 1);
+                this.resetAutoplay();
+            },
+            next() {
+                const cards = this.getAllCards();
+                const idx = this.getClosestDomIndex();
+                if (idx < cards.length - 1) this.scrollToDomIndex(idx + 1);
+                this.resetAutoplay();
+            },
+            setupClones() {
+                const track = this.$refs.track;
+                if (! track || track.dataset.clonesReady) return;
+
+                const originals = [...track.querySelectorAll('[data-carousel-card]:not([data-clone])')];
+
+                originals.forEach((card) => {
+                    const cloneEnd = card.cloneNode(true);
+                    cloneEnd.setAttribute('data-clone', 'end');
+                    cloneEnd.setAttribute('aria-hidden', 'true');
+                    cloneEnd.setAttribute('tabindex', '-1');
+                    track.appendChild(cloneEnd);
+                });
+
+                [...originals].reverse().forEach((card) => {
+                    const cloneStart = card.cloneNode(true);
+                    cloneStart.setAttribute('data-clone', 'start');
+                    cloneStart.setAttribute('aria-hidden', 'true');
+                    cloneStart.setAttribute('tabindex', '-1');
+                    track.insertBefore(cloneStart, track.firstChild);
+                });
+
+                track.dataset.clonesReady = '1';
+            },
+            jumpToRealCard(index) {
+                const track = this.$refs.track;
+                const real = track?.querySelector(`[data-carousel-card='${index}']:not([data-clone])`);
+                if (! real) return;
+
+                this._isNormalizing = true;
+                const prevBehavior = track.style.scrollBehavior;
+                track.style.scrollBehavior = 'auto';
+                track.scrollLeft = real.offsetLeft;
+                track.style.scrollBehavior = prevBehavior;
+                this.activeIndex = index;
+                requestAnimationFrame(() => { this._isNormalizing = false; });
+            },
+            normalizePosition() {
+                if (this._isNormalizing) return;
+
+                const cards = this.getAllCards();
+                const closest = cards[this.getClosestDomIndex()];
+                if (! closest) return;
+
+                const index = Number(closest.dataset.carouselCard);
+                this.activeIndex = index;
+
+                if (closest.hasAttribute('data-clone')) {
+                    this.jumpToRealCard(index);
+                }
+            },
+            startAutoplay() {
+                if (this.prefersReducedMotion || this.isPaused) return;
+                this.stopAutoplay();
+                this.autoplayTimer = setInterval(() => this.next(), this.autoplayMs);
+            },
+            stopAutoplay() {
+                clearInterval(this.autoplayTimer);
+                this.autoplayTimer = null;
+            },
+            resetAutoplay() {
+                this.stopAutoplay();
+                this.startAutoplay();
+            },
+            pauseAutoplay() {
+                this.isPaused = true;
+                this.stopAutoplay();
+            },
+            resumeAutoplay() {
+                this.isPaused = false;
+                this.startAutoplay();
+            },
             init() {
+                this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                this.$nextTick(() => {
+                    this.setupClones();
+                    const track = this.$refs.track;
+                    const firstReal = track?.querySelector(`[data-carousel-card='0']:not([data-clone])`);
+                    if (firstReal) {
+                        track.style.scrollBehavior = 'auto';
+                        track.scrollLeft = firstReal.offsetLeft;
+                        track.style.scrollBehavior = '';
+                        this.activeIndex = 0;
+                    }
+                    this.startAutoplay();
+                });
+
                 this.$refs.track?.addEventListener('scroll', () => {
+                    if (this._isNormalizing) return;
                     clearTimeout(this._scrollTimer);
                     this._scrollTimer = setTimeout(() => {
-                        const track = this.$refs.track;
-                        const cards = [...track.querySelectorAll('[data-carousel-card]')];
-                        const scrollLeft = track.scrollLeft;
-                        let closest = 0;
-                        let minDist = Infinity;
-                        cards.forEach((card) => {
-                            const dist = Math.abs(card.offsetLeft - scrollLeft);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                closest = Number(card.dataset.carouselCard);
-                            }
-                        });
-                        this.activeIndex = closest;
-                    }, 80);
+                        this.normalizePosition();
+                        this.resetAutoplay();
+                    }, 100);
                 }, { passive: true });
             },
+            destroy() {
+                this.stopAutoplay();
+            },
         }"
+        @mouseenter="pauseAutoplay()"
+        @mouseleave="resumeAutoplay()"
+        @focusin="pauseAutoplay()"
+        @focusout="resumeAutoplay()"
         class="relative"
     >
         <div class="relative">
@@ -218,15 +339,13 @@
             <div class="flex items-center gap-2">
                 <button type="button"
                         @click="prev()"
-                        :disabled="activeIndex === 0"
-                        class="flex h-9 w-9 items-center justify-center rounded-xl border border-primary-600 bg-primary-600 text-white shadow-md shadow-primary-500/30 transition hover:bg-primary-700 hover:border-primary-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                        class="flex h-9 w-9 items-center justify-center rounded-xl border border-primary-600 bg-primary-600 text-white shadow-md shadow-primary-500/30 transition hover:bg-primary-700 hover:border-primary-700"
                         aria-label="Fitur sebelumnya">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </button>
                 <button type="button"
                         @click="next()"
-                        :disabled="activeIndex >= maxIndex"
-                        class="flex h-9 w-9 items-center justify-center rounded-xl border border-primary-600 bg-primary-600 text-white shadow-md shadow-primary-500/30 transition hover:bg-primary-700 hover:border-primary-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                        class="flex h-9 w-9 items-center justify-center rounded-xl border border-primary-600 bg-primary-600 text-white shadow-md shadow-primary-500/30 transition hover:bg-primary-700 hover:border-primary-700"
                         aria-label="Fitur berikutnya">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </button>

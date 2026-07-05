@@ -4,11 +4,9 @@
     <div class="mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div class="flex items-center gap-3">
             <a href="{{ route('peserta.dashboard') }}" wire:navigate class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 shadow-lg shadow-primary-500/25">
-                    <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/></svg>
-                </div>
+                <img src="{{ asset('images/bkdlogo.png') }}" alt="BKD Jatim" class="h-13 w-auto object-contain">
                 <div class="hidden sm:block">
-                    <p class="text-sm font-bold text-slate-900">Simulasi CBT</p>
+                    <p class="text-sm font-bold text-slate-900">Simulasi CBT BKD Jatim</p>
                     <p class="text-xs text-slate-500">Portal Peserta</p>
                 </div>
             </a>

@@ -26,7 +26,7 @@ class ExamHistory extends Component
     public function render()
     {
         $attempts = ExamAttempt::query()
-            ->with('exam')
+            ->with(['exam', 'duelSession'])
             ->where('user_id', $this->user->id)
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
             ->latest('submitted_at')

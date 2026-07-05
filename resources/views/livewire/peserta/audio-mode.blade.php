@@ -132,7 +132,8 @@
                 questions: @js($questionsPayload),
                 thinkingSeconds: 7,
                 transitionSeconds: 2,
-                optionPauseMs: 900,
+                optionPauseMs: 500,
+                answerRevealPauseMs: 1200,
                 autoplay: true,
             })"
             x-on:destroy.window="destroy()"
@@ -165,13 +166,14 @@
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-widest text-violet-300/80" x-text="`Soal ${currentQuestion.number}`"></p>
 
-                            <div class="prose prose-invert prose-sm mt-3 max-w-none text-white/90" x-show="stage !== 'thinking'">
+                            <div class="prose prose-invert prose-sm mt-3 max-w-none text-white/90"
+                                 x-show="['question', 'options', 'thinking', 'answer'].includes(stage)">
                                 <div x-html="currentQuestion.question_html"></div>
                             </div>
 
-                            <div x-show="stage === 'thinking'" class="mt-8 flex flex-col items-center justify-center py-6">
+                            <div x-show="stage === 'thinking'" class="mt-6 flex flex-col items-center justify-center rounded-2xl bg-white/5 py-5 ring-1 ring-white/10">
                                 <p class="text-sm font-semibold text-violet-200">Waktu berpikir</p>
-                                <p class="mt-2 text-6xl font-black tabular-nums text-white" x-text="countdown"></p>
+                                <p class="mt-2 text-5xl font-black tabular-nums text-white" x-text="countdown"></p>
                                 <p class="mt-3 text-center text-xs text-violet-200/80">Jawab dalam hati, atau ketuk opsi di bawah jika ingin.</p>
                             </div>
 

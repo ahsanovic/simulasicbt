@@ -55,7 +55,8 @@ document.addEventListener('alpine:init', () => {
         questions: config.questions ?? [],
         thinkingSeconds: config.thinkingSeconds ?? 7,
         transitionSeconds: config.transitionSeconds ?? 2,
-        optionPauseMs: config.optionPauseMs ?? 900,
+        optionPauseMs: config.optionPauseMs ?? 500,
+        answerRevealPauseMs: config.answerRevealPauseMs ?? 1200,
         speechRate: config.speechRate ?? 0.92,
         speechLang: 'id-ID',
 
@@ -69,6 +70,8 @@ document.addEventListener('alpine:init', () => {
         countdownTimer: null,
         transitionTimer: null,
         optionPauseTimer: null,
+        answerPauseTimer: null,
+        answerSubStage: 'reveal',
         finishing: false,
         speechGeneration: 0,
 
@@ -186,6 +189,11 @@ document.addEventListener('alpine:init', () => {
                 clearTimeout(this.optionPauseTimer);
                 this.optionPauseTimer = null;
             }
+
+            if (this.answerPauseTimer) {
+                clearTimeout(this.answerPauseTimer);
+                this.answerPauseTimer = null;
+            }
         },
 
         play() {
@@ -233,7 +241,7 @@ document.addEventListener('alpine:init', () => {
                     break;
                 case 'question':
                 case 'answer':
-                    this.runStage(this.stage);
+                    this.speakAnswer(this.currentQuestion);
                     break;
                 default:
                     this.runStage('question');
@@ -249,6 +257,7 @@ document.addEventListener('alpine:init', () => {
             this.currentIndex--;
             this.selectedOption = null;
             this.optionsReadIndex = 0;
+            this.answerSubStage = 'reveal';
             this.stage = 'idle';
             this.countdown = 0;
             this.play();
@@ -264,6 +273,7 @@ document.addEventListener('alpine:init', () => {
             this.currentIndex++;
             this.selectedOption = null;
             this.optionsReadIndex = 0;
+            this.answerSubStage = 'reveal';
             this.stage = 'idle';
             this.countdown = 0;
             this.play();
@@ -322,6 +332,59 @@ document.addEventListener('alpine:init', () => {
             speakNext();
         },
 
+        speakAnswer(question) {
+            if (!question || this.isPaused || this.finishing) {
+                return;
+            }
+
+            this.stage = 'answer';
+
+            if (this.answerSubStage === 'explanation') {
+                const explanation = (question.explanation ?? '').trim();
+
+                if (!explanation) {
+                    this.completeAnswerStage();
+
+                    return;
+                }
+
+                this.speak(`Pembahasan: ${explanation}`, () => this.completeAnswerStage());
+
+                return;
+            }
+
+            this.speak(`Jawaban yang benar adalah ${question.correct_label}.`, () => {
+                if (this.isPaused || this.finishing) {
+                    return;
+                }
+
+                const explanation = (question.explanation ?? '').trim();
+
+                if (!explanation) {
+                    this.completeAnswerStage();
+
+                    return;
+                }
+
+                this.answerPauseTimer = setTimeout(() => {
+                    this.answerPauseTimer = null;
+
+                    if (this.isPaused || this.finishing) {
+                        return;
+                    }
+
+                    this.answerSubStage = 'explanation';
+                    this.speak(`Pembahasan: ${explanation}`, () => this.completeAnswerStage());
+                }, this.answerRevealPauseMs);
+            });
+        },
+
+        completeAnswerStage() {
+            this.answerSubStage = 'reveal';
+            this.$wire.completeQuestion(this.currentIndex);
+            this.runStage('transition');
+        },
+
         runStage(stage) {
             if (this.isPaused || this.finishing) {
                 return;
@@ -356,19 +419,10 @@ document.addEventListener('alpine:init', () => {
                     this.resumeThinkingCountdown();
                     break;
 
-                case 'answer': {
-                    let answerText = `Jawaban yang benar adalah ${question.correct_label}.`;
-
-                    if (question.explanation) {
-                        answerText += ` Pembahasan: ${question.explanation}`;
-                    }
-
-                    this.speak(answerText, () => {
-                        this.$wire.completeQuestion(this.currentIndex);
-                        this.runStage('transition');
-                    });
+                case 'answer':
+                    this.answerSubStage = 'reveal';
+                    this.speakAnswer(question);
                     break;
-                }
 
                 case 'transition':
                     this.startTransitionTimer();
@@ -398,6 +452,7 @@ document.addEventListener('alpine:init', () => {
                 this.currentIndex++;
                 this.selectedOption = null;
                 this.optionsReadIndex = 0;
+                this.answerSubStage = 'reveal';
                 this.runStage('question');
             }, this.transitionSeconds * 1000);
         },

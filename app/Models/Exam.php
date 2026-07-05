@@ -73,4 +73,9 @@ class Exam extends Model
 
         return true;
     }
+
+    public function isDuel(): bool
+    {
+        return (bool) ($this->settings['is_duel'] ?? false);
+    }
 }

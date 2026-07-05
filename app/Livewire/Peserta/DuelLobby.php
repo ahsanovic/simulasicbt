@@ -96,8 +96,15 @@ class DuelLobby extends Component
             'friendIdentifier.required' => 'Masukkan username, NIP, atau email teman.',
         ]);
 
-        $session = $duelService->challengeFriend(auth()->user(), trim($this->friendIdentifier));
-        $this->redirect(route('peserta.duel.room', $session), navigate: true);
+        $result = $duelService->challengeFriend(auth()->user(), trim($this->friendIdentifier));
+
+        if ($result->opponentWasOnline) {
+            session()->flash('success', "Notifikasi duel telah dikirim ke {$result->opponent->name}.");
+        } else {
+            session()->flash('warning', "{$result->opponent->name} sedang tidak online. Duel tetap dibuat — lawan dapat bergabung saat membuka menu Duel.");
+        }
+
+        $this->redirect(route('peserta.duel.room', $result->session), navigate: true);
     }
 
     public function createInviteCode(DuelService $duelService): void

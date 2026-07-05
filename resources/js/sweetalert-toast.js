@@ -59,6 +59,33 @@ document.addEventListener('DOMContentLoaded', processFlashToasts);
 document.addEventListener('livewire:navigated', processFlashToasts);
 
 document.addEventListener('livewire:init', () => {
+    Livewire.on('duel-challenge-received', ({ message, url }) => {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: message,
+            showConfirmButton: true,
+            confirmButtonText: 'Gabung Duel',
+            showCancelButton: true,
+            cancelButtonText: 'Nanti',
+            timer: 15000,
+            timerProgressBar: true,
+            customClass: {
+                popup: 'swal2-toast-custom',
+                title: 'swal2-toast-title',
+            },
+        }).then((result) => {
+            if (result.isConfirmed && url) {
+                if (typeof Livewire !== 'undefined' && Livewire.navigate) {
+                    Livewire.navigate(url);
+                } else {
+                    window.location.href = url;
+                }
+            }
+        });
+    });
+
     Livewire.hook('commit', ({ succeed }) => {
         succeed(() => {
             queueMicrotask(processFlashToasts);

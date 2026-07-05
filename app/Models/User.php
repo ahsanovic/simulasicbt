@@ -27,6 +27,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+        'last_seen_at',
         'email_verified_at',
     ];
 
@@ -43,6 +44,7 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'is_active' => 'boolean',
             'is_pegawai' => 'boolean',
+            'last_seen_at' => 'datetime',
             'instansi_id' => 'integer',
         ];
     }

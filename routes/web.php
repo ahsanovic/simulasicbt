@@ -99,7 +99,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/settings', SettingsIndex::class)->name('settings.index');
 });
 
-Route::middleware(['auth', 'peserta'])->prefix('peserta')->name('peserta.')->group(function () {
+Route::middleware(['auth', 'peserta', \App\Http\Middleware\TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
     Route::get('/', PesertaDashboard::class)->name('dashboard');
     Route::get('/riwayat', ExamHistory::class)->name('history');
     Route::get('/riwayat/{attempt}/review', ExamReview::class)->name('exam.review');

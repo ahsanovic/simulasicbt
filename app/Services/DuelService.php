@@ -12,6 +12,7 @@ use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\User;
+use App\Notifications\DuelChallengeReceived;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +25,7 @@ class DuelService
     public function __construct(
         private readonly DuelQuestionGeneratorService $questionGenerator,
         private readonly AiShadowBotService $shadowBot,
+        private readonly DuelPresenceService $presence,
     ) {}
 
     /**
@@ -93,7 +95,7 @@ class DuelService
             ->update(['status' => DuelSessionStatus::Cancelled]);
     }
 
-    public function challengeFriend(User $host, string $identifier): DuelSession
+    public function challengeFriend(User $host, string $identifier): DuelChallengeResult
     {
         $opponent = User::query()
             ->where('role', UserRole::Peserta)
@@ -112,11 +114,19 @@ class DuelService
             ]);
         }
 
-        return DB::transaction(function () use ($host, $opponent) {
+        $opponentWasOnline = $this->presence->isOnline($opponent);
+
+        $session = DB::transaction(function () use ($host, $opponent) {
             $session = $this->createSession($host, DuelMatchType::Friend, $opponent->id);
 
             return $this->assignOpponentAndStart($session, $opponent);
         });
+
+        if ($opponentWasOnline) {
+            $opponent->notify(new DuelChallengeReceived($session, $host));
+        }
+
+        return new DuelChallengeResult($session, $opponent, $opponentWasOnline);
     }
 
     public function joinByCode(User $user, string $code): DuelSession

@@ -56,6 +56,11 @@ class Dashboard extends Component
             ->get()
             ->groupBy('exam_id');
 
+        $hasHistory = ExamAttempt::query()
+            ->where('user_id', auth()->id())
+            ->where('status', ExamAttemptStatus::Submitted)
+            ->exists();
+
         $exams = $exams->map(function (Exam $exam) use ($attemptStats) {
             /** @var Collection<int, ExamAttempt> $attempts */
             $attempts = $attemptStats->get($exam->id, collect());
@@ -71,6 +76,6 @@ class Dashboard extends Component
             return $exam;
         });
 
-        return view('livewire.peserta.dashboard', compact('exams'));
+        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory'));
     }
 }

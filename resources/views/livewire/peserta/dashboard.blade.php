@@ -7,6 +7,8 @@
             <p class="mt-2 max-w-lg text-primary-100">Platform simulasi — Anda dapat mengulang tes berkali-kali. <br> Setiap hasil tersimpan di riwayat tes.</p>
         </div>
 
+        <x-peserta.platform-features :has-history="$hasHistory" />
+
         <div class="mb-6 flex items-center justify-between">
             <h2 class="text-lg font-bold text-slate-900">Ujian Tersedia</h2>
             <span class="ui-badge bg-primary-100 text-primary-700">{{ $exams->count() }} ujian</span>

@@ -193,14 +193,10 @@ class DuelLobby extends Component
         }
     }
 
-    public function cancelWaiting(): void
+    public function cancelWaiting(DuelService $duelService): void
     {
         if ($this->waitingSession && $this->mode === 'waiting') {
-            DuelSession::query()
-                ->whereKey($this->waitingSession->id)
-                ->where('host_user_id', auth()->id())
-                ->where('status', DuelSessionStatus::Waiting)
-                ->update(['status' => DuelSessionStatus::Cancelled]);
+            $duelService->cancelInviteCode($this->waitingSession, auth()->user());
         }
 
         $this->waitingSession = null;

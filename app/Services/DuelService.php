@@ -202,6 +202,16 @@ class DuelService
         return $this->createSession($host, DuelMatchType::Code);
     }
 
+    public function cancelInviteCode(DuelSession $session, User $host): void
+    {
+        DuelSession::query()
+            ->whereKey($session->id)
+            ->where('host_user_id', $host->id)
+            ->where('match_type', DuelMatchType::Code)
+            ->where('status', DuelSessionStatus::Waiting)
+            ->delete();
+    }
+
     public function startPlayerAttempt(DuelSession $session, User $user): ExamAttempt
     {
         return DB::transaction(function () use ($session, $user) {

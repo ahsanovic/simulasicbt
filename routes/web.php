@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\QuestionContentImageController;
 use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\PublicStorageController;
+use App\Http\Middleware\TrackPesertaPresence;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
 use App\Livewire\Admin\OnlineParticipants\Index as OnlineParticipantsIndex;
@@ -19,6 +20,7 @@ use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Auth\Login;
+use App\Livewire\Peserta\AudioMode;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\DuelLobby;
 use App\Livewire\Peserta\DuelRoom;
@@ -100,7 +102,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/settings', SettingsIndex::class)->name('settings.index');
 });
 
-Route::middleware(['auth', 'peserta', \App\Http\Middleware\TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
+Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
     Route::get('/', PesertaDashboard::class)->name('dashboard');
     Route::get('/riwayat', ExamHistory::class)->name('history');
     Route::get('/evaluasi', PesertaEvaluasi::class)->name('evaluasi');
@@ -109,4 +111,5 @@ Route::middleware(['auth', 'peserta', \App\Http\Middleware\TrackPesertaPresence:
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
     Route::get('/duel', DuelLobby::class)->name('duel.index');
     Route::get('/duel/{session}', DuelRoom::class)->name('duel.room');
+    Route::get('/audio', AudioMode::class)->name('audio.index');
 });

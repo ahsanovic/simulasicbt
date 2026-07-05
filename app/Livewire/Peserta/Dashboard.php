@@ -5,6 +5,7 @@ namespace App\Livewire\Peserta;
 use App\Enums\ExamAttemptStatus;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Services\AudioLearningService;
 use App\Services\ExamService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
@@ -42,7 +43,7 @@ class Dashboard extends Component
         $this->redirect(route('peserta.exam.room', $exam));
     }
 
-    public function render()
+    public function render(AudioLearningService $audioLearningService)
     {
         $exams = Exam::query()
             ->where('status', 'published')
@@ -78,6 +79,9 @@ class Dashboard extends Component
             return $exam;
         });
 
-        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory'));
+        $totalXp = $audioLearningService->totalXp(auth()->user());
+        $audioDailyStreak = $audioLearningService->dailyStreak(auth()->user());
+
+        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'audioDailyStreak'));
     }
 }

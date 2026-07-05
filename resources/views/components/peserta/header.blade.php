@@ -42,6 +42,21 @@
                 <span class="hidden sm:inline">Evaluasi & Rapor</span>
                 <span class="sm:hidden">Evaluasi</span>
             </a>
+            <a href="{{ route('peserta.audio.index') }}"
+               wire:navigate
+               @class([
+                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
+                   'bg-white text-primary-700 shadow-sm' => $active === 'audio',
+                   'text-slate-600 hover:text-slate-900' => $active !== 'audio',
+               ])>
+                <span class="inline-flex items-center gap-1">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                    </svg>
+                    <span class="hidden sm:inline">Audio Mode</span>
+                    <span class="sm:hidden">Audio</span>
+                </span>
+            </a>
             <a href="{{ route('peserta.duel.index') }}"
                wire:navigate
                @class([

@@ -3,8 +3,26 @@
         <x-ui.flash-toast />
 
         <div class="mb-8 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 p-6 text-white shadow-xl shadow-primary-500/20 sm:p-8">
-            <h1 class="text-2xl font-bold tracking-tight">Halo, {{ auth()->user()->name }} 👋</h1>
-            <p class="mt-2 max-w-lg text-primary-100">Platform simulasi — Anda dapat mengulang tes berkali-kali. <br> Setiap hasil tersimpan di riwayat tes.</p>
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Halo, {{ auth()->user()->name }} 👋</h1>
+                    <p class="mt-2 max-w-lg text-primary-100">Platform simulasi — Anda dapat mengulang tes berkali-kali. <br> Setiap hasil tersimpan di riwayat tes.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('peserta.audio.index') }}"
+                       wire:navigate
+                       class="inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">
+                        <svg class="h-4 w-4 text-amber-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                        {{ number_format($totalXp) }} XP
+                    </a>
+                    @if ($audioDailyStreak > 0)
+                        <span class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20">
+                            <svg class="h-4 w-4 text-orange-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+                            {{ $audioDailyStreak }} hari streak
+                        </span>
+                    @endif
+                </div>
+            </div>
         </div>
 
         <x-peserta.platform-features :has-history="$hasHistory" />

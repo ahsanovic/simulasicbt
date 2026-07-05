@@ -19,6 +19,21 @@ if (! function_exists('storage_asset')) {
     }
 }
 
+if (! function_exists('plain_text_for_tts')) {
+    function plain_text_for_tts(?string $html): string
+    {
+        if ($html === null || trim($html) === '') {
+            return '';
+        }
+
+        $text = strip_tags($html);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        return trim($text);
+    }
+}
+
 if (! function_exists('html_for_display')) {
     function html_for_display(?string $html): ?string
     {

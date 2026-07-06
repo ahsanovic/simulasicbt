@@ -218,6 +218,7 @@ class Index extends Component
     {
         $users = User::query()
             ->with('instansi')
+            ->withSum('audioLearningSessions as total_xp', 'xp_earned')
             ->when($this->search, fn ($q) => $q->where(function ($query) {
                 $query->where('name', 'like', "%{$this->search}%")
                     ->orWhere('email', 'like', "%{$this->search}%")

@@ -34,6 +34,10 @@
                     <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Lulus</p>
                     <p class="text-xl font-bold text-emerald-700">{{ number_format($stats['passed']) }}</p>
                 </div>
+                <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-2 text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-amber-600">Total XP Belajar</p>
+                    <p class="text-xl font-bold text-amber-700">{{ number_format($totalXp) }}</p>
+                </div>
             </div>
         </div>
     </div>

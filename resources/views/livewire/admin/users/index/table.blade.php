@@ -7,6 +7,7 @@
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Kontak</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Role</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                    <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Total XP</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Waktu Daftar</th>
                     <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Riwayat Tes</th>
                     <th class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Aksi</th>
@@ -51,6 +52,16 @@
                                 'bg-rose-100 text-rose-700' => ! $user->is_active,
                             ])>{{ $user->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                         </td>
+                        <td class="px-5 py-4 text-center">
+                            @if ($user->role->value === 'peserta')
+                                <span class="inline-flex items-center gap-1 font-semibold text-amber-700">
+                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                                    {{ number_format((int) ($user->total_xp ?? 0)) }}
+                                </span>
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
                         <td class="px-5 py-4 text-slate-500">
                             <p>{{ $user->created_at->format('d M Y') }}</p>
                             <p class="text-xs">{{ $user->created_at->format('H:i') }}</p>
@@ -69,7 +80,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-5 py-12 text-center text-slate-500">Belum ada data pengguna.</td>
+                        <td colspan="8" class="px-5 py-12 text-center text-slate-500">Belum ada data pengguna.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -97,4 +97,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Question::class, 'created_by');
     }
+
+    public function audioLearningSessions(): HasMany
+    {
+        return $this->hasMany(AudioLearningSession::class);
+    }
 }

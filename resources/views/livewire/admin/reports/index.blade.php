@@ -157,6 +157,7 @@
                                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Nama</th>
                                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">NIP</th>
                                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
+                                    <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Total XP</th>
                                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Terdaftar</th>
                                 </tr>
@@ -167,6 +168,7 @@
                                         <td class="px-5 py-4 font-semibold text-slate-900">{{ $participant->name }}</td>
                                         <td class="px-5 py-4 text-slate-600">{{ $participant->nip ?? '—' }}</td>
                                         <td class="px-5 py-4 text-slate-600">{{ $participant->email }}</td>
+                                        <td class="px-5 py-4 text-center font-semibold text-amber-700">{{ number_format((int) ($participant->total_xp ?? 0)) }}</td>
                                         <td class="px-5 py-4">
                                             <span @class([
                                                 'ui-badge',
@@ -178,7 +180,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="px-5 py-12 text-center text-slate-500">Belum ada peserta di instansi ini.</td>
+                                        <td colspan="6" class="px-5 py-12 text-center text-slate-500">Belum ada peserta di instansi ini.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

@@ -100,6 +100,7 @@ class Index extends Component
         $participants = $this->instansiFilter
             ? (clone $pesertaQuery)
                 ->with('instansi')
+                ->withSum('audioLearningSessions as total_xp', 'xp_earned')
                 ->latest()
                 ->paginate(10, pageName: 'participantsPage')
             : null;

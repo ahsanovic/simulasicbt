@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class DuelLeaderboardService
 {
-    private const int LIMIT = 10;
+    private const int DEFAULT_LIMIT = 10;
 
     /**
      * @return array{
@@ -17,12 +17,43 @@ class DuelLeaderboardService
      *     current_user: ?array{rank: int, user_id: int, name: string, wins: int, duels: int, win_rate: int, is_current: bool}
      * }
      */
-    public function getLeaderboard(int $userId): array
+    public function getLeaderboard(int $userId, int $limit = self::DEFAULT_LIMIT): array
+    {
+        $rows = $this->rankedRowsQuery()->get();
+
+        $entries = $rows->take($limit)->values()->map(fn ($row, int $index) => $this->mapRow($row, $index + 1, $userId));
+
+        $currentUser = null;
+
+        if (! $entries->contains(fn (array $entry) => $entry['is_current'])) {
+            $userRow = $rows->firstWhere('id', $userId);
+
+            if ($userRow) {
+                $rank = $rows->search(fn ($item) => (int) $item->id === $userId);
+                $currentUser = $this->mapRow($userRow, $rank + 1, $userId);
+            }
+        }
+
+        return [
+            'entries' => $entries,
+            'current_user' => $currentUser,
+        ];
+    }
+
+    public function getUserRank(int $userId): ?int
+    {
+        $rows = $this->rankedRowsQuery()->get();
+        $rank = $rows->search(fn ($item) => (int) $item->id === $userId);
+
+        return $rank === false ? null : $rank + 1;
+    }
+
+    private function rankedRowsQuery()
     {
         $completed = DuelSessionStatus::Completed->value;
         $peserta = UserRole::Peserta->value;
 
-        $rows = DB::table('users')
+        return DB::table('users')
             ->select(
                 'users.id',
                 'users.name',
@@ -43,26 +74,7 @@ class DuelLeaderboardService
             ->having('duels', '>=', 1)
             ->orderByDesc('wins')
             ->orderByDesc('duels')
-            ->orderBy('users.name')
-            ->get();
-
-        $entries = $rows->take(self::LIMIT)->values()->map(fn ($row, int $index) => $this->mapRow($row, $index + 1, $userId));
-
-        $currentUser = null;
-
-        if (! $entries->contains(fn (array $entry) => $entry['is_current'])) {
-            $userRow = $rows->firstWhere('id', $userId);
-
-            if ($userRow) {
-                $rank = $rows->search(fn ($item) => (int) $item->id === $userId);
-                $currentUser = $this->mapRow($userRow, $rank + 1, $userId);
-            }
-        }
-
-        return [
-            'entries' => $entries,
-            'current_user' => $currentUser,
-        ];
+            ->orderBy('users.name');
     }
 
     /** @return array{rank: int, user_id: int, name: string, wins: int, duels: int, win_rate: int, is_current: bool} */

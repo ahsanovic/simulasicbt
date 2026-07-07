@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class LeaderboardService
 {
-    private const int LIMIT = 10;
+    private const int DEFAULT_LIMIT = 10;
 
     /**
      * @return array{
@@ -17,13 +17,11 @@ class LeaderboardService
      *     current_user: ?array{rank: int, user_id: int, name: string, score: int, is_current: bool}
      * }
      */
-    public function getLiveLeaderboard(int $userId): array
+    public function getLiveLeaderboard(int $userId, int $limit = self::DEFAULT_LIMIT): array
     {
-        $topTen = $this->bestScoresQuery()
-            ->limit(self::LIMIT)
-            ->get();
+        $rows = $this->bestScoresQuery()->get();
 
-        $entries = $topTen->values()->map(fn ($row, int $index) => [
+        $entries = $rows->take($limit)->values()->map(fn ($row, int $index) => [
             'rank' => $index + 1,
             'user_id' => (int) $row->id,
             'name' => $row->name,
@@ -41,6 +39,13 @@ class LeaderboardService
             'entries' => $entries,
             'current_user' => $currentUser,
         ];
+    }
+
+    public function getUserRank(int $userId): ?int
+    {
+        $entry = $this->getCurrentUserEntry($userId);
+
+        return $entry['rank'] ?? null;
     }
 
     /** @return ?array{rank: int, user_id: int, name: string, score: int, is_current: bool} */

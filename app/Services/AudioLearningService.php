@@ -64,8 +64,6 @@ class AudioLearningService
 
     public function totalXp(User $user): int
     {
-        return (int) AudioLearningSession::query()
-            ->where('user_id', $user->id)
-            ->sum('xp_earned');
+        return app(GamificationService::class)->totalXp($user);
     }
 }

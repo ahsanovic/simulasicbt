@@ -28,6 +28,7 @@ use App\Livewire\Peserta\Evaluasi as PesertaEvaluasi;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
 use App\Livewire\Peserta\ExamRoom;
+use App\Livewire\Peserta\Testimonials;
 use App\Models\Instansi;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -111,5 +112,6 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
     Route::get('/duel', DuelLobby::class)->name('duel.index');
     Route::get('/duel/{session}', DuelRoom::class)->name('duel.room');
+    Route::get('/testimoni', Testimonials::class)->name('testimonials.index');
     Route::get('/audio', AudioMode::class)->name('audio.index');
 });

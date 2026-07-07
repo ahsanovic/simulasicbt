@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Services\AudioLearningService;
 use App\Services\ExamService;
+use App\Services\GamificationService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -43,7 +44,7 @@ class Dashboard extends Component
         $this->redirect(route('peserta.exam.room', $exam));
     }
 
-    public function render(AudioLearningService $audioLearningService)
+    public function render(AudioLearningService $audioLearningService, GamificationService $gamificationService)
     {
         $exams = Exam::query()
             ->where('status', 'published')
@@ -79,7 +80,7 @@ class Dashboard extends Component
             return $exam;
         });
 
-        $totalXp = $audioLearningService->totalXp(auth()->user());
+        $totalXp = $gamificationService->totalXp(auth()->user());
         $audioDailyStreak = $audioLearningService->dailyStreak(auth()->user());
 
         return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'audioDailyStreak'));

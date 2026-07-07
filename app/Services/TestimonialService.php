@@ -1,0 +1,176 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\TestimonialFeatureTag;
+use App\Enums\TestimonialReactionType;
+use App\Models\Testimonial;
+use App\Models\TestimonialReaction;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class TestimonialService
+{
+    public function __construct(
+        private readonly GamificationService $gamificationService,
+    ) {}
+
+    /** @return Collection<int, Testimonial> */
+    public function featuredTestimonials(): Collection
+    {
+        return Testimonial::query()
+            ->with(['user.instansi', 'reactions' => fn ($query) => $query->where('user_id', auth()->id())])
+            ->orderByRaw('(hearts_count + fires_count) DESC')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    public function userTestimonial(User $user): ?Testimonial
+    {
+        return Testimonial::query()
+            ->where('user_id', $user->id)
+            ->first();
+    }
+
+    public function submit(User $user, array $data): Testimonial
+    {
+        return DB::transaction(function () use ($user, $data) {
+            $testimonial = Testimonial::query()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'target_instansi' => trim($data['target_instansi']),
+                    'story' => trim($data['story']),
+                    'turning_point' => filled($data['turning_point'] ?? null)
+                        ? trim($data['turning_point'])
+                        : null,
+                    'feature_tags' => $this->normalizeFeatureTags($data['feature_tags'] ?? []),
+                    'is_anonymous' => (bool) ($data['is_anonymous'] ?? false),
+                ],
+            );
+
+            $this->gamificationService->awardXp(
+                $user,
+                Testimonial::class,
+                $testimonial->id,
+                GamificationService::TESTIMONIAL_XP_REWARD,
+            );
+
+            return $testimonial->fresh(['user.instansi']);
+        });
+    }
+
+    public function toggleReaction(User $user, Testimonial $testimonial, TestimonialReactionType $type): void
+    {
+        if ($testimonial->user_id === $user->id) {
+            return;
+        }
+
+        DB::transaction(function () use ($user, $testimonial, $type) {
+            $existing = TestimonialReaction::query()
+                ->where('testimonial_id', $testimonial->id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($existing?->type === $type) {
+                $existing->delete();
+                $this->decrementReactionCount($testimonial, $type);
+
+                return;
+            }
+
+            if ($existing) {
+                $this->decrementReactionCount($testimonial, $existing->type);
+                $existing->update(['type' => $type]);
+            } else {
+                TestimonialReaction::query()->create([
+                    'testimonial_id' => $testimonial->id,
+                    'user_id' => $user->id,
+                    'type' => $type,
+                ]);
+            }
+
+            $this->incrementReactionCount($testimonial, $type);
+        });
+    }
+
+    public function displayName(Testimonial $testimonial): string
+    {
+        if (! $testimonial->is_anonymous) {
+            return $testimonial->user->name;
+        }
+
+        return $this->anonymousName($testimonial);
+    }
+
+    public function displaySubtitle(Testimonial $testimonial): string
+    {
+        return $testimonial->target_instansi;
+    }
+
+    public function avatarInitials(Testimonial $testimonial): string
+    {
+        if ($testimonial->is_anonymous) {
+            return 'PK';
+        }
+
+        return $testimonial->user->initials();
+    }
+
+    public function userReaction(Testimonial $testimonial, User $user): ?TestimonialReactionType
+    {
+        $reaction = $testimonial->reactions
+            ->firstWhere('user_id', $user->id);
+
+        return $reaction?->type;
+    }
+
+    /** @param list<string> $tags */
+    private function normalizeFeatureTags(array $tags): array
+    {
+        $allowed = collect(TestimonialFeatureTag::cases())
+            ->map(fn (TestimonialFeatureTag $tag) => $tag->value)
+            ->all();
+
+        return collect($tags)
+            ->filter(fn ($tag) => in_array($tag, $allowed, true))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function anonymousName(Testimonial $testimonial): string
+    {
+        $target = Str::lower($testimonial->target_instansi);
+
+        if (str_contains($target, 'kemenkumham')) {
+            return 'Pejuang Kemenkumham';
+        }
+
+        if (preg_match('/pemprov\s+([a-z\s]+)/i', $testimonial->target_instansi, $matches)) {
+            return 'Pejuang Pemprov '.Str::title(trim($matches[1]));
+        }
+
+        if ($testimonial->user->instansi) {
+            return 'Pejuang '.$testimonial->user->instansi->nama;
+        }
+
+        return 'Pejuang CPNS';
+    }
+
+    private function incrementReactionCount(Testimonial $testimonial, TestimonialReactionType $type): void
+    {
+        $column = $type === TestimonialReactionType::Heart ? 'hearts_count' : 'fires_count';
+        $testimonial->increment($column);
+    }
+
+    private function decrementReactionCount(Testimonial $testimonial, TestimonialReactionType $type): void
+    {
+        $column = $type === TestimonialReactionType::Heart ? 'hearts_count' : 'fires_count';
+
+        if ($testimonial->{$column} > 0) {
+            $testimonial->decrement($column);
+        }
+    }
+}

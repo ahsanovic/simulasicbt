@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -101,5 +102,20 @@ class User extends Authenticatable
     public function audioLearningSessions(): HasMany
     {
         return $this->hasMany(AudioLearningSession::class);
+    }
+
+    public function testimonial(): HasOne
+    {
+        return $this->hasOne(Testimonial::class);
+    }
+
+    public function testimonialReactions(): HasMany
+    {
+        return $this->hasMany(TestimonialReaction::class);
+    }
+
+    public function xpRewards(): HasMany
+    {
+        return $this->hasMany(XpReward::class);
     }
 }

@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Users;
 use App\Enums\ExamAttemptStatus;
 use App\Models\ExamAttempt;
 use App\Models\User;
-use App\Services\AudioLearningService;
+use App\Services\GamificationService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -24,7 +24,7 @@ class ExamHistory extends Component
         $this->user = $user->load('instansi');
     }
 
-    public function render(AudioLearningService $audioLearningService)
+    public function render(GamificationService $gamificationService)
     {
         $attempts = ExamAttempt::query()
             ->with(['exam', 'duelSession'])
@@ -54,7 +54,7 @@ class ExamHistory extends Component
         return view('livewire.admin.users.exam-history', [
             'attempts' => $attempts,
             'stats' => $stats,
-            'totalXp' => $audioLearningService->totalXp($this->user),
+            'totalXp' => $gamificationService->totalXp($this->user),
             'passingGrades' => exam_passing_grades(),
         ]);
     }

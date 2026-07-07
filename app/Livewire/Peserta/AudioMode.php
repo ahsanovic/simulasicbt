@@ -6,6 +6,7 @@ use App\Enums\SubjectCode;
 use App\Models\Question;
 use App\Services\AudioLearningService;
 use App\Services\AudioModeQuestionGeneratorService;
+use App\Services\GamificationService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -60,10 +61,10 @@ class AudioMode extends Component
         ],
     ];
 
-    public function mount(AudioLearningService $audioLearningService): void
+    public function mount(AudioLearningService $audioLearningService, GamificationService $gamificationService): void
     {
         $this->dailyStreak = $audioLearningService->dailyStreak(auth()->user());
-        $this->totalXp = $audioLearningService->totalXp(auth()->user());
+        $this->totalXp = $gamificationService->totalXp(auth()->user());
     }
 
     public function startSession(AudioModeQuestionGeneratorService $generator): void
@@ -104,7 +105,7 @@ class AudioMode extends Component
         }
     }
 
-    public function finishSession(AudioLearningService $audioLearningService): void
+    public function finishSession(AudioLearningService $audioLearningService, GamificationService $gamificationService): void
     {
         if ($this->mode !== 'playing') {
             return;
@@ -125,7 +126,7 @@ class AudioMode extends Component
         $this->summaryDurationSeconds = $duration;
         $this->summaryXp = $completed;
         $this->dailyStreak = $audioLearningService->dailyStreak(auth()->user());
-        $this->totalXp = $audioLearningService->totalXp(auth()->user());
+        $this->totalXp = $gamificationService->totalXp(auth()->user());
         $this->mode = 'finished';
     }
 

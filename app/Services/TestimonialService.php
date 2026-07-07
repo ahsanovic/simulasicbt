@@ -13,18 +13,26 @@ use Illuminate\Support\Str;
 
 class TestimonialService
 {
+    public const PER_PAGE = 12;
+
     public function __construct(
         private readonly GamificationService $gamificationService,
     ) {}
 
     /** @return Collection<int, Testimonial> */
-    public function featuredTestimonials(): Collection
+    public function featuredTestimonials(int $limit = self::PER_PAGE): Collection
     {
         return Testimonial::query()
             ->with(['user.instansi', 'reactions' => fn ($query) => $query->where('user_id', auth()->id())])
             ->orderByRaw('(hearts_count + fires_count) DESC')
             ->orderByDesc('created_at')
+            ->limit($limit)
             ->get();
+    }
+
+    public function featuredTestimonialsCount(): int
+    {
+        return Testimonial::query()->count();
     }
 
     public function userTestimonial(User $user): ?Testimonial

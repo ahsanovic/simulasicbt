@@ -28,6 +28,8 @@ class Testimonials extends Component
 
     public bool $isAnonymous = false;
 
+    public int $perPage = 12;
+
     public function mount(TestimonialService $testimonialService): void
     {
         $existing = $testimonialService->userTestimonial(auth()->user());
@@ -104,10 +106,23 @@ class Testimonials extends Component
         $testimonialService->toggleReaction(auth()->user(), $testimonial, $reactionType);
     }
 
+    public function loadMore(TestimonialService $testimonialService): void
+    {
+        if ($this->perPage >= $testimonialService->featuredTestimonialsCount()) {
+            return;
+        }
+
+        $this->perPage += TestimonialService::PER_PAGE;
+    }
+
     public function render(TestimonialService $testimonialService, GamificationService $gamificationService)
     {
+        $testimonials = $testimonialService->featuredTestimonials($this->perPage);
+        $hasMorePages = $testimonialService->featuredTestimonialsCount() > $testimonials->count();
+
         return view('livewire.peserta.testimonials', [
-            'testimonials' => $testimonialService->featuredTestimonials(),
+            'testimonials' => $testimonials,
+            'hasMorePages' => $hasMorePages,
             'userTestimonial' => $testimonialService->userTestimonial(auth()->user()),
             'featureTagOptions' => TestimonialFeatureTag::cases(),
             'totalXp' => $gamificationService->totalXp(auth()->user()),

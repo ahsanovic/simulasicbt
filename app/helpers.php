@@ -1,6 +1,30 @@
 <?php
 
+use App\Enums\DevotionBadge;
 use App\Services\HtmlSanitizer;
+
+if (! function_exists('sanitize_testimonial_text')) {
+    function sanitize_testimonial_text(?string $text, bool $multiline = false): string
+    {
+        if ($text === null || $text === '') {
+            return '';
+        }
+
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = strip_tags($text);
+        $text = str_replace("\0", '', $text);
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text) ?? $text;
+
+        if ($multiline) {
+            $text = preg_replace('/[^\S\n]+/u', ' ', $text) ?? $text;
+            $text = preg_replace("/\n{3,}/", "\n\n", $text) ?? $text;
+        } else {
+            $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+        }
+
+        return trim($text);
+    }
+}
 
 if (! function_exists('storage_asset')) {
     function storage_asset(?string $path): ?string
@@ -122,6 +146,21 @@ if (! function_exists('format_ai_recommendation')) {
     }
 }
 
+if (! function_exists('format_psychology_report')) {
+    function format_psychology_report(?string $text): string
+    {
+        if ($text === null || trim($text) === '') {
+            return '';
+        }
+
+        $text = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $text) ?? $text;
+        $text = strip_tags($text, '<b><strong>');
+        $text = preg_replace('/\*\*(.+?)\*\*/s', '<b>$1</b>', $text) ?? $text;
+
+        return trim($text);
+    }
+}
+
 if (! function_exists('format_question_duration')) {
     function format_question_duration(int $seconds): string
     {
@@ -145,5 +184,13 @@ if (! function_exists('exam_attempt_passes')) {
             && exam_score_passes($tiu, $grades['tiu'])
             && exam_score_passes($tkp, $grades['tkp'])
             && exam_score_passes($total, $grades['total']);
+    }
+}
+
+if (! function_exists('devotion_badge_for_xp')) {
+    /** @return array{value: string, label: string, description: string, classes: string} */
+    function devotion_badge_for_xp(int $xp): array
+    {
+        return DevotionBadge::fromXp($xp)->toArray();
     }
 }

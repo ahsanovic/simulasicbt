@@ -16,11 +16,11 @@
 
 <article @class([
     'mb-4 break-inside-avoid ui-card overflow-hidden transition hover:shadow-md',
-    'ring-2 ring-amber-400/60' => $featured,
+    'ring-2 ring-rose-400/60' => $featured,
 ])>
     @if ($featured)
-        <div class="bg-gradient-to-r from-amber-400 to-orange-400 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-wider text-white">
-            ⭐ Featured Testimonial
+        <div class="bg-gradient-to-r from-rose-400 to-pink-500 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-wider text-white">
+            ❤️ Featured Testimonial
         </div>
     @endif
 
@@ -28,7 +28,7 @@
         <div class="flex items-start gap-3">
             <div @class([
                 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold',
-                'bg-gradient-to-br from-violet-500 to-purple-600 text-white' => ! $testimonial->is_anonymous,
+                'bg-gradient-to-br from-rose-500 to-pink-600 text-white' => ! $testimonial->is_anonymous,
                 'bg-gradient-to-br from-slate-400 to-slate-600 text-white' => $testimonial->is_anonymous,
             ])>
                 {{ $avatarInitials }}
@@ -41,7 +41,7 @@
                         {{ $testimonial->created_at->diffForHumans() }}
                     </time>
                 </div>
-                <p class="text-sm text-violet-600">{{ $displaySubtitle }}</p>
+                <p class="text-sm text-rose-600">{{ $displaySubtitle }}</p>
                 @if ($testimonial->rating)
                     <x-star-rating :rating="$testimonial->rating" size="sm" class="mt-1" />
                 @endif
@@ -62,7 +62,7 @@
         @if (count($testimonial->resolvedFeatureTags()) > 0)
             <div class="mt-4 flex flex-wrap gap-1.5">
                 @foreach ($testimonial->resolvedFeatureTags() as $tag)
-                    <span class="ui-badge bg-violet-50 text-violet-700">{{ $tag->hashtag() }}</span>
+                    <span class="ui-badge bg-rose-50 text-rose-700">{{ $tag->hashtag() }}</span>
                 @endforeach
             </div>
         @endif

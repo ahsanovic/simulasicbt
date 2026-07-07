@@ -21,8 +21,8 @@
                 wire:click="$set('rating', {{ $star }})"
                 @class([
                     'rounded-lg p-1.5 transition',
-                    'bg-amber-50 ring-2 ring-amber-300' => (int) $rating === $star,
-                    'hover:bg-amber-50/70' => (int) $rating !== $star,
+                    'bg-rose-50 ring-2 ring-rose-300' => (int) $rating === $star,
+                    'hover:bg-rose-50/70' => (int) $rating !== $star,
                 ])
                 aria-label="Beri rating {{ $star }} bintang"
             >
@@ -36,7 +36,7 @@
             </button>
         @endfor
         @if ((int) $rating > 0)
-            <span class="text-sm font-medium text-amber-700">{{ $labels[(int) $rating] ?? '' }}</span>
+            <span class="text-sm font-medium text-rose-700">{{ $labels[(int) $rating] ?? '' }}</span>
         @endif
     </div>
     @error('rating') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror

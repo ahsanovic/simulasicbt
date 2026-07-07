@@ -109,6 +109,7 @@ class Testimonials extends Component
             'story.required' => 'Cerita pengalaman belajar wajib diisi.',
             'story.min' => 'Cerita minimal 20 karakter agar lebih bermakna.',
             'rating.required' => 'Berikan rating 1–5 bintang untuk pengalaman Anda.',
+            'rating.in' => 'Berikan rating 1–5 bintang untuk pengalaman Anda.',
             'selectedTags.required' => 'Pilih minimal satu fitur andalan.',
         ]);
 

@@ -151,4 +151,63 @@ class TestimonialsTest extends TestCase
             app(GamificationService::class)->totalXp($user),
         );
     }
+
+    public function test_submit_strips_html_from_testimonial_fields(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+
+        Livewire::actingAs($user)
+            ->test(Testimonials::class)
+            ->set('targetInstansi', '<script>alert(1)</script>Calon Auditor')
+            ->set('story', '<b>Platform</b> ini sangat membantu saya belajar secara konsisten setiap hari setelah pulang kerja.')
+            ->set('turningPoint', '<img src=x onerror=alert(1)>Skor naik drastis')
+            ->set('selectedTags', [TestimonialFeatureTag::AudioMode->value])
+            ->set('rating', 5)
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $testimonial = Testimonial::query()->where('user_id', $user->id)->firstOrFail();
+
+        $this->assertStringNotContainsString('<script>', $testimonial->target_instansi);
+        $this->assertStringNotContainsString('<b>', $testimonial->story);
+        $this->assertStringNotContainsString('<img', $testimonial->turning_point);
+        $this->assertSame('Calon Auditor', $testimonial->target_instansi);
+    }
+
+    public function test_submit_rejects_invalid_feature_tags(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+
+        Livewire::actingAs($user)
+            ->test(Testimonials::class)
+            ->set('targetInstansi', 'Calon Auditor Pemprov Jatim')
+            ->set('story', 'Cerita panjang tentang perjalanan belajar saya yang sangat membantu sekali.')
+            ->set('selectedTags', ['invalid_tag', TestimonialFeatureTag::AudioMode->value])
+            ->set('rating', 5)
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $testimonial = Testimonial::query()->where('user_id', $user->id)->firstOrFail();
+
+        $this->assertSame([TestimonialFeatureTag::AudioMode->value], $testimonial->feature_tags);
+    }
+
+    public function test_reaction_counts_cannot_be_mass_assigned(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+
+        $testimonial = Testimonial::query()->create([
+            'user_id' => $user->id,
+            'target_instansi' => 'Calon Auditor',
+            'story' => 'Cerita yang cukup panjang untuk lolos validasi minimal karakter.',
+            'rating' => 5,
+            'feature_tags' => [TestimonialFeatureTag::AudioMode->value],
+            'is_anonymous' => false,
+            'hearts_count' => 999,
+            'fires_count' => 999,
+        ]);
+
+        $this->assertSame(0, $testimonial->fresh()->hearts_count);
+        $this->assertSame(0, $testimonial->fresh()->fires_count);
+    }
 }

@@ -15,6 +15,8 @@ class TestimonialService
 {
     public const PER_PAGE = 12;
 
+    public const MAX_PER_PAGE = 60;
+
     public function __construct(
         private readonly GamificationService $gamificationService,
     ) {}
@@ -22,6 +24,8 @@ class TestimonialService
     /** @return Collection<int, Testimonial> */
     public function featuredTestimonials(int $limit = self::PER_PAGE): Collection
     {
+        $limit = max(1, min($limit, self::MAX_PER_PAGE));
+
         return Testimonial::query()
             ->with(['user.instansi', 'reactions' => fn ($query) => $query->where('user_id', auth()->id())])
             ->orderByRaw('(hearts_count + fires_count) DESC')
@@ -69,16 +73,26 @@ class TestimonialService
     public function submit(User $user, array $data): Testimonial
     {
         return DB::transaction(function () use ($user, $data) {
+            $targetInstansi = sanitize_testimonial_text($data['target_instansi'] ?? '');
+            $story = sanitize_testimonial_text($data['story'] ?? '', multiline: true);
+            $turningPoint = filled($data['turning_point'] ?? null)
+                ? sanitize_testimonial_text($data['turning_point'], multiline: true)
+                : null;
+            $rating = max(1, min(5, (int) ($data['rating'] ?? 0)));
+            $featureTags = $this->normalizeFeatureTags($data['feature_tags'] ?? []);
+
+            if ($targetInstansi === '' || $story === '' || $featureTags === []) {
+                throw new \InvalidArgumentException('Data testimoni tidak valid.');
+            }
+
             $testimonial = Testimonial::query()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'target_instansi' => trim($data['target_instansi']),
-                    'story' => trim($data['story']),
-                    'rating' => (int) $data['rating'],
-                    'turning_point' => filled($data['turning_point'] ?? null)
-                        ? trim($data['turning_point'])
-                        : null,
-                    'feature_tags' => $this->normalizeFeatureTags($data['feature_tags'] ?? []),
+                    'target_instansi' => $targetInstansi,
+                    'story' => $story,
+                    'rating' => $rating,
+                    'turning_point' => $turningPoint !== '' ? $turningPoint : null,
+                    'feature_tags' => $featureTags,
                     'is_anonymous' => (bool) ($data['is_anonymous'] ?? false),
                 ],
             );
@@ -184,7 +198,7 @@ class TestimonialService
         }
 
         if (preg_match('/pemprov\s+([a-z\s]+)/i', $testimonial->target_instansi, $matches)) {
-            return 'Pejuang Pemprov '.Str::title(trim($matches[1]));
+            return 'Pejuang Pemprov '.Str::title(Str::limit(trim($matches[1]), 40, ''));
         }
 
         if ($testimonial->user->instansi) {

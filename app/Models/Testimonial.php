@@ -17,8 +17,6 @@ class Testimonial extends Model
         'turning_point',
         'feature_tags',
         'is_anonymous',
-        'hearts_count',
-        'fires_count',
     ];
 
     protected function casts(): array

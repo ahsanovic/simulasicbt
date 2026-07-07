@@ -82,9 +82,10 @@ class Dashboard extends Component
         });
 
         $totalXp = $gamificationService->totalXp(auth()->user());
+        $devotionProgress = $gamificationService->devotionProgress($totalXp);
         $audioDailyStreak = $audioLearningService->dailyStreak(auth()->user());
         $leaderboardRanks = $leaderboardSummary->getRanks((int) auth()->id());
 
-        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'audioDailyStreak', 'leaderboardRanks'));
+        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'devotionProgress', 'audioDailyStreak', 'leaderboardRanks'));
     }
 }

@@ -49,6 +49,7 @@ class XpLeaderboardServiceTest extends TestCase
 
         $this->assertSame($topUser->id, $data['entries'][0]['user_id']);
         $this->assertSame(400, $data['entries'][0]['xp']);
+        $this->assertSame('pejuang_akuntabel', $data['entries'][0]['devotion_badge']['value']);
         $this->assertSame(2, $data['current_user']['rank']);
         $this->assertSame(250, $data['current_user']['xp']);
         $this->assertSame(1, $service->getUserRank($topUser->id));

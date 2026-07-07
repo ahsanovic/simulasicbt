@@ -94,8 +94,9 @@
             @endforelse
             </div>
 
-            <aside class="lg:sticky lg:top-6">
+            <aside class="space-y-4 lg:sticky lg:top-6">
                 <x-peserta.leaderboard-summary-card :ranks="$leaderboardRanks" />
+                <x-peserta.devotion-badge-card :progress="$devotionProgress" />
             </aside>
         </div>
     </main>

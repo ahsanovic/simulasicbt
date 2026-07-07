@@ -10,6 +10,10 @@ class XpLeaderboardService
 {
     private const int DEFAULT_LIMIT = 10;
 
+    public function __construct(
+        private readonly GamificationService $gamificationService,
+    ) {}
+
     /**
      * @return array{
      *     entries: Collection<int, array{rank: int, user_id: int, name: string, xp: int, is_current: bool}>,
@@ -64,36 +68,33 @@ class XpLeaderboardService
 
     private function totalXpQuery()
     {
-        $audioXpSubquery = DB::table('audio_learning_sessions')
-            ->select('user_id', DB::raw('COALESCE(SUM(xp_earned), 0) as audio_xp'))
-            ->groupBy('user_id');
+        $xpExpression = $this->gamificationService->totalXpExpression();
 
-        $rewardXpSubquery = DB::table('xp_rewards')
-            ->select('user_id', DB::raw('COALESCE(SUM(amount), 0) as reward_xp'))
-            ->groupBy('user_id');
-
-        return DB::table('users')
-            ->leftJoinSub($audioXpSubquery, 'audio_xp_totals', 'audio_xp_totals.user_id', '=', 'users.id')
-            ->leftJoinSub($rewardXpSubquery, 'reward_xp_totals', 'reward_xp_totals.user_id', '=', 'users.id')
+        $query = DB::table('users')
             ->select(
                 'users.id',
                 'users.name',
-                DB::raw('COALESCE(audio_xp_totals.audio_xp, 0) + COALESCE(reward_xp_totals.reward_xp, 0) as total_xp'),
+                DB::raw("{$xpExpression} as total_xp"),
             )
             ->where('users.role', UserRole::Peserta->value)
             ->having('total_xp', '>', 0)
             ->orderByDesc('total_xp')
             ->orderBy('users.name');
+
+        return $this->gamificationService->joinTotalXp($query);
     }
 
-    /** @return array{rank: int, user_id: int, name: string, xp: int, is_current: bool} */
+    /** @return array{rank: int, user_id: int, name: string, xp: int, devotion_badge: array{value: string, label: string, description: string, classes: string}, is_current: bool} */
     private function mapRow(object $row, int $rank, int $userId): array
     {
+        $xp = (int) $row->total_xp;
+
         return [
             'rank' => $rank,
             'user_id' => (int) $row->id,
             'name' => $row->name,
-            'xp' => (int) $row->total_xp,
+            'xp' => $xp,
+            'devotion_badge' => $this->gamificationService->devotionBadgeForXp($xp),
             'is_current' => (int) $row->id === $userId,
         ];
     }

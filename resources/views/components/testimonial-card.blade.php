@@ -8,6 +8,7 @@
     $displayName = $testimonialService->displayName($testimonial);
     $displaySubtitle = $testimonialService->displaySubtitle($testimonial);
     $avatarInitials = $testimonialService->avatarInitials($testimonial);
+    $devotionBadge = $testimonialService->devotionBadge($testimonial);
     $userReaction = auth()->check()
         ? $testimonialService->userReaction($testimonial, auth()->user())
         : null;
@@ -36,6 +37,7 @@
             <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <p class="font-bold text-slate-900">{{ $displayName }}</p>
+                    <x-devotion-badge :badge="$devotionBadge" />
                     <span class="text-slate-300">·</span>
                     <time class="text-xs text-slate-400" datetime="{{ $testimonial->created_at->toIso8601String() }}">
                         {{ $testimonial->created_at->diffForHumans() }}

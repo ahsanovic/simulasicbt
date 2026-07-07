@@ -97,12 +97,13 @@
                     </span>
 
                     <span @class([
-                        'min-w-0 flex-1 flex items-center gap-1 text-[13px] leading-tight',
+                        'min-w-0 flex-1 flex flex-wrap items-center gap-1 text-[13px] leading-tight',
                         'font-bold text-primary-900' => $entry['is_current'],
                         'font-semibold text-slate-800' => $entry['rank'] <= 3 && ! $entry['is_current'],
                         'font-medium text-slate-700' => $entry['rank'] > 3 && ! $entry['is_current'],
                     ])>
                         <span class="truncate" title="{{ $entry['name'] }}">{{ $entry['name'] }}</span>
+                        <x-devotion-badge :badge="$entry['devotion_badge'] ?? null" />
                         @if ($entry['is_current'])
                             <span class="shrink-0 rounded-md bg-primary-200/60 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary-800">Anda</span>
                         @endif
@@ -132,8 +133,9 @@
                     <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-xs font-extrabold text-white shadow-sm shadow-primary-300/40">
                         {{ $currentUser['rank'] }}
                     </span>
-                    <span class="min-w-0 flex-1 flex items-center gap-1 text-[13px] font-bold leading-tight text-primary-900">
+                    <span class="min-w-0 flex-1 flex flex-wrap items-center gap-1 text-[13px] font-bold leading-tight text-primary-900">
                         <span class="truncate" title="{{ $currentUser['name'] }}">{{ $currentUser['name'] }}</span>
+                        <x-devotion-badge :badge="$currentUser['devotion_badge'] ?? null" />
                         <span class="shrink-0 rounded-md bg-primary-200/60 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary-800">Anda</span>
                     </span>
                     <span class="shrink-0 rounded-lg bg-primary-600 px-2 py-0.5 text-xs font-extrabold tabular-nums text-white shadow-sm shadow-primary-300/40">

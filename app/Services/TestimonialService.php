@@ -167,6 +167,18 @@ class TestimonialService
         return $testimonial->user->initials();
     }
 
+    /** @return ?array{value: string, label: string, description: string, classes: string} */
+    public function devotionBadge(Testimonial $testimonial): ?array
+    {
+        if ($testimonial->is_anonymous) {
+            return null;
+        }
+
+        return $this->gamificationService->devotionBadgeForXp(
+            $this->gamificationService->totalXp($testimonial->user),
+        );
+    }
+
     public function userReaction(Testimonial $testimonial, User $user): ?TestimonialReactionType
     {
         $reaction = $testimonial->reactions

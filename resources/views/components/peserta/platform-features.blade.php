@@ -20,9 +20,11 @@
             cardCount: 5,
             autoplayMs: 3000,
             autoplayTimer: null,
-            isPaused: false,
+            isInteractionPaused: false,
+            isVisible: true,
             prefersReducedMotion: false,
             _isNormalizing: false,
+            _visibilityObserver: null,
             getAllCards() {
                 return [...(this.$refs.track?.querySelectorAll('[data-carousel-card]') ?? [])];
             },
@@ -41,21 +43,26 @@
                 });
                 return idx;
             },
+            scrollTrackTo(card, smooth = true) {
+                const track = this.$refs.track;
+                if (! track || ! card) return;
+
+                track.scrollTo({
+                    left: card.offsetLeft,
+                    behavior: smooth ? 'smooth' : 'auto',
+                });
+            },
             scrollToDomIndex(index, smooth = true) {
                 const card = this.getAllCards()[index];
-                if (! card) return;
-                card.scrollIntoView({
-                    behavior: smooth ? 'smooth' : 'auto',
-                    inline: 'start',
-                    block: 'nearest',
-                });
+                this.scrollTrackTo(card, smooth);
             },
             scrollTo(index) {
                 const track = this.$refs.track;
                 const card = track?.querySelector(`[data-carousel-card='${index}']:not([data-clone])`);
                 if (! card) return;
+
                 this.activeIndex = index;
-                card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+                this.scrollTrackTo(card, true);
                 this.resetAutoplay();
             },
             prev() {
@@ -120,8 +127,11 @@
                     this.jumpToRealCard(index);
                 }
             },
+            canAutoplay() {
+                return this.isVisible && ! this.isInteractionPaused && ! this.prefersReducedMotion;
+            },
             startAutoplay() {
-                if (this.prefersReducedMotion || this.isPaused) return;
+                if (! this.canAutoplay()) return;
                 this.stopAutoplay();
                 this.autoplayTimer = setInterval(() => this.next(), this.autoplayMs);
             },
@@ -134,12 +144,27 @@
                 this.startAutoplay();
             },
             pauseAutoplay() {
-                this.isPaused = true;
+                this.isInteractionPaused = true;
                 this.stopAutoplay();
             },
             resumeAutoplay() {
-                this.isPaused = false;
+                this.isInteractionPaused = false;
                 this.startAutoplay();
+            },
+            observeVisibility() {
+                if (! this.$refs.track || this._visibilityObserver) return;
+
+                this._visibilityObserver = new IntersectionObserver((entries) => {
+                    this.isVisible = entries[0]?.isIntersecting ?? false;
+
+                    if (this.isVisible) {
+                        this.startAutoplay();
+                    } else {
+                        this.stopAutoplay();
+                    }
+                }, { threshold: 0.15 });
+
+                this._visibilityObserver.observe(this.$refs.track);
             },
             init() {
                 this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -154,6 +179,8 @@
                         track.style.scrollBehavior = '';
                         this.activeIndex = 0;
                     }
+
+                    this.observeVisibility();
                     this.startAutoplay();
                 });
 
@@ -168,6 +195,7 @@
             },
             destroy() {
                 this.stopAutoplay();
+                this._visibilityObserver?.disconnect();
             },
         }"
         @mouseenter="pauseAutoplay()"

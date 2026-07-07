@@ -135,9 +135,10 @@
             <span class="ui-badge bg-primary-100 text-primary-700">Live · refresh 15 detik</span>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <livewire:peserta.live-leaderboard />
             <livewire:peserta.duel-leaderboard />
+            <livewire:peserta.xp-leaderboard />
         </div>
     </div>
 </div>

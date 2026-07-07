@@ -14,6 +14,8 @@
 
     <x-peserta.footer />
 
+    <x-peserta.testimonial-prompt />
+
     @livewireScripts
     @stack('scripts')
 </body>

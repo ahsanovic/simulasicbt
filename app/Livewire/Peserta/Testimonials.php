@@ -43,6 +43,10 @@ class Testimonials extends Component
     {
         $existing = $testimonialService->userTestimonial(auth()->user());
 
+        if ($existing === null && request()->query('open') === 'form') {
+            $this->showForm = true;
+        }
+
         if ($existing) {
             $this->targetInstansi = $existing->target_instansi;
             $this->story = $existing->story;

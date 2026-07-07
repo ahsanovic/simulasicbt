@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ExamAttemptStatus;
 use App\Enums\TestimonialFeatureTag;
 use App\Enums\TestimonialReactionType;
 use App\Models\Testimonial;
@@ -68,6 +69,17 @@ class TestimonialService
         return Testimonial::query()
             ->where('user_id', $user->id)
             ->first();
+    }
+
+    public function shouldPromptUser(User $user): bool
+    {
+        if ($this->userTestimonial($user) !== null) {
+            return false;
+        }
+
+        return $user->examAttempts()
+            ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
+            ->exists();
     }
 
     public function submit(User $user, array $data): Testimonial

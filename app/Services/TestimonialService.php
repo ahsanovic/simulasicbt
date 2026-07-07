@@ -193,17 +193,17 @@ class TestimonialService
     {
         $target = Str::lower($testimonial->target_instansi);
 
-        if (str_contains($target, 'kemenkumham')) {
-            return 'Pejuang Kemenkumham';
+        if (str_contains($target, 'jawa timur')) {
+            return 'Pejuang CPNS Jatim';
         }
 
         if (preg_match('/pemprov\s+([a-z\s]+)/i', $testimonial->target_instansi, $matches)) {
             return 'Pejuang Pemprov '.Str::title(Str::limit(trim($matches[1]), 40, ''));
         }
 
-        if ($testimonial->user->instansi) {
-            return 'Pejuang '.$testimonial->user->instansi->nama;
-        }
+        // if ($testimonial->user->instansi) {
+        //     return 'Pejuang '.$testimonial->user->instansi->nama;
+        // }
 
         return 'Pejuang CPNS';
     }

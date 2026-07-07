@@ -82,6 +82,8 @@
                         @error('story') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
+                    <x-star-rating-input :rating="$rating" />
+
                     <div>
                         <label for="turningPoint" class="mb-1.5 block text-sm font-semibold text-slate-700">
                             My Turning Point <span class="font-normal text-slate-400">(opsional)</span>

@@ -1,13 +1,20 @@
 <div>
     <x-ui.page-header title="Hasil Testimoni" description="Pantau cerita peserta, fitur andalan yang disukai, dan reaksi dari sesama pejuang CPNS." />
 
-    <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <x-ui.stat-card
             label="Total Testimoni"
             :value="number_format($stats['total'])"
             color="violet"
             trend="Cerita yang sudah dikirim"
             icon="testimonials"
+        />
+        <x-ui.stat-card
+            label="Rating Rata-rata"
+            :value="$stats['average_rating'] ? number_format($stats['average_rating'], 1).'/5' : '—'"
+            color="amber"
+            trend="Skor kepuasan peserta"
+            icon="results"
         />
         <x-ui.stat-card
             label="Total Reaksi"
@@ -47,6 +54,7 @@
                 <thead>
                     <tr class="border-b border-slate-100 bg-slate-50/80">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Peserta</th>
+                        <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Rating</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Instansi Target</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Cerita</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fitur</th>
@@ -71,6 +79,13 @@
                                         @endif
                                     </div>
                                 </div>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                @if ($testimonial->rating)
+                                    <x-star-rating :rating="$testimonial->rating" size="sm" show-value class="justify-center" />
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
                             </td>
                             <td class="px-5 py-4 text-slate-600">{{ $testimonial->target_instansi }}</td>
                             <td class="max-w-xs px-5 py-4">
@@ -99,7 +114,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-5 py-12 text-center text-slate-500">Belum ada testimoni dari peserta.</td>
+                            <td colspan="8" class="px-5 py-12 text-center text-slate-500">Belum ada testimoni dari peserta.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -142,6 +157,17 @@
                                 <p class="mt-2 text-sm text-slate-600">
                                     Ditampilkan sebagai: <strong>{{ $testimonialService->displayName($viewingTestimonial) }}</strong>
                                 </p>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Rating Pengalaman</p>
+                        <div class="mt-2">
+                            @if ($viewingTestimonial->rating)
+                                <x-star-rating :rating="$viewingTestimonial->rating" size="lg" show-value />
+                            @else
+                                <p class="mt-1 text-sm text-slate-500">Belum ada rating</p>
                             @endif
                         </div>
                     </div>

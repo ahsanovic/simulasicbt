@@ -36,7 +36,7 @@
             label="Testimoni"
             :value="number_format($stats['testimonials'])"
             color="violet"
-            trend="Cerita dari peserta"
+            :trend="$stats['testimonial_avg_rating'] ? 'Rata-rata '.$stats['testimonial_avg_rating'].'/5 bintang' : 'Cerita dari peserta'"
             icon="testimonials"
         />
     </div>
@@ -69,6 +69,65 @@
             </div>
         </div>
     </div>
+
+    @if ($stats['testimonials'] > 0)
+        <div class="mt-8 grid gap-5 lg:grid-cols-2">
+            <div class="ui-card p-6">
+                <div class="mb-5 flex items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Rating Testimoni</h2>
+                        <p class="mt-0.5 text-sm text-slate-500">Distribusi kepuasan peserta terhadap platform</p>
+                    </div>
+                    @if ($stats['testimonial_avg_rating'])
+                        <div class="text-right">
+                            <p class="text-3xl font-bold text-amber-600">{{ number_format($stats['testimonial_avg_rating'], 1) }}</p>
+                            <x-star-rating :rating="(int) round($stats['testimonial_avg_rating'])" size="sm" class="justify-end" />
+                        </div>
+                    @endif
+                </div>
+
+                <div class="space-y-2.5">
+                    @php $ratedTotal = max(1, array_sum($stats['testimonial_rating_distribution'])); @endphp
+                    @foreach ($stats['testimonial_rating_distribution'] as $star => $count)
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="w-8 font-semibold text-slate-600">{{ $star }}★</span>
+                            <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div class="h-full rounded-full bg-amber-400" style="width: {{ round(($count / $ratedTotal) * 100) }}%"></div>
+                            </div>
+                            <span class="w-8 text-right font-medium text-slate-500">{{ $count }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="ui-card overflow-hidden">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
+                    <h2 class="text-lg font-bold text-slate-900">Testimoni Terbaru</h2>
+                    <p class="text-sm text-slate-500">5 ulasan terakhir dari peserta</p>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    @forelse ($stats['recent_testimonials'] as $testimonial)
+                        <div class="px-6 py-4" wire:key="recent-testimonial-{{ $testimonial->id }}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-slate-900">{{ $testimonial->user->name }}</p>
+                                    <p class="mt-0.5 line-clamp-2 text-sm text-slate-600">{{ $testimonial->story }}</p>
+                                </div>
+                                <x-star-rating :rating="$testimonial->rating" size="sm" class="shrink-0" />
+                            </div>
+                        </div>
+                    @empty
+                        <p class="px-6 py-8 text-center text-sm text-slate-500">Belum ada testimoni ber-rating.</p>
+                    @endforelse
+                </div>
+                <div class="border-t border-slate-100 bg-slate-50/50 px-6 py-3 text-right">
+                    <a href="{{ route('admin.testimonials.index') }}" wire:navigate class="text-sm font-semibold text-primary-600 hover:text-primary-700">
+                        Lihat semua testimoni →
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <div class="mt-8">
         <div class="mb-5 flex items-center justify-between">

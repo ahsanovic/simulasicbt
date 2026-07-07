@@ -42,6 +42,9 @@
                     </time>
                 </div>
                 <p class="text-sm text-violet-600">{{ $displaySubtitle }}</p>
+                @if ($testimonial->rating)
+                    <x-star-rating :rating="$testimonial->rating" size="sm" class="mt-1" />
+                @endif
             </div>
         </div>
 

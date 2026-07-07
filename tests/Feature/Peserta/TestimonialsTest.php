@@ -40,6 +40,7 @@ class TestimonialsTest extends TestCase
             ->set('story', 'Aplikasi ini sangat membantu saya belajar secara konsisten setiap hari setelah pulang kerja.')
             ->set('turningPoint', 'Skor Try Out naik dari 280 menjadi 410 dalam 2 bulan.')
             ->set('selectedTags', [TestimonialFeatureTag::AudioMode->value])
+            ->set('rating', 5)
             ->call('submit')
             ->assertHasNoErrors();
 
@@ -47,6 +48,7 @@ class TestimonialsTest extends TestCase
             'user_id' => $user->id,
             'target_instansi' => 'Calon Auditor — Pemprov Jatim',
             'is_anonymous' => false,
+            'rating' => 5,
         ]);
 
         $testimonial = Testimonial::query()->where('user_id', $user->id)->first();
@@ -77,6 +79,7 @@ class TestimonialsTest extends TestCase
             'turning_point' => null,
             'feature_tags' => [TestimonialFeatureTag::Duel1v1->value],
             'is_anonymous' => true,
+            'rating' => 4,
         ]);
 
         $this->assertSame(
@@ -96,6 +99,7 @@ class TestimonialsTest extends TestCase
             'turning_point' => null,
             'feature_tags' => [TestimonialFeatureTag::SimulasiCBT->value],
             'is_anonymous' => false,
+            'rating' => 5,
         ]);
 
         app(TestimonialService::class)->toggleReaction(
@@ -129,6 +133,7 @@ class TestimonialsTest extends TestCase
             'turning_point' => null,
             'feature_tags' => [TestimonialFeatureTag::AudioMode->value],
             'is_anonymous' => false,
+            'rating' => 3,
         ]);
 
         $service->submit($user, [
@@ -137,6 +142,7 @@ class TestimonialsTest extends TestCase
             'turning_point' => 'Skor naik signifikan.',
             'feature_tags' => [TestimonialFeatureTag::Duel1v1->value],
             'is_anonymous' => true,
+            'rating' => 5,
         ]);
 
         $this->assertSame(1, XpReward::query()->where('user_id', $user->id)->count());

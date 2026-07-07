@@ -28,6 +28,8 @@ class Testimonials extends Component
 
     public bool $isAnonymous = false;
 
+    public int $rating = 0;
+
     public int $perPage = 12;
 
     public function mount(TestimonialService $testimonialService): void
@@ -40,6 +42,7 @@ class Testimonials extends Component
             $this->turningPoint = $existing->turning_point ?? '';
             $this->selectedTags = $existing->feature_tags ?? [];
             $this->isAnonymous = $existing->is_anonymous;
+            $this->rating = (int) ($existing->rating ?? 0);
         }
     }
 
@@ -71,6 +74,7 @@ class Testimonials extends Component
         $this->validate([
             'targetInstansi' => ['required', 'string', 'min:3', 'max:120'],
             'story' => ['required', 'string', 'min:20', 'max:2000'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'turningPoint' => ['nullable', 'string', 'max:1000'],
             'selectedTags' => ['required', 'array', 'min:1'],
             'selectedTags.*' => ['string'],
@@ -79,19 +83,28 @@ class Testimonials extends Component
             'targetInstansi.required' => 'Ceritakan formasi dan instansi target Anda.',
             'story.required' => 'Cerita pengalaman belajar wajib diisi.',
             'story.min' => 'Cerita minimal 20 karakter agar lebih bermakna.',
+            'rating.required' => 'Berikan rating 1–5 bintang untuk pengalaman Anda.',
             'selectedTags.required' => 'Pilih minimal satu fitur andalan.',
         ]);
+
+        $isEdit = $testimonialService->userTestimonial(auth()->user()) !== null;
 
         $testimonialService->submit(auth()->user(), [
             'target_instansi' => $this->targetInstansi,
             'story' => $this->story,
+            'rating' => $this->rating,
             'turning_point' => $this->turningPoint,
             'feature_tags' => $this->selectedTags,
             'is_anonymous' => $this->isAnonymous,
         ]);
 
         $this->showForm = false;
-        session()->flash('success', 'Testimoni berhasil dikirim! +'.GamificationService::TESTIMONIAL_XP_REWARD.' XP telah ditambahkan.');
+        session()->flash(
+            'success',
+            $isEdit
+                ? 'Testimoni berhasil diperbarui.'
+                : 'Testimoni berhasil dikirim! +'.GamificationService::TESTIMONIAL_XP_REWARD.' XP telah ditambahkan.',
+        );
     }
 
     public function react(int $testimonialId, string $type, TestimonialService $testimonialService): void

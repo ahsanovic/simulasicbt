@@ -35,6 +35,30 @@ class TestimonialService
         return Testimonial::query()->count();
     }
 
+    public function averageRating(): ?float
+    {
+        $average = Testimonial::query()
+            ->whereNotNull('rating')
+            ->avg('rating');
+
+        return $average !== null ? round((float) $average, 1) : null;
+    }
+
+    /** @return array<int, int> */
+    public function ratingDistribution(): array
+    {
+        $counts = Testimonial::query()
+            ->whereNotNull('rating')
+            ->selectRaw('rating, COUNT(*) as total')
+            ->groupBy('rating')
+            ->pluck('total', 'rating')
+            ->all();
+
+        return collect(range(5, 1))
+            ->mapWithKeys(fn (int $star) => [$star => (int) ($counts[$star] ?? 0)])
+            ->all();
+    }
+
     public function userTestimonial(User $user): ?Testimonial
     {
         return Testimonial::query()
@@ -50,6 +74,7 @@ class TestimonialService
                 [
                     'target_instansi' => trim($data['target_instansi']),
                     'story' => trim($data['story']),
+                    'rating' => (int) $data['rating'],
                     'turning_point' => filled($data['turning_point'] ?? null)
                         ? trim($data['turning_point'])
                         : null,
@@ -58,12 +83,14 @@ class TestimonialService
                 ],
             );
 
-            $this->gamificationService->awardXp(
-                $user,
-                Testimonial::class,
-                $testimonial->id,
-                GamificationService::TESTIMONIAL_XP_REWARD,
-            );
+            if ($testimonial->wasRecentlyCreated) {
+                $this->gamificationService->awardXp(
+                    $user,
+                    Testimonial::class,
+                    $testimonial->id,
+                    GamificationService::TESTIMONIAL_XP_REWARD,
+                );
+            }
 
             return $testimonial->fresh(['user.instansi']);
         });

@@ -13,6 +13,7 @@ class Testimonial extends Model
         'user_id',
         'target_instansi',
         'story',
+        'rating',
         'turning_point',
         'feature_tags',
         'is_anonymous',
@@ -24,6 +25,7 @@ class Testimonial extends Model
     {
         return [
             'feature_tags' => 'array',
+            'rating' => 'integer',
             'is_anonymous' => 'boolean',
             'hearts_count' => 'integer',
             'fires_count' => 'integer',

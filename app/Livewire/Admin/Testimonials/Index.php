@@ -56,13 +56,15 @@ class Index extends Component
             ->orderByDesc('created_at')
             ->paginate(15);
 
-        $allTestimonials = Testimonial::query()->get(['hearts_count', 'fires_count', 'is_anonymous', 'turning_point']);
+        $allTestimonials = Testimonial::query()->get(['hearts_count', 'fires_count', 'is_anonymous', 'turning_point', 'rating']);
 
         $stats = [
             'total' => $allTestimonials->count(),
             'reactions' => $allTestimonials->sum(fn (Testimonial $item) => $item->reactionsScore()),
             'anonymous' => $allTestimonials->where('is_anonymous', true)->count(),
             'with_turning_point' => $allTestimonials->filter(fn (Testimonial $item) => filled($item->turning_point))->count(),
+            'average_rating' => $testimonialService->averageRating(),
+            'rating_distribution' => $testimonialService->ratingDistribution(),
         ];
 
         $viewingTestimonial = $this->viewingId

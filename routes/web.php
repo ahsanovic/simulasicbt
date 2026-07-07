@@ -17,6 +17,7 @@ use App\Livewire\Admin\Questions\Index as QuestionsIndex;
 use App\Livewire\Admin\Reports\Index as ReportsIndex;
 use App\Livewire\Admin\Results\Index as ResultsIndex;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
+use App\Livewire\Admin\Testimonials\Index as TestimonialsIndex;
 use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Auth\Login;
@@ -86,6 +87,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/exams', ExamsIndex::class)->name('exams.index');
     Route::get('/peserta-ujian', OnlineParticipantsIndex::class)->name('online-participants.index');
     Route::get('/results', ResultsIndex::class)->name('results.index');
+    Route::get('/testimoni', TestimonialsIndex::class)->name('testimonials.index');
     Route::get('/reports', ReportsIndex::class)->name('reports.index');
     Route::get('/reports/export-participants', function () {
         $instansiId = request()->integer('instansi') ?: null;

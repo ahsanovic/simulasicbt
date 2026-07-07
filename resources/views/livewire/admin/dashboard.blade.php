@@ -3,7 +3,7 @@
         <span class="ui-badge bg-primary-100 text-primary-700">{{ now()->translatedFormat('l, d F Y') }}</span>
     </x-ui.page-header>
 
-    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
         <x-ui.stat-card
             label="Total Pengguna"
             :value="number_format($stats['users'])"
@@ -32,6 +32,13 @@
             trend="Total attempt submitted"
             icon="results"
         />
+        <x-ui.stat-card
+            label="Testimoni"
+            :value="number_format($stats['testimonials'])"
+            color="violet"
+            trend="Cerita dari peserta"
+            icon="testimonials"
+        />
     </div>
 
     <div class="mt-8 grid gap-5 lg:grid-cols-2">
@@ -53,6 +60,7 @@
                     ['admin.exams.index', 'Buat Ujian'],
                     ['admin.users.index', 'Kelola Peserta'],
                     ['admin.results.index', 'Lihat Hasil'],
+                    ['admin.testimonials.index', 'Hasil Testimoni'],
                 ] as [$route, $label])
                     <a href="{{ route($route) }}" wire:navigate class="bg-white px-5 py-4 text-sm font-semibold text-slate-700 transition hover:bg-primary-50 hover:text-primary-700">
                         {{ $label }} →

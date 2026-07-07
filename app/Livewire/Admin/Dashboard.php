@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Question;
+use App\Models\Testimonial;
 use App\Models\User;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -22,6 +23,7 @@ class Dashboard extends Component
                 'questions' => Question::query()->count(),
                 'exams' => Exam::query()->count(),
                 'attempts' => ExamAttempt::query()->whereNotNull('submitted_at')->count(),
+                'testimonials' => Testimonial::query()->count(),
             ],
         ]);
     }

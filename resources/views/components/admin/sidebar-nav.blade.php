@@ -6,6 +6,7 @@
         ['route' => 'admin.exams.index', 'label' => 'Ujian', 'icon' => 'exams'],
         ['route' => 'admin.online-participants.index', 'label' => 'Peserta Ujian', 'icon' => 'online'],
         ['route' => 'admin.results.index', 'label' => 'Hasil Ujian', 'icon' => 'results'],
+        ['route' => 'admin.testimonials.index', 'label' => 'Hasil Testimoni', 'icon' => 'testimonials'],
         ['route' => 'admin.reports.index', 'label' => 'Laporan', 'icon' => 'reports'],
         ['route' => 'admin.settings.index', 'label' => 'Pengaturan', 'icon' => 'settings'],
     ];

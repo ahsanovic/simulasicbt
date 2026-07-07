@@ -1,14 +1,43 @@
 @php
-    $items = [
-        ['route' => 'admin.dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard'],
-        ['route' => 'admin.users.index', 'label' => 'Pengguna', 'icon' => 'users'],
-        ['route' => 'admin.questions.index', 'label' => 'Bank Soal', 'icon' => 'questions'],
-        ['route' => 'admin.exams.index', 'label' => 'Ujian', 'icon' => 'exams'],
-        ['route' => 'admin.online-participants.index', 'label' => 'Peserta Ujian', 'icon' => 'online'],
-        ['route' => 'admin.results.index', 'label' => 'Hasil Ujian', 'icon' => 'results'],
-        ['route' => 'admin.testimonials.index', 'label' => 'Hasil Testimoni', 'icon' => 'testimonials'],
-        ['route' => 'admin.reports.index', 'label' => 'Laporan', 'icon' => 'reports'],
-        ['route' => 'admin.settings.index', 'label' => 'Pengaturan', 'icon' => 'settings'],
+    $groups = [
+        [
+            'items' => [
+                ['route' => 'admin.dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard'],
+            ],
+        ],
+        [
+            'label' => 'Pengguna',
+            'items' => [
+                ['route' => 'admin.users.index', 'label' => 'Daftar Pengguna', 'icon' => 'users'],
+            ],
+        ],
+        [
+            'label' => 'Konten Ujian',
+            'items' => [
+                ['route' => 'admin.questions.index', 'label' => 'Bank Soal', 'icon' => 'questions'],
+                ['route' => 'admin.exams.index', 'label' => 'Kelola Ujian', 'icon' => 'exams'],
+            ],
+        ],
+        [
+            'label' => 'Monitoring',
+            'items' => [
+                ['route' => 'admin.online-participants.index', 'label' => 'Peserta Ujian', 'icon' => 'online'],
+            ],
+        ],
+        [
+            'label' => 'Hasil & Laporan',
+            'items' => [
+                ['route' => 'admin.results.index', 'label' => 'Hasil Ujian', 'icon' => 'results'],
+                ['route' => 'admin.testimonials.index', 'label' => 'Testimoni', 'icon' => 'testimonials'],
+                ['route' => 'admin.reports.index', 'label' => 'Laporan', 'icon' => 'reports'],
+            ],
+        ],
+        [
+            'label' => 'Sistem',
+            'items' => [
+                ['route' => 'admin.settings.index', 'label' => 'Pengaturan', 'icon' => 'settings'],
+            ],
+        ],
     ];
 @endphp
 
@@ -23,23 +52,35 @@
         </div>
     </div>
 
-    <nav class="flex-1 space-y-1 overflow-y-auto p-4">
-        @foreach ($items as $item)
-            @php $active = request()->routeIs($item['route'].'*') || request()->routeIs($item['route']); @endphp
-            <a href="{{ route($item['route']) }}"
-               wire:navigate
-               @click="sidebarOpen = false"
-               @class([
-                   'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
-                   'bg-indigo-500/20 text-white ring-1 ring-indigo-400/30' => $active,
-                   'text-slate-400 hover:bg-white/5 hover:text-white' => ! $active,
-               ])>
-                <x-ui.icon
-                    :name="$item['icon']"
-                    class="h-5 w-5 shrink-0 {{ $active ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300' }}"
-                />
-                {{ $item['label'] }}
-            </a>
+    <nav class="flex-1 space-y-6 overflow-y-auto p-4">
+        @foreach ($groups as $group)
+            <div>
+                @if (! empty($group['label']))
+                    <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        {{ $group['label'] }}
+                    </p>
+                @endif
+
+                <div class="space-y-1">
+                    @foreach ($group['items'] as $item)
+                        @php $active = request()->routeIs($item['route'].'*') || request()->routeIs($item['route']); @endphp
+                        <a href="{{ route($item['route']) }}"
+                           wire:navigate
+                           @click="sidebarOpen = false"
+                           @class([
+                               'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                               'bg-indigo-500/20 text-white ring-1 ring-indigo-400/30' => $active,
+                               'text-slate-400 hover:bg-white/5 hover:text-white' => ! $active,
+                           ])>
+                            <x-ui.icon
+                                :name="$item['icon']"
+                                class="h-5 w-5 shrink-0 {{ $active ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300' }}"
+                            />
+                            {{ $item['label'] }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
         @endforeach
     </nav>
 

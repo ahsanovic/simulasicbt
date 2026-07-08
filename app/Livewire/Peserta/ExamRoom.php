@@ -50,6 +50,8 @@ class ExamRoom extends Component
 
     public ?int $questionTimerStartedAt = null;
 
+    public bool $showLastQuestionModal = false;
+
     public function mount(Exam $exam): void
     {
         $attempt = ExamAttempt::query()
@@ -209,6 +211,7 @@ class ExamRoom extends Component
             return;
         }
 
+        $this->showLastQuestionModal = false;
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
@@ -234,11 +237,37 @@ class ExamRoom extends Component
             $this->currentIndex++;
             $this->loadCurrentAnswer();
             $this->startQuestionTimer();
+        } else {
+            $this->showLastQuestionModal = true;
+        }
+    }
+
+    public function closeLastQuestionModal(): void
+    {
+        $this->showLastQuestionModal = false;
+    }
+
+    public function goBackFromLastQuestionModal(): void
+    {
+        $this->showLastQuestionModal = false;
+
+        $firstUnansweredIndex = collect($this->answerStates)
+            ->search(fn (array $state) => $state['selected_option_id'] === null);
+
+        if ($firstUnansweredIndex !== false) {
+            $this->goToQuestion($firstUnansweredIndex);
+
+            return;
+        }
+
+        if ($this->currentIndex > 0) {
+            $this->goToQuestion(0);
         }
     }
 
     public function submitExam(ExamService $examService): void
     {
+        $this->showLastQuestionModal = false;
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();

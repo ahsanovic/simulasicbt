@@ -2,7 +2,7 @@
     'progress',
 ])
 
-<div class="ui-card relative overflow-hidden border-emerald-200/60 bg-gradient-to-b from-white via-emerald-50/20 to-indigo-50/20 shadow-lg shadow-emerald-100/20">
+<div id="devotion-badge-card" class="ui-card relative scroll-mt-24 overflow-hidden border-emerald-200/60 bg-gradient-to-b from-white via-emerald-50/20 to-indigo-50/20 shadow-lg shadow-emerald-100/20">
     <div class="relative overflow-hidden border-b border-emerald-100/80 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 px-4 py-3.5">
         <div class="pointer-events-none absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10"></div>
 

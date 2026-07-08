@@ -8,13 +8,24 @@
                     <h1 class="truncate text-2xl font-bold tracking-tight">Halo, {{ auth()->user()->name }} 👋</h1>
                     <p class="mt-2 text-sm text-primary-100 sm:text-base">Ini adalah platform simulasi CBT BKD Jatim — Anda dapat mengulang tes berkali-kali.
                         <br> Setiap hasil tersimpan di riwayat tes.</p>
+                    <p class="mt-3 text-sm font-medium text-white/95 sm:text-base">
+                        @if ($devotionProgress['is_max_tier'])
+                            Anda sudah mencapai kasta tertinggi — terus kumpulkan XP dan jadilah inspirasi pejuang CPNS lainnya.
+                        @elseif (! $hasHistory)
+                            Selesaikan simulasi pertama untuk mendapat <span class="font-bold text-amber-200">+{{ \App\Services\GamificationService::EXAM_PASS_XP_REWARD }} XP</span> dan mulai naik pangkat.
+                        @else
+                            Butuh <span class="font-bold text-amber-200">{{ number_format($devotionProgress['xp_to_next']) }} XP</span> lagi menuju <span class="font-bold">{{ $devotionProgress['next_badge']['label'] }}</span> — kerjakan simulasi (<span class="font-bold text-amber-200">+{{ \App\Services\GamificationService::EXAM_PASS_XP_REWARD }} XP</span>).
+                        @endif
+                    </p>
                 </div>
                 <div class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-                    <a href="{{ route('peserta.audio.index') }}"
-                       wire:navigate
-                       class="inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">
+                    <a href="#devotion-badge-card"
+                       class="group inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">
                         <svg class="h-4 w-4 text-amber-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-                        {{ number_format($totalXp) }} XP
+                        <span class="flex flex-col items-start leading-tight">
+                            <span>{{ number_format($totalXp) }} XP</span>
+                            <span class="text-[10px] font-medium text-primary-200/90 transition group-hover:text-white">Cara naik →</span>
+                        </span>
                     </a>
                     @if ($audioDailyStreak > 0)
                         <span class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20">

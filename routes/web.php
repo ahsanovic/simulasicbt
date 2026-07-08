@@ -29,6 +29,7 @@ use App\Livewire\Peserta\Evaluasi as PesertaEvaluasi;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
 use App\Livewire\Peserta\ExamRoom;
+use App\Livewire\Peserta\KartuSakti;
 use App\Livewire\Peserta\LeaderboardHub;
 use App\Livewire\Peserta\MateriBelajar;
 use App\Livewire\Peserta\MateriBelajarShow;
@@ -122,4 +123,5 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/materi', MateriBelajar::class)->name('materi.index');
     Route::get('/materi/{subjectCode}/{materialSlug}', MateriBelajarShow::class)->name('materi.show');
     Route::get('/audio', AudioMode::class)->name('audio.index');
+    Route::get('/kartu-sakti', KartuSakti::class)->name('kartu-sakti.index');
 });

@@ -1,5 +1,7 @@
 <div class="min-h-screen bg-gradient-to-b from-slate-50 to-emerald-50/30">
     <main class="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <x-ui.flash-toast />
+
         <div class="mb-6">
             <a
                 href="{{ route('peserta.materi.index', ['kategori' => $material->subject->code->value]) }}"
@@ -33,6 +35,28 @@
             <div class="prose-cheat-sheet px-6 py-6 sm:px-8 sm:py-8">
                 {!! format_cheat_sheet_content($material->cheatSheet?->content) !!}
             </div>
+
+            <footer class="border-t border-slate-100 bg-slate-50/80 px-6 py-5 sm:px-8">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">Simpan ke Kartu Sakti</p>
+                        <p class="text-xs text-slate-500">Review materi ini dengan spaced repetition agar tidak lupa.</p>
+                    </div>
+                    @if ($this->isSavedToFlashcard)
+                        <span class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-100 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+                            ✅ Sudah di Kartu Sakti
+                        </span>
+                    @else
+                        <button type="button"
+                                wire:click="saveToFlashcard"
+                                wire:loading.attr="disabled"
+                                class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">
+                            <span wire:loading.remove wire:target="saveToFlashcard">⭐ Simpan ke Kartu Sakti</span>
+                            <span wire:loading wire:target="saveToFlashcard">Menyimpan...</span>
+                        </button>
+                    @endif
+                </div>
+            </footer>
         </article>
     </main>
 </div>

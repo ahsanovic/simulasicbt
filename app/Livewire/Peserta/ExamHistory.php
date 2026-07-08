@@ -4,6 +4,7 @@ namespace App\Livewire\Peserta;
 
 use App\Enums\ExamAttemptStatus;
 use App\Models\ExamAttempt;
+use App\Services\FlashcardService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -48,7 +49,7 @@ class ExamHistory extends Component
         }
 
         $this->resultAttempt = ExamAttempt::query()
-            ->with('exam')
+            ->with(['exam', 'answers.question', 'answers.selectedOption'])
             ->whereKey($resultAttemptId)
             ->where('user_id', auth()->id())
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
@@ -63,6 +64,41 @@ class ExamHistory extends Component
     {
         $this->showResultModal = false;
         $this->resultAttempt = null;
+    }
+
+    public function saveResultWrongToFlashcard(FlashcardService $flashcardService): void
+    {
+        if (! $this->resultAttempt) {
+            return;
+        }
+
+        $result = $flashcardService->saveWrongAnswersFromAttempt(auth()->user(), $this->resultAttempt);
+
+        if ($result['saved'] === 0) {
+            session()->flash('warning', $result['total_candidates'] === 0
+                ? 'Tidak ada soal salah yang bisa disimpan.'
+                : 'Semua soal salah sudah ada di Kartu Sakti Anda.');
+
+            return;
+        }
+
+        session()->flash('success', "{$result['saved']} soal salah disimpan ke Kartu Sakti.");
+    }
+
+    public function getResultAttemptWrongCountProperty(): int
+    {
+        if (! $this->resultAttempt) {
+            return 0;
+        }
+
+        $this->resultAttempt->loadMissing([
+            'answers.question',
+            'answers.selectedOption',
+        ]);
+
+        return $this->resultAttempt->answers
+            ->filter(fn ($answer) => $answer->question && ! $answer->reviewOutcome()->isPositive())
+            ->count();
     }
 
     public function render()

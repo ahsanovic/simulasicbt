@@ -41,6 +41,16 @@
                 <p class="text-[10px] font-bold uppercase tracking-wider text-primary-600">Skor Total</p>
                 <p class="text-xl font-bold tabular-nums text-primary-700">{{ format_exam_score($attempt->total_score) }}</p>
             </div>
+
+            @if ($this->wrongAnswerCount > 0)
+                <button type="button"
+                        wire:click="saveAllWrongToFlashcard"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-1.5 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100">
+                    <span wire:loading.remove wire:target="saveAllWrongToFlashcard">⭐ Simpan {{ $this->wrongAnswerCount }} Soal Salah</span>
+                    <span wire:loading wire:target="saveAllWrongToFlashcard">Menyimpan...</span>
+                </button>
+            @endif
         </div>
     </div>
 </header>

@@ -17,7 +17,7 @@
     <div
         x-data="{
             activeIndex: 0,
-            cardCount: 5,
+            cardCount: 6,
             autoplayMs: 3000,
             autoplayTimer: null,
             isInteractionPaused: false,
@@ -322,10 +322,37 @@
                 </div>
             </a>
 
-            {{-- 5. Challenge a Friend --}}
-            <a href="{{ route('peserta.duel.index') }}"
+            {{-- 5. Kartu Sakti --}}
+            <a href="{{ route('peserta.kartu-sakti.index') }}"
                wire:navigate
                data-carousel-card="4"
+               class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
+                <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-amber-100/80 to-orange-100/40 opacity-0 transition group-hover:opacity-100"></div>
+
+                <div class="relative flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/25">
+                        <span class="text-lg" aria-hidden="true">✨</span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <h3 class="text-sm font-bold text-slate-900 group-hover:text-amber-700">Kartu Sakti</h3>
+                            <span class="ui-badge bg-amber-50 text-amber-700 text-[10px]">Spaced Repetition</span>
+                        </div>
+                        <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                            Kartu hafalan pintar — review 10 kartu per hari dengan jadwal otomatis agar materi masuk ingatan jangka panjang.
+                        </p>
+                        <p class="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-600 group-hover:gap-1.5 transition-all">
+                            Mulai review
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </p>
+                    </div>
+                </div>
+            </a>
+
+            {{-- 6. Challenge a Friend --}}
+            <a href="{{ route('peserta.duel.index') }}"
+               wire:navigate
+               data-carousel-card="5"
                class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-lg hover:shadow-rose-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
                 <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-rose-100/80 to-orange-100/40 opacity-0 transition group-hover:opacity-100"></div>
 

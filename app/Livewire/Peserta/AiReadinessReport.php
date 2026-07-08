@@ -10,6 +10,7 @@ use App\Models\ExamAttempt;
 use App\Services\DeepSeekRecommendationService;
 use App\Services\ExamService;
 use App\Services\ExamWeaknessAnalysisService;
+use App\Services\FlashcardService;
 use Livewire\Component;
 use Throwable;
 
@@ -143,6 +144,27 @@ class AiReadinessReport extends Component
         app(ExamService::class)->startAttempt($exam, auth()->user());
 
         $this->redirect(route('peserta.exam.room', $exam), navigate: true);
+    }
+
+    public function seedWeakMaterialsToFlashcard(FlashcardService $flashcardService): void
+    {
+        $result = $flashcardService->seedFromWeakMaterials(auth()->user());
+
+        if ($result['saved'] === 0) {
+            session()->flash('warning', $result['preview'] === 0
+                ? 'Belum ada soal dari materi lemah yang bisa disimpan.'
+                : 'Semua soal materi lemah sudah ada di Kartu Sakti Anda.');
+
+            return;
+        }
+
+        session()->flash('success', "{$result['saved']} kartu dari materi lemah disimpan ke Kartu Sakti.");
+    }
+
+    /** @return array{preview: int, available: int, skipped: int} */
+    public function getWeakSeedPreviewProperty(): array
+    {
+        return app(FlashcardService::class)->previewWeakMaterialSeed(auth()->user());
     }
 
     protected function resolveRepeatExam(): ?Exam

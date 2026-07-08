@@ -90,6 +90,29 @@
                 </div>
             </div>
             <x-peserta.ai-readiness.health-bars :materials="$weaknessStats['materials'] ?? []" :columns="2" />
+
+            @if ($this->weakSeedPreview['available'] > 0)
+                <div class="mt-6 rounded-2xl border border-dashed border-amber-200 bg-amber-50/50 p-5">
+                    <p class="text-sm font-bold text-amber-900">Kartu Sakti — Auto-Seed Materi Lemah</p>
+                    <p class="mt-1 text-xs text-amber-800/80">
+                        Simpan {{ $this->weakSeedPreview['available'] }} soal dari materi yang masih lemah ke Kartu Sakti untuk review harian otomatis.
+                    </p>
+                    <div class="mt-4 flex flex-wrap gap-3">
+                        <button type="button"
+                                wire:click="seedWeakMaterialsToFlashcard"
+                                wire:loading.attr="disabled"
+                                class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">
+                            <span wire:loading.remove wire:target="seedWeakMaterialsToFlashcard">⭐ Simpan ke Kartu Sakti</span>
+                            <span wire:loading wire:target="seedWeakMaterialsToFlashcard">Menyimpan...</span>
+                        </button>
+                        <a href="{{ route('peserta.kartu-sakti.index') }}"
+                           wire:navigate
+                           class="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-50">
+                            Buka Kartu Sakti →
+                        </a>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 

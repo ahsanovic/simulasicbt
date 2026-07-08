@@ -2,8 +2,11 @@
 
 namespace App\Livewire\Peserta;
 
+use App\Enums\FlashcardSourceType;
 use App\Enums\SubjectCode;
 use App\Models\Material;
+use App\Services\FlashcardService;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -30,6 +33,25 @@ class MateriBelajarShow extends Component
         abort_unless($material->cheatSheet?->isPublished(), 404);
 
         $this->material = $material;
+    }
+
+    public function saveToFlashcard(FlashcardService $flashcardService): void
+    {
+        try {
+            $flashcardService->saveFromMaterial(auth()->user(), $this->material);
+            session()->flash('success', 'Materi disimpan ke Kartu Sakti.');
+        } catch (ValidationException $exception) {
+            session()->flash('warning', $exception->validator->errors()->first('flashcard'));
+        }
+    }
+
+    public function getIsSavedToFlashcardProperty(): bool
+    {
+        return app(FlashcardService::class)->isSaved(
+            auth()->user(),
+            FlashcardSourceType::CheatSheet,
+            $this->material->id,
+        );
     }
 
     public function render()

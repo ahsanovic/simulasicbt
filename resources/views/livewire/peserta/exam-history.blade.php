@@ -4,6 +4,7 @@
             :attempt="$resultAttempt"
             :passing-grades="$passingGrades"
             :score-max="$scoreMax"
+            :wrong-count="$this->resultAttemptWrongCount"
         />
     @endif
 

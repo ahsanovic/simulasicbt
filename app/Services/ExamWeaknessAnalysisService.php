@@ -26,7 +26,7 @@ class ExamWeaknessAnalysisService
      * @return array{
      *     total_simulations: int,
      *     pillars: array<string, array{label: string, percentage: int, status: string, status_label: string}>,
-     *     materials: array<int, array{subject_code: string, subject_label: string, name: string, display_name: string, percentage: int, status: string, status_label: string, total: int, wrong: int}>,
+     *     materials: array<int, array{material_id: int, subject_code: string, subject_label: string, name: string, display_name: string, percentage: int, status: string, status_label: string, total: int, wrong: int}>,
      *     latest_attempt_at: ?string,
      *     time_management: array<string, mixed>
      * }
@@ -44,7 +44,7 @@ class ExamWeaknessAnalysisService
      * @return array{
      *     total_simulations: int,
      *     pillars: array<string, array{label: string, percentage: int, status: string, status_label: string}>,
-     *     materials: array<int, array{subject_code: string, subject_label: string, name: string, display_name: string, percentage: int, status: string, status_label: string, total: int, wrong: int}>,
+     *     materials: array<int, array{material_id: int, subject_code: string, subject_label: string, name: string, display_name: string, percentage: int, status: string, status_label: string, total: int, wrong: int}>,
      *     latest_attempt_at: ?string,
      *     time_management: array<string, mixed>
      * }
@@ -143,13 +143,14 @@ class ExamWeaknessAnalysisService
         }
 
         $materials = collect($materialStats)
-            ->map(function (array $item) {
+            ->map(function (array $item, int $materialId) {
                 $percentage = $item['total'] > 0
                     ? (int) round((($item['total'] - $item['wrong']) / $item['total']) * 100)
                     : 0;
                 $status = $this->resolveStatus($percentage);
 
                 return [
+                    'material_id' => $materialId,
                     'subject_code' => $item['subject_code'],
                     'subject_label' => $item['subject_label'],
                     'name' => $item['name'],

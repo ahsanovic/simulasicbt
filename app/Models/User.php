@@ -114,6 +114,16 @@ class User extends Authenticatable
         return $this->hasMany(TestimonialReaction::class);
     }
 
+    public function flashcardReviewSessions(): HasMany
+    {
+        return $this->hasMany(FlashcardReviewSession::class);
+    }
+
+    public function flashcards(): HasMany
+    {
+        return $this->hasMany(Flashcard::class);
+    }
+
     public function xpRewards(): HasMany
     {
         return $this->hasMany(XpReward::class);

@@ -33,6 +33,21 @@
                             {{ $audioDailyStreak }} hari streak
                         </span>
                     @endif
+                    @if ($flashcardDueCount > 0)
+                        <a href="{{ route('peserta.kartu-sakti.index') }}"
+                           wire:navigate
+                           class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400/25 px-3 py-2 text-sm font-semibold ring-1 ring-amber-200/40 transition hover:bg-amber-400/35">
+                            <span aria-hidden="true">✨</span>
+                            {{ $flashcardDueCount }} kartu due
+                        </a>
+                    @elseif ($flashcardDailyStreak > 0)
+                        <a href="{{ route('peserta.kartu-sakti.index') }}"
+                           wire:navigate
+                           class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">
+                            <span aria-hidden="true">✨</span>
+                            {{ $flashcardDailyStreak }} hari Kartu Sakti
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>

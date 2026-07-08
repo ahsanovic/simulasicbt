@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\DevotionBadge;
 use App\Models\AudioLearningSession;
 use App\Models\ExamAttempt;
+use App\Models\FlashcardReviewSession;
 use App\Models\User;
 use App\Models\XpReward;
 use Illuminate\Database\Query\Builder;
@@ -24,7 +25,7 @@ class GamificationService
 
     public function totalXpExpression(): string
     {
-        return 'COALESCE(audio_xp_totals.audio_xp, 0) + COALESCE(reward_xp_totals.reward_xp, 0)';
+        return 'COALESCE(audio_xp_totals.audio_xp, 0) + COALESCE(flashcard_xp_totals.flashcard_xp, 0) + COALESCE(reward_xp_totals.reward_xp, 0)';
     }
 
     public function joinTotalXp(Builder $query, string $userIdColumn = 'users.id'): Builder
@@ -33,12 +34,17 @@ class GamificationService
             ->select('user_id', DB::raw('COALESCE(SUM(xp_earned), 0) as audio_xp'))
             ->groupBy('user_id');
 
+        $flashcardXpSubquery = DB::table('flashcard_review_sessions')
+            ->select('user_id', DB::raw('COALESCE(SUM(xp_earned), 0) as flashcard_xp'))
+            ->groupBy('user_id');
+
         $rewardXpSubquery = DB::table('xp_rewards')
             ->select('user_id', DB::raw('COALESCE(SUM(amount), 0) as reward_xp'))
             ->groupBy('user_id');
 
         return $query
             ->leftJoinSub($audioXpSubquery, 'audio_xp_totals', 'audio_xp_totals.user_id', '=', $userIdColumn)
+            ->leftJoinSub($flashcardXpSubquery, 'flashcard_xp_totals', 'flashcard_xp_totals.user_id', '=', $userIdColumn)
             ->leftJoinSub($rewardXpSubquery, 'reward_xp_totals', 'reward_xp_totals.user_id', '=', $userIdColumn);
     }
 
@@ -110,11 +116,15 @@ class GamificationService
             ->where('user_id', $user->id)
             ->sum('xp_earned');
 
+        $flashcardXp = (int) FlashcardReviewSession::query()
+            ->where('user_id', $user->id)
+            ->sum('xp_earned');
+
         $rewardXp = (int) XpReward::query()
             ->where('user_id', $user->id)
             ->sum('amount');
 
-        return $audioXp + $rewardXp;
+        return $audioXp + $flashcardXp + $rewardXp;
     }
 
     public function awardXp(User $user, string $sourceType, int $sourceId, int $amount): ?XpReward

@@ -2,6 +2,7 @@
     'attempt',
     'passingGrades',
     'scoreMax',
+    'wrongCount' => 0,
 ])
 
 @php
@@ -25,7 +26,7 @@
 @endphp
 
 <div
-    class="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
+    class="fixed inset-0 z-50 overflow-y-auto p-4"
     role="dialog"
     aria-modal="true"
     aria-labelledby="exam-result-title"
@@ -37,10 +38,11 @@
         wire:click="closeResultModal"
     ></div>
 
-    <div class="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-900/30">
+    <div class="relative mx-auto flex min-h-full w-full items-center justify-center">
+        <div class="relative flex w-full max-w-2xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-900/30">
         {{-- Header --}}
         <div @class([
-            'relative overflow-hidden px-6 pb-8 pt-6 text-white sm:px-8 sm:pt-8',
+            'relative shrink-0 overflow-hidden px-6 pb-5 pt-4 text-white sm:px-8 sm:pb-6 sm:pt-6',
             'bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700' => $passes,
             'bg-gradient-to-br from-rose-500 via-orange-500 to-amber-600' => ! $passes,
         ])>
@@ -57,11 +59,11 @@
             </button>
 
             <div class="relative flex flex-col items-center text-center">
-                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 shadow-lg backdrop-blur-sm">
+                <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg backdrop-blur-sm">
                     @if ($passes)
-                        <svg class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     @else
-                        <svg class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     @endif
                 </div>
 
@@ -71,7 +73,7 @@
                     {{ $attempt->submitted_at?->format('d M Y, H:i') ?? $attempt->created_at->format('d M Y, H:i') }}
                 </p>
 
-                <div class="mt-5 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
+                <div class="mt-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
                     @if ($passes)
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                         Lulus Ambang Batas
@@ -81,12 +83,12 @@
                     @endif
                 </div>
 
-                <p class="mt-3 text-sm font-semibold text-white/90">
+                <p class="mt-2 text-sm font-semibold text-white/90">
                     +{{ number_format($xpEarned) }} XP
                 </p>
 
-                <div class="mt-6 flex items-baseline gap-2">
-                    <span class="text-5xl font-black tabular-nums tracking-tight">{{ format_exam_score($attempt->total_score) }}</span>
+                <div class="mt-4 flex items-baseline gap-2">
+                    <span class="text-4xl font-black tabular-nums tracking-tight sm:text-5xl">{{ format_exam_score($attempt->total_score) }}</span>
                     <span class="text-lg text-white/70">/ {{ $passingGrades['total'] }}</span>
                 </div>
                 <p class="mt-1 text-xs text-white/70">Skor Total</p>
@@ -94,7 +96,7 @@
         </div>
 
         {{-- Score breakdown --}}
-        <div class="space-y-4 px-6 py-6 sm:px-8">
+        <div class="flex-1 space-y-4 overflow-y-auto px-6 py-6 sm:px-8">
             <div class="flex items-center justify-between">
                 <p class="text-sm font-semibold text-slate-900">Rincian Skor</p>
                 <p class="text-xs text-slate-500">Bandingkan dengan ambang batas</p>
@@ -169,6 +171,25 @@
                     Anda dinyatakan lulus jika <strong>semua</strong> komponen (TWK, TIU, TKP, dan Total) memenuhi ambang batas masing-masing.
                 </p>
             </div>
+        </div>
+
+        {{-- Sticky footer: Kartu Sakti + action buttons --}}
+        <div class="shrink-0 space-y-3 border-t border-slate-200 bg-white px-6 py-4 sm:px-8">
+            @if ($wrongCount > 0)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+                    <p class="text-sm font-semibold text-amber-900">Kartu Sakti — Spaced Repetition</p>
+                    <p class="mt-1 text-xs text-amber-800/80">
+                        Simpan {{ $wrongCount }} soal salah agar otomatis direview sebelum Anda lupa.
+                    </p>
+                    <button type="button"
+                            wire:click="saveResultWrongToFlashcard"
+                            wire:loading.attr="disabled"
+                            class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">
+                        <span wire:loading.remove wire:target="saveResultWrongToFlashcard">⭐ Simpan ke Kartu Sakti</span>
+                        <span wire:loading wire:target="saveResultWrongToFlashcard">Menyimpan...</span>
+                    </button>
+                </div>
+            @endif
 
             <div class="flex flex-col gap-3 sm:flex-row">
                 <a href="{{ route('peserta.exam.review', $attempt) }}"
@@ -184,6 +205,7 @@
                     Tutup & Lihat Riwayat
                 </button>
             </div>
+        </div>
         </div>
     </div>
 </div>

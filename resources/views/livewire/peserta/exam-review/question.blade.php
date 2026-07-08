@@ -82,6 +82,28 @@
                 </div>
             </div>
         @endif
+
+        @if (! $answer->reviewOutcome()->isPositive())
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+                <div>
+                    <p class="text-sm font-bold text-amber-900">Kartu Sakti</p>
+                    <p class="text-xs text-amber-800/80">Simpan soal ini untuk review spaced repetition.</p>
+                </div>
+                @if (in_array($question->id, $this->savedFlashcardQuestionIds, true))
+                    <span class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-700">
+                        ✅ Sudah di Kartu Sakti
+                    </span>
+                @else
+                    <button type="button"
+                            wire:click="saveCurrentToFlashcard"
+                            wire:loading.attr="disabled"
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-600">
+                        <span wire:loading.remove wire:target="saveCurrentToFlashcard">⭐ Simpan ke Kartu Sakti</span>
+                        <span wire:loading wire:target="saveCurrentToFlashcard">Menyimpan...</span>
+                    </button>
+                @endif
+            </div>
+        @endif
     </div>
     @endif
 @endif

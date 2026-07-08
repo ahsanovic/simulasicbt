@@ -104,15 +104,95 @@
     </div>
 
     {{-- Preview Soal --}}
+    @php
+        $isTkpSkeleton = $selectedSubject?->code === \App\Enums\SubjectCode::Tkp;
+    @endphp
+
     @if (count($generatedQuestions) === 0)
-        <div class="ui-card flex flex-col items-center justify-center px-6 py-16 text-center">
+        <div wire:loading.remove wire:target="generate" class="ui-card flex flex-col items-center justify-center px-6 py-16 text-center">
             <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-3xl text-slate-400" aria-hidden="true">
                 📄
             </div>
             <h3 class="text-lg font-semibold text-slate-700">Belum ada soal di-generate</h3>
             <p class="mt-2 max-w-md text-sm text-slate-500">Pilih jenis soal, materi, dan tingkat kesulitan lalu klik <strong>Generate Soal</strong>. Hasil akan muncul di sini untuk direview sebelum disimpan.</p>
         </div>
-    @else
+    @endif
+
+    <div wire:loading wire:target="generate" class="w-full space-y-5" aria-busy="true" aria-label="AI sedang membuat soal">
+        <div class="mb-4 flex w-full flex-wrap items-center justify-between gap-2">
+            <div class="h-4 w-full max-w-[10rem] animate-pulse rounded bg-slate-200 sm:w-auto"></div>
+            <div class="h-3 w-full max-w-xs animate-pulse rounded bg-slate-100 sm:w-auto"></div>
+        </div>
+
+        @for ($skeletonIndex = 0; $skeletonIndex < $questionCount; $skeletonIndex++)
+            <div class="ui-card w-full overflow-hidden">
+                <div class="flex w-full flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-3 sm:px-6">
+                    <div class="flex min-w-0 flex-1 items-center gap-3">
+                        <div class="h-8 w-8 shrink-0 animate-pulse rounded-lg bg-slate-200"></div>
+                        <div class="min-w-0 flex-1 space-y-2">
+                            <div class="h-4 w-full max-w-[5.5rem] animate-pulse rounded bg-slate-200"></div>
+                            <div class="h-3 w-full max-w-[9rem] animate-pulse rounded bg-slate-100"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                        <div class="h-8 w-full min-w-[6.5rem] flex-1 animate-pulse rounded-lg bg-slate-100 sm:w-24 sm:flex-none"></div>
+                        <div class="h-8 w-full min-w-[4rem] flex-1 animate-pulse rounded-lg bg-slate-100 sm:w-16 sm:flex-none"></div>
+                        <div class="h-8 w-full min-w-[5rem] flex-1 animate-pulse rounded-lg bg-slate-100 sm:w-20 sm:flex-none"></div>
+                    </div>
+                </div>
+
+                <div class="w-full space-y-5 p-5 sm:p-6">
+                    <div class="w-full">
+                        <div class="mb-2 h-4 w-full max-w-[4.5rem] animate-pulse rounded bg-slate-200"></div>
+                        <div class="h-[5.5rem] w-full animate-pulse rounded-xl border border-slate-100 bg-slate-100"></div>
+                    </div>
+
+                    <div class="w-full">
+                        <div class="mb-2 h-4 w-full max-w-[15rem] animate-pulse rounded bg-slate-200"></div>
+                        <div class="h-[5.5rem] w-full animate-pulse rounded-xl border border-slate-100 bg-slate-100"></div>
+                    </div>
+
+                    <div class="w-full">
+                        <div class="mb-3 h-4 w-full max-w-xs animate-pulse rounded bg-slate-200"></div>
+
+                        <div class="w-full space-y-3">
+                            @foreach (range(0, 4) as $optionSkeleton)
+                                <div class="flex w-full items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                                    <div class="mt-2 h-7 w-7 shrink-0 animate-pulse rounded-lg bg-slate-100"></div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="h-10 w-full animate-pulse rounded-lg border border-slate-100 bg-slate-100"></div>
+                                    </div>
+
+                                    @if ($isTkpSkeleton)
+                                        <div class="w-16 shrink-0 space-y-1">
+                                            <div class="mx-auto h-2.5 w-10 animate-pulse rounded bg-slate-100"></div>
+                                            <div class="h-10 w-full animate-pulse rounded-lg border border-slate-100 bg-slate-100"></div>
+                                        </div>
+                                    @else
+                                        <div class="mt-1.5 flex shrink-0 items-center gap-1.5">
+                                            <div class="h-4 w-4 animate-pulse rounded-full bg-slate-100"></div>
+                                            <div class="h-3 w-10 animate-pulse rounded bg-slate-100"></div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endfor
+
+        <div class="mt-6 flex w-full flex-wrap items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+            <div class="mr-auto h-4 w-full max-w-[11rem] animate-pulse rounded bg-slate-100"></div>
+            <div class="h-10 w-full min-w-[8rem] flex-1 animate-pulse rounded-xl bg-slate-100 sm:w-32 sm:flex-none"></div>
+            <div class="h-10 w-full min-w-[8rem] flex-1 animate-pulse rounded-xl bg-slate-100 sm:w-32 sm:flex-none"></div>
+        </div>
+    </div>
+
+    @if (count($generatedQuestions) > 0)
+        <div wire:loading.remove wire:target="generate">
         <div class="mb-4 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">
                 Preview Soal ({{ count($generatedQuestions) }})
@@ -268,6 +348,7 @@
             <button wire:click="approveAll" wire:confirm="Simpan semua soal valid ke bank soal?" class="ui-btn-success">
                 Approve Semua
             </button>
+        </div>
         </div>
     @endif
 </div>

@@ -89,7 +89,7 @@
                     <p class="text-sm font-bold text-amber-900">Kartu Sakti</p>
                     <p class="text-xs text-amber-800/80">Simpan soal ini untuk review spaced repetition.</p>
                 </div>
-                @if (in_array($question->id, $this->savedFlashcardQuestionIds, true))
+                @if (in_array($question->id, $savedFlashcardQuestionIds, true))
                     <span class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-700">
                         ✅ Sudah di Kartu Sakti
                     </span>

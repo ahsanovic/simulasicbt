@@ -16,6 +16,9 @@
         </div>
     </main>
 
+    @if ($this->currentAnswer?->question->subject->code->value === 'tiu')
+        @include('livewire.peserta.exam-room.scratchpad')
+    @endif
     @include('livewire.peserta.exam-room.last-question-modal')
 </div>
 

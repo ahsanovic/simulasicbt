@@ -3,7 +3,10 @@
 namespace App\Livewire\Peserta;
 
 use App\Enums\ExamAttemptStatus;
+use App\Livewire\Concerns\InteractsWithAiReadinessReport;
 use App\Models\ExamAttempt;
+use App\Services\DeepSeekRecommendationService;
+use App\Services\ExamWeaknessAnalysisService;
 use App\Services\FlashcardService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -14,16 +17,19 @@ use Livewire\WithPagination;
 #[Title('Riwayat Tes')]
 class ExamHistory extends Component
 {
+    use InteractsWithAiReadinessReport;
     use WithPagination;
 
     public bool $showResultModal = false;
 
     public ?ExamAttempt $resultAttempt = null;
 
-    public ?string $focusHighlight = null;
+    public function mount(
+        ExamWeaknessAnalysisService $weaknessAnalysis,
+        DeepSeekRecommendationService $recommendationService,
+    ): void {
+        $this->initializeAiReadinessReport($weaknessAnalysis, $recommendationService);
 
-    public function mount(): void
-    {
         $focus = request()->query('focus');
 
         if ($focus === 'readiness') {
@@ -134,7 +140,7 @@ class ExamHistory extends Component
             'stats' => $stats,
             'passingGrades' => exam_passing_grades(),
             'scoreMax' => exam_score_max(),
-            'focusHighlight' => $this->focusHighlight,
+            'repeatExam' => $this->resolveRepeatExam(),
         ]);
     }
 }

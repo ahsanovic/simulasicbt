@@ -168,7 +168,7 @@
             </div>
 
             <aside class="lg:sticky lg:top-6">
-                <livewire:peserta.ai-readiness-report :focus-highlight="$focusHighlight" />
+                @include('livewire.peserta.ai-readiness-report')
             </aside>
         </div>
     </main>

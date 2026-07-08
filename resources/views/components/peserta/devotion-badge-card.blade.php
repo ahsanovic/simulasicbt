@@ -23,7 +23,7 @@
         <div class="rounded-xl bg-white/80 p-3 ring-1 ring-slate-200/80">
             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pangkat Anda</p>
             <div class="mt-2 flex flex-wrap items-center gap-2">
-                <x-devotion-badge :badge="$progress['current_badge']" />
+                <x-devotion-badge :badge="$progress['current_badge']" size="md" />
                 <span class="text-xs font-semibold tabular-nums text-slate-500">{{ number_format($progress['xp']) }} XP</span>
             </div>
             <p class="mt-2 text-xs leading-relaxed text-slate-600">{{ $progress['current_badge']['description'] }}</p>
@@ -71,20 +71,21 @@
                             @endif
                         </span>
                         <div class="min-w-0 flex-1">
-                            <p @class([
-                                'font-bold',
-                                'text-slate-900' => $tier['is_current'],
-                                'text-slate-700' => $tier['is_unlocked'] && ! $tier['is_current'],
-                                'text-slate-600' => ! $tier['is_unlocked'],
-                            ])>
-                                {{ $tier['label'] }}
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                @php
+                                    $tierBadge = $tier;
+                                    if (! $tier['is_unlocked']) {
+                                        $tierBadge['classes'] = 'text-slate-500 bg-slate-100 ring-slate-200/60 opacity-60';
+                                    }
+                                @endphp
+                                <x-devotion-badge :badge="$tierBadge" />
                                 <span @class([
-                                    'ml-0.5 font-semibold tabular-nums',
+                                    'text-[10px] font-semibold tabular-nums',
                                     'text-emerald-700' => $tier['is_current'],
                                     'text-indigo-600' => $tier['is_unlocked'] && ! $tier['is_current'],
-                                    'text-slate-600' => ! $tier['is_unlocked'],
-                                ])>({{ number_format($tier['min_xp']) }}+ XP)</span>
-                            </p>
+                                    'text-slate-500' => ! $tier['is_unlocked'],
+                                ])>{{ number_format($tier['min_xp']) }}+ XP</span>
+                            </div>
                         </div>
                     </li>
                 @endforeach

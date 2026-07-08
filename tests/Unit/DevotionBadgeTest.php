@@ -22,7 +22,7 @@ class DevotionBadgeTest extends TestCase
         $badge = DevotionBadge::fromXp(1500);
 
         $this->assertSame(DevotionBadge::RekanKompeten, $badge);
-        $this->assertStringContainsString('indigo', $badge->badgeClasses());
+        $this->assertStringContainsString('sky', $badge->badgeClasses());
     }
 
     public function test_resolves_abdi_harmonis_for_mid_xp(): void
@@ -54,7 +54,9 @@ class DevotionBadgeTest extends TestCase
         $this->assertSame('rekan_kompeten', $payload['value']);
         $this->assertSame('Rekan Kompeten', $payload['label']);
         $this->assertSame(1001, $payload['min_xp']);
-        $this->assertSame('indigo', $payload['tooltip_theme']);
+        $this->assertSame('sky', $payload['tooltip_theme']);
+        $this->assertSame('star', $payload['icon']);
+        $this->assertSame(2, $payload['tier']);
         $this->assertNotSame('', $payload['description']);
         $this->assertNotSame('', $payload['classes']);
     }

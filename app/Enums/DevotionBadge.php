@@ -46,9 +46,33 @@ enum DevotionBadge: string
     public function badgeClasses(): string
     {
         return match ($this) {
-            self::PejuangAkuntabel => 'text-emerald-600 bg-emerald-50',
-            self::RekanKompeten, self::AbdiHarmonis, self::PenggerakAdaptif => 'text-indigo-600 bg-indigo-50',
-            self::TeladanLoyal => 'text-amber-700 bg-amber-50 border border-amber-200',
+            self::PejuangAkuntabel => 'text-emerald-700 bg-emerald-50 ring-emerald-200/70',
+            self::RekanKompeten => 'text-sky-700 bg-sky-50 ring-sky-200/70',
+            self::AbdiHarmonis => 'text-violet-700 bg-violet-50 ring-violet-200/70',
+            self::PenggerakAdaptif => 'text-teal-700 bg-teal-50 ring-teal-200/70',
+            self::TeladanLoyal => 'text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 ring-amber-300/80 shadow-sm shadow-amber-100/80',
+        };
+    }
+
+    public function icon(): string
+    {
+        return match ($this) {
+            self::PejuangAkuntabel => 'shield',
+            self::RekanKompeten => 'star',
+            self::AbdiHarmonis => 'heart',
+            self::PenggerakAdaptif => 'bolt',
+            self::TeladanLoyal => 'sparkles',
+        };
+    }
+
+    public function tier(): int
+    {
+        return match ($this) {
+            self::PejuangAkuntabel => 1,
+            self::RekanKompeten => 2,
+            self::AbdiHarmonis => 3,
+            self::PenggerakAdaptif => 4,
+            self::TeladanLoyal => 5,
         };
     }
 
@@ -84,12 +108,14 @@ enum DevotionBadge: string
     {
         return match ($this) {
             self::PejuangAkuntabel => 'emerald',
+            self::RekanKompeten => 'sky',
+            self::AbdiHarmonis => 'violet',
+            self::PenggerakAdaptif => 'teal',
             self::TeladanLoyal => 'amber',
-            default => 'indigo',
         };
     }
 
-    /** @return array{value: string, label: string, description: string, classes: string, min_xp: int, tooltip_theme: string} */
+    /** @return array{value: string, label: string, description: string, classes: string, min_xp: int, tooltip_theme: string, icon: string, tier: int} */
     public function toArray(): array
     {
         return [
@@ -99,6 +125,8 @@ enum DevotionBadge: string
             'classes' => $this->badgeClasses(),
             'min_xp' => $this->minXp(),
             'tooltip_theme' => $this->tooltipTheme(),
+            'icon' => $this->icon(),
+            'tier' => $this->tier(),
         ];
     }
 }

@@ -11,6 +11,7 @@
                     readiness: 'feature-readiness-header',
                     'time-management': 'feature-time-management-button',
                     review: 'feature-review-button',
+                    psychology: 'feature-review-button',
                 };
 
                 this.$nextTick(() => {

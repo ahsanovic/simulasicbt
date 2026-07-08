@@ -17,7 +17,7 @@
     <div
         x-data="{
             activeIndex: 0,
-            cardCount: 6,
+            cardCount: 7,
             autoplayMs: 3000,
             autoplayTimer: null,
             isInteractionPaused: false,
@@ -293,10 +293,37 @@
                 </div>
             </a>
 
-            {{-- 4. Audio Mode --}}
-            <a href="{{ route('peserta.audio.index') }}"
+            {{-- 4. Rapor Psikologi Ujian AI --}}
+            <a href="{{ route('peserta.history', ['focus' => 'psychology']) }}"
                wire:navigate
                data-carousel-card="3"
+               class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-fuchsia-200 hover:shadow-lg hover:shadow-fuchsia-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
+                <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-fuchsia-100/80 to-purple-100/40 opacity-0 transition group-hover:opacity-100"></div>
+
+                <div class="relative flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-md shadow-fuchsia-500/25">
+                        <span class="text-lg" aria-hidden="true">🧠</span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <h3 class="text-sm font-bold text-slate-900 group-hover:text-fuchsia-700">Rapor Psikologi Ujian AI</h3>
+                            <span class="ui-badge bg-fuchsia-50 text-fuchsia-700 text-[10px]">AI</span>
+                        </div>
+                        <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                            Analisis pola panik &amp; stres saat ujian.
+                        </p>
+                        <p class="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-fuchsia-600 group-hover:gap-1.5 transition-all">
+                            {{ $hasHistory ? 'Lihat rapor' : 'Tersedia setelah simulasi' }}
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </p>
+                    </div>
+                </div>
+            </a>
+
+            {{-- 5. Audio Mode --}}
+            <a href="{{ route('peserta.audio.index') }}"
+               wire:navigate
+               data-carousel-card="4"
                class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
                 <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-violet-100/80 to-indigo-100/40 opacity-0 transition group-hover:opacity-100"></div>
 
@@ -322,10 +349,10 @@
                 </div>
             </a>
 
-            {{-- 5. Kartu Sakti --}}
+            {{-- 6. Kartu Sakti --}}
             <a href="{{ route('peserta.kartu-sakti.index') }}"
                wire:navigate
-               data-carousel-card="4"
+               data-carousel-card="5"
                class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
                 <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-amber-100/80 to-orange-100/40 opacity-0 transition group-hover:opacity-100"></div>
 
@@ -349,10 +376,10 @@
                 </div>
             </a>
 
-            {{-- 6. Challenge a Friend --}}
+            {{-- 7. Challenge a Friend --}}
             <a href="{{ route('peserta.duel.index') }}"
                wire:navigate
-               data-carousel-card="5"
+               data-carousel-card="6"
                class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-lg hover:shadow-rose-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
                 <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-rose-100/80 to-orange-100/40 opacity-0 transition group-hover:opacity-100"></div>
 

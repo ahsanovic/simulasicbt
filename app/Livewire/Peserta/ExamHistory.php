@@ -44,7 +44,7 @@ class ExamHistory extends Component
             return;
         }
 
-        if (is_string($focus) && $focus === 'review') {
+        if (is_string($focus) && in_array($focus, ['review', 'psychology'], true)) {
             $this->focusHighlight = $focus;
         }
 

@@ -32,6 +32,9 @@ class ExamRoom extends Component
     public int $attemptExpiresAt;
 
     #[Locked]
+    public bool $isRemedial = false;
+
+    #[Locked]
     public int $currentIndex = 0;
 
     /** @var list<array{id: int, sort_order: int, question_id: int, selected_option_id: ?int, is_marked: bool}> */
@@ -78,6 +81,7 @@ class ExamRoom extends Component
         $this->examId = $exam->id;
         $this->examTitle = $exam->title;
         $this->attemptId = $attempt->id;
+        $this->isRemedial = $attempt->isRemedial();
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
         $this->answerStates = $attempt->answers
             ->sortBy(fn (ExamAnswer $answer) => $answer->sort_order ?: 999)
@@ -271,7 +275,9 @@ class ExamRoom extends Component
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
-        $this->persistTelemetries();
+        if (! $this->isRemedial) {
+            $this->persistTelemetries();
+        }
         $attempt = $examService->submitAttempt($this->resolveAttempt(), auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
         $this->redirect(route('peserta.history'), navigate: true);
@@ -282,7 +288,9 @@ class ExamRoom extends Component
         if ($this->remainingSeconds <= 0) {
             $this->accumulateCurrentQuestionDuration();
             $this->persistAttemptMetadata();
-            $this->persistTelemetries();
+            if (! $this->isRemedial) {
+                $this->persistTelemetries();
+            }
             $attempt = app(ExamService::class)->submitAttempt($this->resolveAttempt(), auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');

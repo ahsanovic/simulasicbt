@@ -1,7 +1,9 @@
 <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
     <div class="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">Sedang Ujian</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">
+                {{ $isRemedial ? 'Ujian Remedial' : 'Sedang Ujian' }}
+            </p>
             <h1 class="truncate text-lg font-bold text-slate-900">{{ $examTitle }}</h1>
             <p class="text-sm text-slate-500">Soal <span class="font-semibold text-slate-800">{{ $currentIndex + 1 }}</span> dari {{ $this->answers->count() }}</p>
         </div>
@@ -31,7 +33,7 @@
 
                 <button type="button"
                         wire:click="submitExam"
-                        wire:confirm="Selesaikan simulasi ini? Skor akan disimpan dan Anda dapat mengulang lagi nanti."
+                        wire:confirm="{{ $isRemedial ? 'Selesaikan ujian remedial ini?' : 'Selesaikan simulasi ini? Skor akan disimpan dan Anda dapat mengulang lagi nanti.' }}"
                         class="ui-btn-danger shrink-0">
                     Selesai Ujian
                 </button>

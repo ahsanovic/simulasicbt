@@ -57,12 +57,14 @@ class Dashboard extends Component
             ->values();
 
         $attemptStats = ExamAttempt::query()
+            ->full()
             ->where('user_id', auth()->id())
             ->whereIn('exam_id', $exams->pluck('id'))
             ->get()
             ->groupBy('exam_id');
 
         $hasHistory = ExamAttempt::query()
+            ->full()
             ->where('user_id', auth()->id())
             ->where('status', ExamAttemptStatus::Submitted)
             ->exists();

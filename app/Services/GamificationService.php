@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\DevotionBadge;
 use App\Models\AudioLearningSession;
+use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\FlashcardReviewSession;
 use App\Models\User;
@@ -22,6 +23,10 @@ class GamificationService
     public const DUEL_WIN_XP_REWARD = 15;
 
     public const DUEL_LOSE_XP_REWARD = 1;
+
+    public const REMEDIAL_UNLOCK_XP = 300;
+
+    public const REMEDIAL_PERFECT_XP_REWARD = 25;
 
     public function totalXpExpression(): string
     {
@@ -168,5 +173,65 @@ class GamificationService
         $amount = $won ? self::DUEL_WIN_XP_REWARD : self::DUEL_LOSE_XP_REWARD;
 
         return $this->awardXp($user, ExamAttempt::class, $attempt->id, $amount);
+    }
+
+    public function isRemedialUnlocked(int $xp): bool
+    {
+        return $xp >= self::REMEDIAL_UNLOCK_XP;
+    }
+
+    /**
+     * @return array{
+     *     is_unlocked: bool,
+     *     threshold: int,
+     *     xp: int,
+     *     xp_to_unlock: int,
+     *     progress_percent: int
+     * }
+     */
+    public function remedialUnlockProgress(int $xp): array
+    {
+        $threshold = self::REMEDIAL_UNLOCK_XP;
+        $isUnlocked = $this->isRemedialUnlocked($xp);
+
+        return [
+            'is_unlocked' => $isUnlocked,
+            'threshold' => $threshold,
+            'xp' => $xp,
+            'xp_to_unlock' => max(0, $threshold - $xp),
+            'progress_percent' => $isUnlocked
+                ? 100
+                : min(100, max(0, (int) round(($xp / $threshold) * 100))),
+        ];
+    }
+
+    public function awardRemedialPerfectXp(ExamAttempt $attempt, User $user): ?XpReward
+    {
+        if (! $attempt->isRemedial()) {
+            return null;
+        }
+
+        $attempt->loadMissing(['answers.question', 'answers.selectedOption']);
+
+        $allCorrect = $attempt->answers->isNotEmpty()
+            && $attempt->answers->every(
+                fn (ExamAnswer $answer) => $answer->question && $answer->reviewOutcome()->isPositive(),
+            );
+
+        if (! $allCorrect) {
+            return null;
+        }
+
+        return $this->awardXp(
+            $user,
+            'remedial_perfect',
+            $attempt->id,
+            self::REMEDIAL_PERFECT_XP_REWARD,
+        );
+    }
+
+    public function crossedRemedialUnlockThreshold(int $xpBefore, int $xpAfter): bool
+    {
+        return $xpBefore < self::REMEDIAL_UNLOCK_XP && $xpAfter >= self::REMEDIAL_UNLOCK_XP;
     }
 }

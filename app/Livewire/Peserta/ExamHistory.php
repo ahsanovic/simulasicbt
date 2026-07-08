@@ -3,11 +3,14 @@
 namespace App\Livewire\Peserta;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\ExamAttemptType;
 use App\Livewire\Concerns\InteractsWithAiReadinessReport;
 use App\Models\ExamAttempt;
 use App\Services\DeepSeekRecommendationService;
+use App\Services\ExamService;
 use App\Services\ExamWeaknessAnalysisService;
 use App\Services\FlashcardService;
+use App\Services\GamificationService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -21,6 +24,8 @@ class ExamHistory extends Component
     use WithPagination;
 
     public bool $showResultModal = false;
+
+    public bool $showRemedialUnlockModal = false;
 
     public ?ExamAttempt $resultAttempt = null;
 
@@ -50,19 +55,21 @@ class ExamHistory extends Component
 
         $resultAttemptId = session()->pull('show_result_attempt_id');
 
-        if (! $resultAttemptId) {
-            return;
+        if ($resultAttemptId) {
+            $this->resultAttempt = ExamAttempt::query()
+                ->with(['exam', 'answers.question', 'answers.selectedOption'])
+                ->whereKey($resultAttemptId)
+                ->where('user_id', auth()->id())
+                ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
+                ->first();
+
+            if ($this->resultAttempt) {
+                $this->showResultModal = true;
+            }
         }
 
-        $this->resultAttempt = ExamAttempt::query()
-            ->with(['exam', 'answers.question', 'answers.selectedOption'])
-            ->whereKey($resultAttemptId)
-            ->where('user_id', auth()->id())
-            ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
-            ->first();
-
-        if ($this->resultAttempt) {
-            $this->showResultModal = true;
+        if (session()->pull('show_remedial_unlock_modal') && ! $this->showResultModal) {
+            $this->showRemedialUnlockModal = true;
         }
     }
 
@@ -70,6 +77,51 @@ class ExamHistory extends Component
     {
         $this->showResultModal = false;
         $this->resultAttempt = null;
+
+        if (session()->pull('show_remedial_unlock_modal')) {
+            $this->showRemedialUnlockModal = true;
+        }
+    }
+
+    public function startRemedial(int $attemptId, ExamService $examService): void
+    {
+        $parent = ExamAttempt::query()
+            ->with(['exam', 'answers.question', 'answers.selectedOption'])
+            ->whereKey($attemptId)
+            ->where('user_id', auth()->id())
+            ->where('attempt_type', ExamAttemptType::Full)
+            ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
+            ->firstOrFail();
+
+        $existingAttempt = ExamAttempt::query()
+            ->where('exam_id', $parent->exam_id)
+            ->where('user_id', auth()->id())
+            ->where('status', ExamAttemptStatus::InProgress)
+            ->first();
+
+        if ($existingAttempt?->isActive()) {
+            $this->redirect(route('peserta.exam.room', $parent->exam), navigate: true);
+
+            return;
+        }
+
+        try {
+            $examService->startRemedialAttempt($parent, auth()->user());
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'Tidak bisa memulai ujian remedial.';
+
+            session()->flash('error', $message);
+
+            return;
+        }
+
+        $this->redirect(route('peserta.exam.room', $parent->exam), navigate: true);
+    }
+
+    public function closeRemedialUnlockModal(): void
+    {
+        $this->showRemedialUnlockModal = false;
     }
 
     public function saveResultWrongToFlashcard(FlashcardService $flashcardService): void
@@ -107,10 +159,10 @@ class ExamHistory extends Component
             ->count();
     }
 
-    public function render()
+    public function render(GamificationService $gamificationService)
     {
         $attempts = ExamAttempt::query()
-            ->with('exam')
+            ->with(['exam', 'answers.question', 'answers.selectedOption'])
             ->where('user_id', auth()->id())
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
             ->latest('submitted_at')
@@ -118,9 +170,12 @@ class ExamHistory extends Component
             ->paginate(5);
 
         $submittedAttempts = ExamAttempt::query()
+            ->full()
             ->where('user_id', auth()->id())
             ->where('status', ExamAttemptStatus::Submitted)
             ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score']);
+
+        $totalXp = $gamificationService->totalXp(auth()->user());
 
         $stats = [
             'total' => $submittedAttempts->count(),
@@ -141,6 +196,8 @@ class ExamHistory extends Component
             'passingGrades' => exam_passing_grades(),
             'scoreMax' => exam_score_max(),
             'repeatExam' => $this->resolveRepeatExam(),
+            'totalXp' => $totalXp,
+            'remedialUnlock' => $gamificationService->remedialUnlockProgress($totalXp),
         ]);
     }
 }

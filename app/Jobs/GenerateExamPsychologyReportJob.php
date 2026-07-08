@@ -20,7 +20,7 @@ class GenerateExamPsychologyReportJob implements ShouldQueue
     {
         $attempt = ExamAttempt::query()->find($this->attemptId);
 
-        if (! $attempt || ! $attempt->isReviewable()) {
+        if (! $attempt || ! $attempt->isReviewable() || $attempt->isRemedial()) {
             return;
         }
 

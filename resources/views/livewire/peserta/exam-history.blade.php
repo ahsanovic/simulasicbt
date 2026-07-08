@@ -5,7 +5,13 @@
             :passing-grades="$passingGrades"
             :score-max="$scoreMax"
             :wrong-count="$this->resultAttemptWrongCount"
+            :remedial-unlock="$remedialUnlock"
+            :total-xp="$totalXp"
         />
+    @endif
+
+    @if ($showRemedialUnlockModal)
+        <x-peserta.remedial-unlock-modal />
     @endif
 
     <main @class(['mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8', 'overflow-hidden' => $showResultModal])>
@@ -67,11 +73,13 @@
                         $attempt->score_tkp,
                         $attempt->total_score,
                     );
+                    $isRemedialAttempt = $attempt->isRemedial();
                 @endphp
                 <article wire:key="history-{{ $attempt->id }}" @class([
                     'ui-card group overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary-500/10',
-                    'border-l-4 border-l-emerald-500' => $passes,
-                    'border-l-4 border-l-rose-400' => ! $passes,
+                    'border-l-4 border-l-emerald-500' => $passes && ! $isRemedialAttempt,
+                    'border-l-4 border-l-rose-400' => ! $passes && ! $isRemedialAttempt,
+                    'border-l-4 border-l-indigo-400' => $isRemedialAttempt,
                     'ring-2 ring-primary-400 ring-offset-2' => $resultAttempt && $attempt->id === $resultAttempt->id,
                 ])>
                     <div class="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -82,6 +90,11 @@
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
+                            @if ($isRemedialAttempt)
+                                <span class="ui-badge bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/60">
+                                    Ujian Remedial
+                                </span>
+                            @else
                             <span @class([
                                 'ui-badge inline-flex items-center gap-1',
                                 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60' => $passes,
@@ -95,6 +108,7 @@
                                     Belum Lulus
                                 @endif
                             </span>
+                            @endif
                             <span @class([
                                 'ui-badge',
                                 'bg-emerald-50 text-emerald-600' => $attempt->status->value === 'submitted',
@@ -104,6 +118,24 @@
                     </div>
 
                     <div class="grid gap-3 bg-white p-5 sm:grid-cols-2 lg:grid-cols-4">
+                        @if ($isRemedialAttempt)
+                            @php
+                                $totalQuestions = $attempt->answers->count();
+                                $correctCount = $attempt->correctAnswerCount();
+                                $remedialPerfect = $totalQuestions > 0 && $correctCount === $totalQuestions;
+                            @endphp
+                            <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 sm:col-span-2">
+                                <p class="text-xs font-bold uppercase tracking-wider text-indigo-600">Hasil Remedial</p>
+                                <p class="mt-2 text-2xl font-bold tabular-nums text-slate-900">
+                                    {{ $correctCount }} / {{ $totalQuestions }} benar
+                                </p>
+                                @if ($remedialPerfect)
+                                    <p class="mt-1 text-xs font-semibold text-emerald-600">
+                                        Sempurna! +{{ \App\Services\GamificationService::REMEDIAL_PERFECT_XP_REWARD }} XP
+                                    </p>
+                                @endif
+                            </div>
+                        @else
                         <x-exam-score-threshold
                             label="TWK"
                             :value="$attempt->score_twk"
@@ -132,9 +164,11 @@
                             :max="$scoreMax['total']"
                             color="primary"
                         />
+                        @endif
                     </div>
 
                     <div class="border-t border-slate-100 bg-slate-50/40 px-5 py-4">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
                         <a href="{{ route('peserta.exam.review', $attempt) }}"
                            wire:navigate
                            @if ($loop->first)
@@ -147,6 +181,12 @@
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Kunci Jawaban dan Pembahasan
                         </a>
+                        <x-peserta.remedial-action
+                            :attempt="$attempt"
+                            :remedial-unlock="$remedialUnlock"
+                            :total-xp="$totalXp"
+                        />
+                        </div>
                     </div>
                 </article>
             @empty

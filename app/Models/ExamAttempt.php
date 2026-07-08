@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\ExamAttemptType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,8 @@ class ExamAttempt extends Model
     protected $fillable = [
         'exam_id',
         'duel_session_id',
+        'attempt_type',
+        'parent_attempt_id',
         'user_id',
         'started_at',
         'submitted_at',
@@ -35,6 +38,7 @@ class ExamAttempt extends Model
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
             'expires_at' => 'datetime',
+            'attempt_type' => ExamAttemptType::class,
             'status' => ExamAttemptStatus::class,
             'score_twk' => 'integer',
             'score_tiu' => 'integer',
@@ -59,6 +63,58 @@ class ExamAttempt extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function parentAttempt(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_attempt_id');
+    }
+
+    public function remedialAttempts(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_attempt_id');
+    }
+
+    public function isRemedial(): bool
+    {
+        return $this->attempt_type === ExamAttemptType::Remedial;
+    }
+
+    public function isFull(): bool
+    {
+        return $this->attempt_type === ExamAttemptType::Full;
+    }
+
+    public function isDuelAttempt(): bool
+    {
+        if ($this->duel_session_id !== null) {
+            return true;
+        }
+
+        return (bool) $this->exam?->isDuel();
+    }
+
+    public function scopeFull(Builder $query): Builder
+    {
+        return $query->where('attempt_type', ExamAttemptType::Full);
+    }
+
+    public function wrongAnswerCount(): int
+    {
+        $this->loadMissing(['answers.question', 'answers.selectedOption']);
+
+        return $this->answers
+            ->filter(fn (ExamAnswer $answer) => $answer->question && ! $answer->reviewOutcome()->isPositive())
+            ->count();
+    }
+
+    public function correctAnswerCount(): int
+    {
+        $this->loadMissing(['answers.question', 'answers.selectedOption']);
+
+        return $this->answers
+            ->filter(fn (ExamAnswer $answer) => $answer->question && $answer->reviewOutcome()->isPositive())
+            ->count();
     }
 
     public function answers(): HasMany

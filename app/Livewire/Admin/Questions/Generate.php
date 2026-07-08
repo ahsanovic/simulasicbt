@@ -54,11 +54,14 @@ class Generate extends Component
         $material = Material::query()->findOrFail($this->material_id);
 
         try {
-            $this->generatedQuestions = $generationService->generate(
-                $subject,
-                $material,
-                $this->difficulty,
-                $this->questionCount,
+            $this->generatedQuestions = array_map(
+                fn (array $question) => $this->normalizeGeneratedQuestion($question),
+                $generationService->generate(
+                    $subject,
+                    $material,
+                    $this->difficulty,
+                    $this->questionCount,
+                ),
             );
 
             session()->flash('success', count($this->generatedQuestions).' soal berhasil di-generate. Silakan review sebelum approve.');
@@ -81,10 +84,12 @@ class Generate extends Component
         $this->regeneratingIndex = $index;
 
         try {
-            $this->generatedQuestions[$index] = $generationService->generateOne(
-                $subject,
-                $material,
-                $this->difficulty,
+            $this->generatedQuestions[$index] = $this->normalizeGeneratedQuestion(
+                $generationService->generateOne(
+                    $subject,
+                    $material,
+                    $this->difficulty,
+                ),
             );
 
             session()->flash('success', 'Soal #'.($index + 1).' berhasil di-regenerate.');
@@ -188,6 +193,47 @@ class Generate extends Component
         );
     }
 
+    public function setCorrectOption(int $questionIndex, int $optionIndex): void
+    {
+        if (! isset($this->generatedQuestions[$questionIndex]['options'][$optionIndex])) {
+            return;
+        }
+
+        $this->generatedQuestions[$questionIndex]['correct_option_index'] = $optionIndex;
+
+        foreach ($this->generatedQuestions[$questionIndex]['options'] as $idx => $option) {
+            $this->generatedQuestions[$questionIndex]['options'][$idx]['is_correct'] = $idx === $optionIndex;
+        }
+
+        $this->refreshValidation($questionIndex, app(GeneratedQuestionValidator::class));
+    }
+
+    /**
+     * @param  array<string, mixed>  $question
+     * @return array<string, mixed>
+     */
+    private function normalizeGeneratedQuestion(array $question): array
+    {
+        $options = $question['options'] ?? [];
+        $correctIndex = (int) ($question['correct_option_index'] ?? -1);
+
+        if ($correctIndex < 0 || $correctIndex >= count($options)) {
+            $foundIndex = collect($options)->search(fn ($option) => ($option['is_correct'] ?? false) === true);
+            $correctIndex = $foundIndex === false ? 0 : (int) $foundIndex;
+        }
+
+        $question['correct_option_index'] = $correctIndex;
+
+        $subject = $this->subject_id ? Subject::query()->find($this->subject_id) : null;
+        $isTkp = $subject?->code === SubjectCode::Tkp;
+
+        foreach ($options as $idx => $option) {
+            $question['options'][$idx]['is_correct'] = ! $isTkp && $idx === $correctIndex;
+        }
+
+        return $question;
+    }
+
     private function validateGenerationForm(): void
     {
         $this->validate([
@@ -211,7 +257,8 @@ class Generate extends Component
     private function persistQuestion(array $question, Subject $subject, HtmlSanitizer $sanitizer): void
     {
         $isTkp = $subject->code === SubjectCode::Tkp;
-        $correctOptionIndex = (int) ($question['correct_option_index'] ?? 0);
+        $question = $this->normalizeGeneratedQuestion($question);
+        $correctOptionIndex = (int) $question['correct_option_index'];
 
         DB::transaction(function () use ($question, $isTkp, $correctOptionIndex, $sanitizer) {
             $savedQuestion = Question::query()->create([

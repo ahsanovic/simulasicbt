@@ -241,9 +241,8 @@
                                                 <input
                                                     type="radio"
                                                     name="correct_{{ $index }}"
-                                                    wire:model.live="generatedQuestions.{{ $index }}.correct_option_index"
-                                                    wire:change="refreshValidation({{ $index }})"
-                                                    value="{{ $optIndex }}"
+                                                    wire:click="setCorrectOption({{ $index }}, {{ $optIndex }})"
+                                                    @checked((int) ($question['correct_option_index'] ?? 0) === $optIndex)
                                                     class="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                                 >
                                                 <span class="text-xs font-medium text-slate-500">Benar</span>

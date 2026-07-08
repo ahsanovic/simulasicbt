@@ -6,6 +6,7 @@ use App\Enums\ExamAttemptStatus;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
+use App\Services\ExamPsychologyTelemetryService;
 use App\Services\ExamService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -29,6 +30,9 @@ class ExamRoom extends Component
 
     /** @var array<string, int> */
     public array $questionDurations = [];
+
+    /** @var array<string, array{first_option_id: ?int, change_count: int, last_change_remaining_seconds: ?int}> */
+    public array $answerBehavior = [];
 
     public ?int $questionTimerStartedAt = null;
 
@@ -54,6 +58,8 @@ class ExamRoom extends Component
         $this->questionDurations = collect($stored['by_sort_order'] ?? [])
             ->mapWithKeys(fn ($seconds, $key) => [(string) $key => max(0, (int) $seconds)])
             ->all();
+
+        $this->loadAnswerBehavior();
 
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
@@ -118,6 +124,8 @@ class ExamRoom extends Component
             $optionId = null;
         }
 
+        $this->trackAnswerBehavior($this->currentAnswer->selected_option_id, $optionId);
+
         ExamAnswer::query()
             ->whereKey($this->currentAnswer->id)
             ->where('exam_attempt_id', $this->attempt->id)
@@ -158,6 +166,7 @@ class ExamRoom extends Component
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistQuestionDurations();
+        $this->persistTelemetries();
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
@@ -175,6 +184,7 @@ class ExamRoom extends Component
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistQuestionDurations();
+        $this->persistTelemetries();
 
         if ($this->currentIndex < $this->answers->count() - 1) {
             $this->currentIndex++;
@@ -188,6 +198,7 @@ class ExamRoom extends Component
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistQuestionDurations();
+        $this->persistTelemetries();
         $attempt = $examService->submitAttempt($this->attempt, auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
         $this->redirect(route('peserta.history'), navigate: true);
@@ -198,6 +209,7 @@ class ExamRoom extends Component
         if ($this->remainingSeconds <= 0) {
             $this->accumulateCurrentQuestionDuration();
             $this->persistQuestionDurations();
+            $this->persistTelemetries();
             $attempt = app(ExamService::class)->submitAttempt($this->attempt, auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
@@ -267,6 +279,70 @@ class ExamRoom extends Component
             ->update(['question_duration' => $payload]);
 
         $this->attempt->question_duration = $payload;
+    }
+
+    private function persistAnswerBehavior(): void
+    {
+        $payload = ['by_sort_order' => $this->answerBehavior];
+
+        ExamAttempt::query()
+            ->whereKey($this->attempt->id)
+            ->where('user_id', auth()->id())
+            ->update(['answer_behavior' => $payload]);
+
+        $this->attempt->answer_behavior = $payload;
+    }
+
+    private function trackAnswerBehavior(?int $previousOptionId, ?int $newOptionId): void
+    {
+        if (! $this->currentAnswer) {
+            return;
+        }
+
+        $key = (string) $this->currentAnswer->sort_order;
+
+        if (! isset($this->answerBehavior[$key])) {
+            $this->answerBehavior[$key] = [
+                'first_option_id' => $newOptionId,
+                'change_count' => 0,
+                'last_change_remaining_seconds' => null,
+            ];
+
+            return;
+        }
+
+        if ($newOptionId === null || $previousOptionId === null || $newOptionId === $previousOptionId) {
+            return;
+        }
+
+        $this->answerBehavior[$key]['change_count']++;
+        $this->answerBehavior[$key]['last_change_remaining_seconds'] = $this->remainingSeconds;
+    }
+
+    private function persistTelemetries(): void
+    {
+        $this->persistAnswerBehavior();
+
+        app(ExamPsychologyTelemetryService::class)->persistForAttempt(
+            $this->attempt,
+            $this->questionDurations,
+            $this->answerBehavior,
+            $this->remainingSeconds,
+        );
+    }
+
+    private function loadAnswerBehavior(): void
+    {
+        $stored = $this->attempt->answer_behavior ?? [];
+        $this->answerBehavior = collect($stored['by_sort_order'] ?? [])
+            ->mapWithKeys(fn (array $behavior, $key) => [
+                (string) $key => [
+                    'first_option_id' => $behavior['first_option_id'] ?? null,
+                    'change_count' => max(0, (int) ($behavior['change_count'] ?? 0)),
+                    'last_change_remaining_seconds' => $behavior['last_change_remaining_seconds'] ?? null,
+                ],
+            ])
+            ->all();
     }
 
     public function render()

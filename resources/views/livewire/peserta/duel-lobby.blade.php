@@ -26,7 +26,7 @@
                             <svg class="h-8 w-8 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         </div>
                         <h2 class="mt-4 text-lg font-bold text-slate-900">Mencari Lawan...</h2>
-                        <p class="mt-2 text-sm text-slate-500">Menunggu peserta lain yang juga mengklik matchmaking.</p>
+                        <p class="mt-2 text-sm text-slate-500">Menunggu peserta lain yang juga klik matchmaking.</p>
                         <p class="mt-3 text-xs leading-relaxed text-slate-400">
                             Duel dimulai saat ada lawan di antrean. Jika tidak ada dalam {{ \App\Services\DuelService::MATCHMAKING_BOT_WAIT_SECONDS }} detik, Anda akan melawan AI Shadow Bot.
                         </p>

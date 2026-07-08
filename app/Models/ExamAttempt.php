@@ -23,6 +23,10 @@ class ExamAttempt extends Model
         'score_tkp',
         'total_score',
         'question_duration',
+        'answer_behavior',
+        'psychology_report',
+        'psychology_report_status',
+        'psychology_report_generated_at',
     ];
 
     protected function casts(): array
@@ -37,6 +41,8 @@ class ExamAttempt extends Model
             'score_tkp' => 'integer',
             'total_score' => 'integer',
             'question_duration' => 'array',
+            'answer_behavior' => 'array',
+            'psychology_report_generated_at' => 'datetime',
         ];
     }
 
@@ -58,6 +64,11 @@ class ExamAttempt extends Model
     public function answers(): HasMany
     {
         return $this->hasMany(ExamAnswer::class)->orderBy('sort_order');
+    }
+
+    public function telemetries(): HasMany
+    {
+        return $this->hasMany(ExamTelemetry::class)->orderBy('question_number');
     }
 
     public function isActive(): bool

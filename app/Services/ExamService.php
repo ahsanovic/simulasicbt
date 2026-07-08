@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ExamAttemptStatus;
+use App\Jobs\GenerateExamPsychologyReportJob;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
@@ -77,6 +78,15 @@ class ExamService
             ]);
 
             app(ExamWeaknessAnalysisService::class)->forget($attempt->user_id);
+
+            $rewardUser = $user ?? User::query()->find($attempt->user_id);
+
+            if ($rewardUser !== null) {
+                app(GamificationService::class)->awardExamAttemptXp($attempt, $rewardUser);
+            }
+
+            $attempt->update(['psychology_report_status' => 'pending']);
+            GenerateExamPsychologyReportJob::dispatch($attempt->id);
 
             return $attempt->fresh();
         });

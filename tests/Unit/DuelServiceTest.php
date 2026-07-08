@@ -15,6 +15,7 @@ use App\Notifications\DuelChallengeReceived;
 use App\Notifications\DuelChallengeRejected;
 use App\Services\DuelQuestionGeneratorService;
 use App\Services\DuelService;
+use App\Services\GamificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -68,6 +69,15 @@ class DuelServiceTest extends TestCase
         $session = $session->fresh();
         $this->assertSame(DuelSessionStatus::Completed, $session->status);
         $this->assertSame($host->id, $session->winner_user_id);
+
+        $this->assertDatabaseHas('xp_rewards', [
+            'user_id' => $host->id,
+            'amount' => GamificationService::DUEL_WIN_XP_REWARD,
+        ]);
+        $this->assertDatabaseHas('xp_rewards', [
+            'user_id' => $opponent->id,
+            'amount' => GamificationService::DUEL_LOSE_XP_REWARD,
+        ]);
     }
 
     public function test_matchmaking_enters_queue_when_alone(): void

@@ -36,6 +36,9 @@
             $isWinner = $session->winner_user_id === auth()->id();
             $isDraw = $session->winner_user_id === null;
             $opponentLabel = $session->opponentLabelFor(auth()->id());
+            $xpEarned = $isWinner
+                ? \App\Services\GamificationService::DUEL_WIN_XP_REWARD
+                : \App\Services\GamificationService::DUEL_LOSE_XP_REWARD;
         @endphp
 
         <main class="mx-auto max-w-2xl px-4 py-12 sm:px-6">
@@ -54,6 +57,7 @@
                         @endif
                     </h1>
                     <p class="mt-2 text-sm opacity-90">vs {{ $opponentLabel }}</p>
+                    <p class="mt-3 text-sm font-semibold opacity-90">+{{ number_format($xpEarned) }} XP</p>
                 </div>
 
                 <div class="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">

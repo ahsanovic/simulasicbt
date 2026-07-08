@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\DevotionBadge;
 use App\Models\AudioLearningSession;
+use App\Models\ExamAttempt;
 use App\Models\User;
 use App\Models\XpReward;
 use Illuminate\Database\Query\Builder;
@@ -12,6 +13,14 @@ use Illuminate\Support\Facades\DB;
 class GamificationService
 {
     public const TESTIMONIAL_XP_REWARD = 200;
+
+    public const EXAM_PASS_XP_REWARD = 100;
+
+    public const EXAM_FAIL_XP_REWARD = 10;
+
+    public const DUEL_WIN_XP_REWARD = 15;
+
+    public const DUEL_LOSE_XP_REWARD = 1;
 
     public function totalXpExpression(): string
     {
@@ -120,5 +129,34 @@ class GamificationService
                 'amount' => $amount,
             ],
         );
+    }
+
+    public function awardExamAttemptXp(ExamAttempt $attempt, User $user): ?XpReward
+    {
+        if ($attempt->duel_session_id !== null) {
+            return null;
+        }
+
+        $passed = exam_attempt_passes(
+            $attempt->score_twk,
+            $attempt->score_tiu,
+            $attempt->score_tkp,
+            $attempt->total_score,
+        );
+
+        $amount = $passed ? self::EXAM_PASS_XP_REWARD : self::EXAM_FAIL_XP_REWARD;
+
+        return $this->awardXp($user, ExamAttempt::class, $attempt->id, $amount);
+    }
+
+    public function awardDuelAttemptXp(ExamAttempt $attempt, User $user, bool $won): ?XpReward
+    {
+        if ($attempt->duel_session_id === null) {
+            return null;
+        }
+
+        $amount = $won ? self::DUEL_WIN_XP_REWARD : self::DUEL_LOSE_XP_REWARD;
+
+        return $this->awardXp($user, ExamAttempt::class, $attempt->id, $amount);
     }
 }

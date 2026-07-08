@@ -101,6 +101,14 @@
                 </li>
                 <li class="flex items-start gap-1.5">
                     <span class="shrink-0 text-indigo-400">•</span>
+                    <span>Selesaikan <a href="{{ route('peserta.dashboard') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">tes simulasi</a> (+{{ \App\Services\GamificationService::EXAM_PASS_XP_REWARD }} XP lulus, +{{ \App\Services\GamificationService::EXAM_FAIL_XP_REWARD }} XP belum lulus)</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                    <span class="shrink-0 text-indigo-400">•</span>
+                    <span>Menang <a href="{{ route('peserta.duel.index') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">duel 1v1</a> (+{{ \App\Services\GamificationService::DUEL_WIN_XP_REWARD }} XP), kalah (+{{ \App\Services\GamificationService::DUEL_LOSE_XP_REWARD }} XP)</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                    <span class="shrink-0 text-indigo-400">•</span>
                     <span>Kirim <a href="{{ route('peserta.testimonials.index') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">testimoni pertama</a> (+{{ \App\Services\GamificationService::TESTIMONIAL_XP_REWARD }} XP)</span>
                 </li>
             </ul>

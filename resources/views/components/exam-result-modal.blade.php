@@ -12,6 +12,10 @@
         $attempt->total_score,
     );
 
+    $xpEarned = $passes
+        ? \App\Services\GamificationService::EXAM_PASS_XP_REWARD
+        : \App\Services\GamificationService::EXAM_FAIL_XP_REWARD;
+
     $subjects = [
         ['key' => 'twk', 'label' => 'TWK', 'color' => 'blue', 'score' => $attempt->score_twk],
         ['key' => 'tiu', 'label' => 'TIU', 'color' => 'amber', 'score' => $attempt->score_tiu],
@@ -76,6 +80,10 @@
                         Belum Lulus Ambang Batas
                     @endif
                 </div>
+
+                <p class="mt-3 text-sm font-semibold text-white/90">
+                    +{{ number_format($xpEarned) }} XP
+                </p>
 
                 <div class="mt-6 flex items-baseline gap-2">
                     <span class="text-5xl font-black tabular-nums tracking-tight">{{ format_exam_score($attempt->total_score) }}</span>

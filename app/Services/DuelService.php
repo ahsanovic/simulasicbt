@@ -28,6 +28,7 @@ class DuelService
         private readonly DuelQuestionGeneratorService $questionGenerator,
         private readonly AiShadowBotService $shadowBot,
         private readonly DuelPresenceService $presence,
+        private readonly GamificationService $gamificationService,
     ) {}
 
     /**
@@ -495,7 +496,30 @@ class DuelService
             'winner_user_id' => $winnerId,
         ]);
 
-        return $session->fresh(['host', 'opponent', 'winner', 'hostAttempt', 'opponentAttempt']);
+        $session = $session->fresh(['host', 'opponent', 'winner', 'hostAttempt', 'opponentAttempt']);
+
+        $this->awardDuelXp($session);
+
+        return $session;
+    }
+
+    private function awardDuelXp(DuelSession $session): void
+    {
+        if ($session->hostAttempt && $session->host) {
+            $this->gamificationService->awardDuelAttemptXp(
+                $session->hostAttempt,
+                $session->host,
+                $session->winner_user_id === $session->host_user_id,
+            );
+        }
+
+        if ($session->opponentAttempt && $session->opponent && ! $session->is_bot_opponent) {
+            $this->gamificationService->awardDuelAttemptXp(
+                $session->opponentAttempt,
+                $session->opponent,
+                $session->winner_user_id === $session->opponent_user_id,
+            );
+        }
     }
 
     private function duelExam(): Exam

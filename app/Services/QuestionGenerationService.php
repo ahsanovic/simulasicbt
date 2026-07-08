@@ -32,18 +32,33 @@ class QuestionGenerationService
         }
 
         $count = max(1, min(self::MAX_QUESTIONS_PER_GENERATE, $count));
+        $normalized = [];
 
-        $payload = $this->callOpenAi($subject, $material, $difficulty, $count);
-        $rawQuestions = $this->extractQuestions($payload);
+        for ($attempt = 0; $attempt < 3 && count($normalized) < $count; $attempt++) {
+            $remaining = $count - count($normalized);
+            $payload = $this->callOpenAi($subject, $material, $difficulty, $remaining);
+            $rawQuestions = $this->extractQuestions($payload);
 
-        if ($rawQuestions === []) {
+            if ($rawQuestions === []) {
+                break;
+            }
+
+            foreach (array_slice($rawQuestions, 0, $remaining) as $rawQuestion) {
+                $normalized[] = $this->normalizeQuestion($rawQuestion, $subject->code, $difficulty);
+            }
+        }
+
+        if ($normalized === []) {
             throw new RuntimeException('OpenAI tidak mengembalikan soal. Coba lagi.');
         }
 
-        return array_map(
-            fn (array $question) => $this->normalizeQuestion($question, $subject->code, $difficulty),
-            array_slice($rawQuestions, 0, $count),
-        );
+        if (count($normalized) < $count) {
+            throw new RuntimeException(
+                'OpenAI hanya mengembalikan '.count($normalized)." dari {$count} soal yang diminta. Coba lagi.",
+            );
+        }
+
+        return array_slice($normalized, 0, $count);
     }
 
     /**
@@ -69,6 +84,7 @@ class QuestionGenerationService
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => $model,
                     'temperature' => 0.7,
+                    'max_tokens' => min(16384, max(2048, $count * 2000)),
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         [
@@ -153,7 +169,7 @@ PROMPT;
             : '- Pastikan jawaban benar tersebar di posisi A–E yang berbeda-beda antar soal.';
 
         return <<<PROMPT
-Buat {$count} soal {$subjectLabel} dengan spesifikasi berikut:
+Buat TEPAT {$count} soal {$subjectLabel} (tidak kurang, tidak lebih) dengan spesifikasi berikut:
 - Materi: {$materialName}
 - Tingkat kesulitan: {$difficultyLabel}
 - Konteks: Simulasi ujian CPNS

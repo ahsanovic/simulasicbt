@@ -72,7 +72,7 @@
 
                 <div>
                     <label class="ui-label">Jumlah Soal <span class="font-normal text-slate-400">(maks. {{ $maxQuestionsPerGenerate }})</span></label>
-                    <input type="number" wire:model.live="questionCount" min="1" max="{{ $maxQuestionsPerGenerate }}" class="ui-input">
+                    <input type="number" wire:model="questionCount" min="1" max="{{ $maxQuestionsPerGenerate }}" class="ui-input">
                     @error('questionCount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
             </div>

@@ -5,7 +5,11 @@ namespace App\Livewire\Peserta;
 use App\Enums\AnswerReviewOutcome;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
+use App\Services\ExamPsychologyAnalysisService;
 use App\Services\ExamTimeManagementService;
+use App\Services\FlashcardService;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -81,6 +85,21 @@ class ExamReview extends Component
         return $analysis['by_sort_order'][$key]['status'] ?? null;
     }
 
+    public function getPsychologyAnalysisProperty(): array
+    {
+        return app(ExamPsychologyAnalysisService::class)->aggregateForAttempt($this->attempt);
+    }
+
+    public function getPsychologyReportPendingProperty(): bool
+    {
+        return in_array($this->attempt->psychology_report_status, ['pending', 'processing'], true);
+    }
+
+    public function refreshPsychologyReport(): void
+    {
+        $this->attempt = ExamAttempt::findReviewableForUser($this->attempt->id, auth()->id());
+    }
+
     public function openTimeManagementModal(): void
     {
         $this->showTimeManagementModal = true;
@@ -89,6 +108,57 @@ class ExamReview extends Component
     public function closeTimeManagementModal(): void
     {
         $this->showTimeManagementModal = false;
+    }
+
+    public function saveCurrentToFlashcard(FlashcardService $flashcardService): void
+    {
+        $answer = $this->currentAnswer;
+
+        if (! $answer?->question || $answer->reviewOutcome()->isPositive()) {
+            return;
+        }
+
+        try {
+            $flashcardService->saveFromQuestion(auth()->user(), $answer->question);
+            session()->flash('success', 'Soal disimpan ke Kartu Sakti.');
+        } catch (ValidationException $exception) {
+            session()->flash('warning', $exception->validator->errors()->first('flashcard'));
+        }
+    }
+
+    public function saveAllWrongToFlashcard(FlashcardService $flashcardService): void
+    {
+        $result = $flashcardService->saveWrongAnswersFromAttempt(auth()->user(), $this->attempt);
+
+        if ($result['saved'] === 0) {
+            session()->flash('warning', $result['total_candidates'] === 0
+                ? 'Tidak ada soal salah yang bisa disimpan.'
+                : 'Semua soal salah sudah ada di Kartu Sakti Anda.');
+
+            return;
+        }
+
+        session()->flash('success', "{$result['saved']} soal salah disimpan ke Kartu Sakti.");
+    }
+
+    #[Computed]
+    public function savedFlashcardQuestionIds(): array
+    {
+        $questionIds = $this->answers
+            ->pluck('question_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        return app(FlashcardService::class)->savedQuestionIds(auth()->user(), $questionIds);
+    }
+
+    #[Computed]
+    public function wrongAnswerCount(): int
+    {
+        return $this->answers
+            ->filter(fn (ExamAnswer $answer) => $answer->question && ! $answer->reviewOutcome()->isPositive())
+            ->count();
     }
 
     public function goToQuestion(int $index): void

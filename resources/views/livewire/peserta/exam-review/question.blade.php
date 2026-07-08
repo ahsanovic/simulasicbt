@@ -2,6 +2,7 @@
     @php
         $answer = $this->currentAnswer;
         $question = $answer->question;
+        $savedFlashcardQuestionIds ??= [];
     @endphp
 
     @if (! $question)

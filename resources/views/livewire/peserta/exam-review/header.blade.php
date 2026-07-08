@@ -1,4 +1,5 @@
 <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
+    @php($wrongAnswerCount ??= 0)
     <div class="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <div class="min-w-0">
             <a href="{{ route('peserta.history') }}" wire:navigate class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary-600 transition hover:text-primary-700">

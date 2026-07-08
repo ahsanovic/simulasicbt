@@ -168,7 +168,7 @@
                                         <td class="px-5 py-4 font-semibold text-slate-900">{{ $participant->name }}</td>
                                         <td class="px-5 py-4 text-slate-600">{{ $participant->nip ?? '—' }}</td>
                                         <td class="px-5 py-4 text-slate-600">{{ $participant->email }}</td>
-                                        <td class="px-5 py-4 text-center font-semibold text-amber-700">{{ number_format((int) ($participant->audio_xp ?? 0) + (int) ($participant->reward_xp ?? 0)) }}</td>
+                                        <td class="px-5 py-4 text-center font-semibold text-amber-700">{{ number_format((int) ($participant->audio_xp ?? 0) + (int) ($participant->flashcard_xp ?? 0) + (int) ($participant->reward_xp ?? 0)) }}</td>
                                         <td class="px-5 py-4">
                                             <span @class([
                                                 'ui-badge',

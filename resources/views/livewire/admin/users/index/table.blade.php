@@ -56,7 +56,7 @@
                             @if ($user->role->value === 'peserta')
                                 <span class="inline-flex items-center gap-1 font-semibold text-amber-700">
                                     <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-                                    {{ number_format((int) ($user->audio_xp ?? 0) + (int) ($user->reward_xp ?? 0)) }}
+                                    {{ number_format((int) ($user->audio_xp ?? 0) + (int) ($user->flashcard_xp ?? 0) + (int) ($user->reward_xp ?? 0)) }}
                                 </span>
                             @else
                                 <span class="text-slate-400">—</span>

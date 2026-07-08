@@ -101,6 +101,7 @@ class Index extends Component
             ? (clone $pesertaQuery)
                 ->with('instansi')
                 ->withSum('audioLearningSessions as audio_xp', 'xp_earned')
+                ->withSum('flashcardReviewSessions as flashcard_xp', 'xp_earned')
                 ->withSum('xpRewards as reward_xp', 'amount')
                 ->latest()
                 ->paginate(10, pageName: 'participantsPage')

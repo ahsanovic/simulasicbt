@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Material extends Model
 {
@@ -30,6 +31,11 @@ class Material extends Model
     public function questions(): HasMany
     {
         return $this->hasMany(Question::class);
+    }
+
+    public function cheatSheet(): HasOne
+    {
+        return $this->hasOne(MaterialCheatSheet::class);
     }
 
     public function scopeOrderedForSelect(Builder $query): Builder

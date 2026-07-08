@@ -30,6 +30,8 @@ use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
 use App\Livewire\Peserta\ExamRoom;
 use App\Livewire\Peserta\LeaderboardHub;
+use App\Livewire\Peserta\MateriBelajar;
+use App\Livewire\Peserta\MateriBelajarShow;
 use App\Livewire\Peserta\Testimonials;
 use App\Models\Instansi;
 use Illuminate\Support\Facades\Route;
@@ -117,5 +119,7 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/duel/{session}', DuelRoom::class)->name('duel.room');
     Route::get('/peringkat', LeaderboardHub::class)->name('leaderboard.index');
     Route::get('/testimoni', Testimonials::class)->name('testimonials.index');
+    Route::get('/materi', MateriBelajar::class)->name('materi.index');
+    Route::get('/materi/{subjectCode}/{materialSlug}', MateriBelajarShow::class)->name('materi.show');
     Route::get('/audio', AudioMode::class)->name('audio.index');
 });

@@ -112,6 +112,19 @@
         @apply text-slate-800 leading-relaxed [&_img]:max-w-full [&_p]:mb-3;
     }
 
+    .prose-cheat-sheet {
+        @apply text-[17px] leading-relaxed text-slate-700;
+        @apply [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:text-slate-900;
+        @apply [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900;
+        @apply [&_p]:my-3 [&_p]:leading-8;
+        @apply [&_strong]:font-semibold [&_strong]:text-slate-900;
+        @apply [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:space-y-6 [&_ol]:pl-6;
+        @apply [&_ol>li]:pl-2 [&_ol>li]:marker:font-bold [&_ol>li]:marker:text-emerald-700;
+        @apply [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5;
+        @apply [&_li]:leading-8;
+        @apply [&_img]:max-w-full;
+    }
+
     .ui-tour-pointer {
         @apply relative z-10;
         animation: ui-tour-blink 1s ease-in-out infinite;

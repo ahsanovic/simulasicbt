@@ -2,6 +2,7 @@
 
 use App\Enums\DevotionBadge;
 use App\Services\HtmlSanitizer;
+use Illuminate\Support\Str;
 
 if (! function_exists('sanitize_testimonial_text')) {
     function sanitize_testimonial_text(?string $text, bool $multiline = false): string
@@ -158,6 +159,19 @@ if (! function_exists('format_psychology_report')) {
         $text = preg_replace('/\*\*(.+?)\*\*/s', '<b>$1</b>', $text) ?? $text;
 
         return trim($text);
+    }
+}
+
+if (! function_exists('format_cheat_sheet_content')) {
+    function format_cheat_sheet_content(?string $markdown): string
+    {
+        if ($markdown === null || trim($markdown) === '') {
+            return '';
+        }
+
+        $html = Str::markdown($markdown);
+
+        return app(HtmlSanitizer::class)->sanitize($html) ?? '';
     }
 }
 

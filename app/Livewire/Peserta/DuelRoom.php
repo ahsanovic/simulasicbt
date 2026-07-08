@@ -164,7 +164,7 @@ class DuelRoom extends Component
                 'answered_at' => $optionId ? now() : null,
             ]);
 
-        $this->refreshAttemptData();
+        $this->syncAnswerInMemory($optionId);
     }
 
     public function goToQuestion(int $index): void
@@ -253,6 +253,22 @@ class DuelRoom extends Component
         );
     }
 
+    private function syncAnswerInMemory(?int $optionId): void
+    {
+        if (! $this->currentAnswer) {
+            return;
+        }
+
+        $answer = $this->attempt->answers->firstWhere('id', $this->currentAnswer->id);
+
+        if ($answer) {
+            $answer->selected_option_id = $optionId;
+            $answer->answered_at = $optionId ? now() : null;
+        }
+
+        unset($this->answers, $this->currentAnswer, $this->answeredCount);
+    }
+
     private function isValidOptionForCurrentQuestion(int $optionId): bool
     {
         if (! $this->currentAnswer) {
@@ -262,23 +278,10 @@ class DuelRoom extends Component
         return $this->currentAnswer->question->options->contains('id', $optionId);
     }
 
-    private function refreshAttemptData(): void
-    {
-        $this->attempt = ExamAttempt::query()
-            ->whereKey($this->attempt->id)
-            ->where('user_id', auth()->id())
-            ->with(['answers.question.options', 'answers.question.subject'])
-            ->firstOrFail();
-
-        unset($this->answers, $this->currentAnswer, $this->answeredCount);
-        $this->syncProgress();
-    }
-
     private function loadCurrentAnswer(): void
     {
         unset($this->currentAnswer);
         $this->selectedOptionId = $this->currentAnswer?->selected_option_id;
-        $this->syncProgress();
     }
 
     public function render()

@@ -21,6 +21,9 @@ class ExamPsychologyTelemetryService
     ): void {
         $attempt->loadMissing(['answers.question.options', 'answers.selectedOption']);
 
+        $rows = [];
+        $timestamp = now();
+
         foreach ($attempt->answers as $answer) {
             $sortOrder = (string) $answer->sort_order;
             $behavior = $answerBehavior[$sortOrder] ?? null;
@@ -46,19 +49,33 @@ class ExamPsychologyTelemetryService
                 $changedFromCorrectToWrong = $firstPositive && ! $finalPositive;
             }
 
-            ExamTelemetry::query()->updateOrCreate(
-                [
-                    'exam_attempt_id' => $attempt->id,
-                    'question_number' => (int) $answer->sort_order,
-                ],
-                [
-                    'time_spent_seconds' => $timeSpent,
-                    'is_changed_at_last_minute' => $isChangedAtLastMinute,
-                    'changed_from_correct_to_wrong' => $changedFromCorrectToWrong,
-                    'remaining_time_seconds' => $lastChangeRemaining ?? $remainingSeconds,
-                ],
-            );
+            $rows[] = [
+                'exam_attempt_id' => $attempt->id,
+                'question_number' => (int) $answer->sort_order,
+                'time_spent_seconds' => $timeSpent,
+                'is_changed_at_last_minute' => $isChangedAtLastMinute,
+                'changed_from_correct_to_wrong' => $changedFromCorrectToWrong,
+                'remaining_time_seconds' => $lastChangeRemaining ?? $remainingSeconds,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
         }
+
+        if ($rows === []) {
+            return;
+        }
+
+        ExamTelemetry::query()->upsert(
+            $rows,
+            ['exam_attempt_id', 'question_number'],
+            [
+                'time_spent_seconds',
+                'is_changed_at_last_minute',
+                'changed_from_correct_to_wrong',
+                'remaining_time_seconds',
+                'updated_at',
+            ],
+        );
     }
 
     public function isPositiveAnswer(ExamAnswer $answer, int $optionId): bool

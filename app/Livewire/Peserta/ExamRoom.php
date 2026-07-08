@@ -116,8 +116,6 @@ class ExamRoom extends Component
             return;
         }
 
-        $this->authorizedAttempt();
-
         $optionId = $this->selectedOptionId;
 
         if ($optionId !== null && ! $this->isValidOptionForCurrentQuestion($optionId)) {
@@ -134,7 +132,7 @@ class ExamRoom extends Component
                 'answered_at' => $optionId ? now() : null,
             ]);
 
-        $this->refreshAttemptData();
+        $this->syncAnswerInMemory($optionId);
     }
 
     public function toggleMark(): void
@@ -142,8 +140,6 @@ class ExamRoom extends Component
         if (! $this->currentAnswer) {
             return;
         }
-
-        $this->authorizedAttempt();
 
         $newMarked = ! $this->currentAnswer->is_marked;
 
@@ -154,7 +150,7 @@ class ExamRoom extends Component
                 'is_marked' => $newMarked,
             ]);
 
-        $this->refreshAttemptData();
+        $this->syncMarkedInMemory($newMarked);
     }
 
     public function goToQuestion(int $index): void
@@ -165,8 +161,7 @@ class ExamRoom extends Component
 
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
-        $this->persistQuestionDurations();
-        $this->persistTelemetries();
+        $this->persistAttemptMetadata();
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
@@ -183,8 +178,7 @@ class ExamRoom extends Component
     {
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
-        $this->persistQuestionDurations();
-        $this->persistTelemetries();
+        $this->persistAttemptMetadata();
 
         if ($this->currentIndex < $this->answers->count() - 1) {
             $this->currentIndex++;
@@ -197,7 +191,7 @@ class ExamRoom extends Component
     {
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
-        $this->persistQuestionDurations();
+        $this->persistAttemptMetadata();
         $this->persistTelemetries();
         $attempt = $examService->submitAttempt($this->attempt, auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
@@ -208,22 +202,13 @@ class ExamRoom extends Component
     {
         if ($this->remainingSeconds <= 0) {
             $this->accumulateCurrentQuestionDuration();
-            $this->persistQuestionDurations();
+            $this->persistAttemptMetadata();
             $this->persistTelemetries();
             $attempt = app(ExamService::class)->submitAttempt($this->attempt, auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
             $this->redirect(route('peserta.history'), navigate: true);
         }
-    }
-
-    private function authorizedAttempt(): ExamAttempt
-    {
-        return ExamAttempt::query()
-            ->whereKey($this->attempt->id)
-            ->where('user_id', auth()->id())
-            ->where('status', ExamAttemptStatus::InProgress)
-            ->firstOrFail();
     }
 
     private function isValidOptionForCurrentQuestion(int $optionId): bool
@@ -235,14 +220,39 @@ class ExamRoom extends Component
         return $this->currentAnswer->question->options->contains('id', $optionId);
     }
 
-    private function refreshAttemptData(): void
+    private function syncAnswerInMemory(?int $optionId): void
     {
-        $this->attempt = ExamAttempt::query()
-            ->whereKey($this->attempt->id)
-            ->where('user_id', auth()->id())
-            ->with(['answers.question.options', 'answers.question.subject'])
-            ->firstOrFail();
+        if (! $this->currentAnswer) {
+            return;
+        }
 
+        $answer = $this->attempt->answers->firstWhere('id', $this->currentAnswer->id);
+
+        if ($answer) {
+            $answer->selected_option_id = $optionId;
+            $answer->answered_at = $optionId ? now() : null;
+        }
+
+        $this->invalidateAnswerComputedProperties();
+    }
+
+    private function syncMarkedInMemory(bool $isMarked): void
+    {
+        if (! $this->currentAnswer) {
+            return;
+        }
+
+        $answer = $this->attempt->answers->firstWhere('id', $this->currentAnswer->id);
+
+        if ($answer) {
+            $answer->is_marked = $isMarked;
+        }
+
+        $this->invalidateAnswerComputedProperties();
+    }
+
+    private function invalidateAnswerComputedProperties(): void
+    {
         unset($this->answers, $this->currentAnswer, $this->answeredCount, $this->unansweredCount, $this->progressPercent);
     }
 
@@ -269,28 +279,21 @@ class ExamRoom extends Component
         $this->questionTimerStartedAt = null;
     }
 
-    private function persistQuestionDurations(): void
+    private function persistAttemptMetadata(): void
     {
-        $payload = ['by_sort_order' => $this->questionDurations];
+        $durationPayload = ['by_sort_order' => $this->questionDurations];
+        $behaviorPayload = ['by_sort_order' => $this->answerBehavior];
 
         ExamAttempt::query()
             ->whereKey($this->attempt->id)
             ->where('user_id', auth()->id())
-            ->update(['question_duration' => $payload]);
+            ->update([
+                'question_duration' => $durationPayload,
+                'answer_behavior' => $behaviorPayload,
+            ]);
 
-        $this->attempt->question_duration = $payload;
-    }
-
-    private function persistAnswerBehavior(): void
-    {
-        $payload = ['by_sort_order' => $this->answerBehavior];
-
-        ExamAttempt::query()
-            ->whereKey($this->attempt->id)
-            ->where('user_id', auth()->id())
-            ->update(['answer_behavior' => $payload]);
-
-        $this->attempt->answer_behavior = $payload;
+        $this->attempt->question_duration = $durationPayload;
+        $this->attempt->answer_behavior = $behaviorPayload;
     }
 
     private function trackAnswerBehavior(?int $previousOptionId, ?int $newOptionId): void
@@ -321,8 +324,6 @@ class ExamRoom extends Component
 
     private function persistTelemetries(): void
     {
-        $this->persistAnswerBehavior();
-
         app(ExamPsychologyTelemetryService::class)->persistForAttempt(
             $this->attempt,
             $this->questionDurations,

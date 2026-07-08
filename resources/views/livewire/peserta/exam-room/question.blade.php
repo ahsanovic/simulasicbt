@@ -8,7 +8,7 @@
                 'bg-amber-100 text-amber-700' => $code === 'tiu',
                 'bg-violet-100 text-violet-700' => $code === 'tkp',
             ])>{{ $this->currentAnswer->question->subject->code->label() }}</span>
-            @if($this->currentAnswer->is_marked)
+            @if($this->answerStates[$currentIndex]['is_marked'] ?? false)
                 <span class="ui-badge bg-amber-100 text-amber-800">★ Ditandai</span>
             @endif
         </div>

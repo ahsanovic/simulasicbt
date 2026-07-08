@@ -12,9 +12,9 @@
                 wire:click="toggleMark"
                 @class([
                     'ui-btn-secondary',
-                    'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' => $this->currentAnswer?->is_marked,
+                    'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' => $this->answerStates[$currentIndex]['is_marked'] ?? false,
                 ])>
-            {{ $this->currentAnswer?->is_marked ? '★ Hapus Tanda' : '☆ Tandai Soal' }}
+            {{ ($this->answerStates[$currentIndex]['is_marked'] ?? false) ? '★ Hapus Tanda' : '☆ Tandai Soal' }}
         </button>
         <button type="button"
                 wire:click="next"

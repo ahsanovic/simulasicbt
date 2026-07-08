@@ -2,7 +2,7 @@
     <div class="mx-auto flex max-w-screen-2xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <div class="min-w-0">
             <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">Sedang Ujian</p>
-            <h1 class="truncate text-lg font-bold text-slate-900">{{ $exam->title }}</h1>
+            <h1 class="truncate text-lg font-bold text-slate-900">{{ $examTitle }}</h1>
             <p class="text-sm text-slate-500">Soal <span class="font-semibold text-slate-800">{{ $currentIndex + 1 }}</span> dari {{ $this->answers->count() }}</p>
         </div>
 

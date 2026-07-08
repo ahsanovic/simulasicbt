@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-slate-100"
-     wire:key="exam-room-{{ $attempt->id }}"
+     wire:key="exam-room-{{ $attemptId }}"
      wire:poll.30s="checkExpiry">
 
     @include('livewire.peserta.exam-room.header')

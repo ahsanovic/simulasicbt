@@ -124,7 +124,7 @@ Struktur konten WAJIB (gunakan heading persis seperti ini):
 ## Konsep Inti
 ## Poin Kunci
 ## Pola Jebakan Soal
-## Contoh Soal & Pembahasan Kilat
+## Contoh Soal & Pembahasan Kilat (pilihan jawaban A, B, C, D, E)
 PROMPT;
 
         if ($subjectCode === SubjectCode::Tkp) {

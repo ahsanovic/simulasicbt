@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\HelpItem;
 use App\Enums\SubjectCode;
+use App\Models\CoinTransaction;
 use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Models\User;
@@ -55,7 +56,7 @@ class HelpItemService
                 $user,
                 $item->price(),
                 'Beli '.$item->label(),
-                'help_item_purchase',
+                CoinTransaction::SOURCE_HELP_ITEM_PURCHASE,
                 $inventory->id * 1000 + $inventory->quantity + 1,
             );
 

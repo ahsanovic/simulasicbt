@@ -28,6 +28,7 @@
             'label' => 'Hasil & Laporan',
             'items' => [
                 ['route' => 'admin.results.index', 'label' => 'Hasil Ujian', 'icon' => 'results'],
+                ['route' => 'admin.coin-purchases.index', 'label' => 'Pembelian Toko Koin', 'icon' => 'coins'],
                 ['route' => 'admin.testimonials.index', 'label' => 'Testimoni', 'icon' => 'testimonials'],
                 ['route' => 'admin.reports.index', 'label' => 'Laporan', 'icon' => 'reports'],
             ],

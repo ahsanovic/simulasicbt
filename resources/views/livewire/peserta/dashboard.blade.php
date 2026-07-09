@@ -27,6 +27,15 @@
                             <span class="text-[10px] font-medium text-primary-200/90 transition group-hover:text-white">Cara naik →</span>
                         </span>
                     </a>
+                    <a href="{{ route('peserta.shop.index') }}"
+                       wire:navigate
+                       class="group inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">
+                        <span class="text-base leading-none" aria-hidden="true">🪙</span>
+                        <span class="flex flex-col items-start leading-tight">
+                            <span class="tabular-nums">{{ number_format($coinBalance) }} koin</span>
+                            <span class="text-[10px] font-medium text-primary-200/90 transition group-hover:text-white">Toko koin →</span>
+                        </span>
+                    </a>
                     @if ($audioDailyStreak > 0)
                         <span class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20">
                             <svg class="h-4 w-4 text-orange-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>

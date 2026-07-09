@@ -36,10 +36,10 @@
                             <span class="text-[10px] font-medium text-primary-200/90 transition group-hover:text-white">Toko koin →</span>
                         </span>
                     </a>
-                    @if ($audioDailyStreak > 0)
-                        <span class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20">
+                    @if ($dailyStreakInfo['streak'] > 0)
+                        <span class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20" title="Pengali XP konsistensi harian">
                             <svg class="h-4 w-4 text-orange-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
-                            {{ $audioDailyStreak }} hari streak
+                            {{ $dailyStreakInfo['streak'] }} hari · {{ $dailyStreakInfo['multiplier_label'] }} XP
                         </span>
                     @endif
                     @if ($flashcardDueCount > 0)
@@ -48,13 +48,6 @@
                            class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400/25 px-3 py-2 text-sm font-semibold ring-1 ring-amber-200/40 transition hover:bg-amber-400/35">
                             <span aria-hidden="true">✨</span>
                             {{ $flashcardDueCount }} kartu due
-                        </a>
-                    @elseif ($flashcardDailyStreak > 0)
-                        <a href="{{ route('peserta.kartu-sakti.index') }}"
-                           wire:navigate
-                           class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">
-                            <span aria-hidden="true">✨</span>
-                            {{ $flashcardDailyStreak }} hari Kartu Sakti
                         </a>
                     @endif
                 </div>
@@ -131,7 +124,7 @@
 
             <aside class="space-y-4 lg:sticky lg:top-6">
                 <x-peserta.leaderboard-summary-card :ranks="$leaderboardRanks" />
-                <x-peserta.devotion-badge-card :progress="$devotionProgress" />
+                <x-peserta.devotion-badge-card :progress="$devotionProgress" :streak-info="$dailyStreakInfo" />
             </aside>
         </div>
     </main>

@@ -33,7 +33,11 @@ class KartuSakti extends Component
 
     public ?int $summaryXp = null;
 
+    public ?int $summaryBaseXp = null;
+
     public int $dailyStreak = 0;
+
+    public string $streakMultiplierLabel = '1x';
 
     public int $totalXp = 0;
 
@@ -46,7 +50,9 @@ class KartuSakti extends Component
         $user = auth()->user();
         $this->dueCount = $flashcardService->dueCount($user);
         $this->activeCount = $flashcardService->activeCount($user);
-        $this->dailyStreak = $flashcardService->dailyStreak($user);
+        $streakInfo = $gamificationService->dailyStreakInfo($user);
+        $this->dailyStreak = $streakInfo['streak'];
+        $this->streakMultiplierLabel = $streakInfo['multiplier_label'];
         $this->totalXp = $gamificationService->totalXp($user);
     }
 
@@ -106,12 +112,17 @@ class KartuSakti extends Component
         $reviewed = $this->reviewedCount;
 
         if ($reviewed > 0) {
-            $flashcardService->recordSession(auth()->user(), $reviewed, $duration);
+            $session = $flashcardService->recordSession(auth()->user(), $reviewed, $duration);
+            $this->summaryXp = $session->xp_earned;
+        } else {
+            $this->summaryXp = 0;
         }
 
+        $this->summaryBaseXp = $reviewed;
         $this->summaryDurationSeconds = $duration;
-        $this->summaryXp = $reviewed;
-        $this->dailyStreak = $flashcardService->dailyStreak(auth()->user());
+        $streakInfo = $gamificationService->dailyStreakInfo(auth()->user());
+        $this->dailyStreak = $streakInfo['streak'];
+        $this->streakMultiplierLabel = $streakInfo['multiplier_label'];
         $this->totalXp = $gamificationService->totalXp(auth()->user());
         $this->dueCount = $flashcardService->dueCount(auth()->user());
         $this->mode = 'finished';
@@ -127,9 +138,12 @@ class KartuSakti extends Component
         $this->sessionStartedAt = 0;
         $this->summaryDurationSeconds = null;
         $this->summaryXp = null;
+        $this->summaryBaseXp = null;
         $this->dueCount = $flashcardService->dueCount(auth()->user());
         $this->activeCount = $flashcardService->activeCount(auth()->user());
-        $this->dailyStreak = $flashcardService->dailyStreak(auth()->user());
+        $streakInfo = $gamificationService->dailyStreakInfo(auth()->user());
+        $this->dailyStreak = $streakInfo['streak'];
+        $this->streakMultiplierLabel = $streakInfo['multiplier_label'];
         $this->totalXp = $gamificationService->totalXp(auth()->user());
     }
 

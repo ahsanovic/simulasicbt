@@ -37,7 +37,27 @@
             </div>
 
             <footer class="border-t border-slate-100 bg-slate-50/80 px-6 py-5 sm:px-8">
-                <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5">
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">Tandai selesai baca</p>
+                        <p class="text-xs text-slate-500">Hitung sebagai aktivitas harian untuk streak konsistensi & pengali XP.</p>
+                    </div>
+                    @if ($this->isCheatSheetCompletedToday)
+                        <span class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-100 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+                            ✅ Selesai hari ini
+                        </span>
+                    @else
+                        <button type="button"
+                                wire:click="markCheatSheetComplete"
+                                wire:loading.attr="disabled"
+                                class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                            <span wire:loading.remove wire:target="markCheatSheetComplete">📖 Tandai Selesai Baca</span>
+                            <span wire:loading wire:target="markCheatSheetComplete">Menyimpan...</span>
+                        </button>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-5">
                     <div>
                         <p class="text-sm font-bold text-slate-900">Simpan ke Kartu Sakti</p>
                         <p class="text-xs text-slate-500">Review materi ini dengan spaced repetition agar tidak lupa.</p>

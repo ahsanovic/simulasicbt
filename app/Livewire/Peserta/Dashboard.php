@@ -5,7 +5,6 @@ namespace App\Livewire\Peserta;
 use App\Enums\ExamAttemptStatus;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
-use App\Services\AudioLearningService;
 use App\Services\CoinService;
 use App\Services\ExamService;
 use App\Services\FlashcardService;
@@ -47,7 +46,7 @@ class Dashboard extends Component
         $this->redirect(route('peserta.exam.room', $exam));
     }
 
-    public function render(AudioLearningService $audioLearningService, CoinService $coinService, FlashcardService $flashcardService, GamificationService $gamificationService, LeaderboardSummaryService $leaderboardSummary)
+    public function render(CoinService $coinService, FlashcardService $flashcardService, GamificationService $gamificationService, LeaderboardSummaryService $leaderboardSummary)
     {
         $exams = Exam::query()
             ->where('status', 'published')
@@ -89,11 +88,10 @@ class Dashboard extends Component
         $totalXp = $gamificationService->totalXp($user);
         $coinBalance = $coinService->balance($user);
         $devotionProgress = $gamificationService->devotionProgress($totalXp);
-        $audioDailyStreak = $audioLearningService->dailyStreak(auth()->user());
-        $flashcardDueCount = $flashcardService->dueCount(auth()->user());
-        $flashcardDailyStreak = $flashcardService->dailyStreak(auth()->user());
+        $dailyStreakInfo = $gamificationService->dailyStreakInfo($user);
+        $flashcardDueCount = $flashcardService->dueCount($user);
         $leaderboardRanks = $leaderboardSummary->getRanks((int) auth()->id());
 
-        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'coinBalance', 'devotionProgress', 'audioDailyStreak', 'flashcardDueCount', 'flashcardDailyStreak', 'leaderboardRanks'));
+        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'coinBalance', 'devotionProgress', 'dailyStreakInfo', 'flashcardDueCount', 'leaderboardRanks'));
     }
 }

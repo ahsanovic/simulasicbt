@@ -37,7 +37,11 @@ class AudioMode extends Component
 
     public ?int $summaryXp = null;
 
+    public ?int $summaryBaseXp = null;
+
     public int $dailyStreak = 0;
+
+    public string $streakMultiplierLabel = '1x';
 
     public int $totalXp = 0;
 
@@ -61,9 +65,11 @@ class AudioMode extends Component
         ],
     ];
 
-    public function mount(AudioLearningService $audioLearningService, GamificationService $gamificationService): void
+    public function mount(GamificationService $gamificationService): void
     {
-        $this->dailyStreak = $audioLearningService->dailyStreak(auth()->user());
+        $streakInfo = $gamificationService->dailyStreakInfo(auth()->user());
+        $this->dailyStreak = $streakInfo['streak'];
+        $this->streakMultiplierLabel = $streakInfo['multiplier_label'];
         $this->totalXp = $gamificationService->totalXp(auth()->user());
     }
 
@@ -115,17 +121,22 @@ class AudioMode extends Component
         $completed = min($this->completedCount, count($this->questionIds));
 
         if ($completed > 0) {
-            $audioLearningService->recordSession(
+            $session = $audioLearningService->recordSession(
                 auth()->user(),
                 SubjectCode::from($this->subjectCode),
                 $completed,
                 $duration,
             );
+            $this->summaryXp = $session->xp_earned;
+        } else {
+            $this->summaryXp = 0;
         }
 
+        $this->summaryBaseXp = $completed;
         $this->summaryDurationSeconds = $duration;
-        $this->summaryXp = $completed;
-        $this->dailyStreak = $audioLearningService->dailyStreak(auth()->user());
+        $streakInfo = $gamificationService->dailyStreakInfo(auth()->user());
+        $this->dailyStreak = $streakInfo['streak'];
+        $this->streakMultiplierLabel = $streakInfo['multiplier_label'];
         $this->totalXp = $gamificationService->totalXp(auth()->user());
         $this->mode = 'finished';
     }
@@ -139,6 +150,7 @@ class AudioMode extends Component
         $this->sessionStartedAt = 0;
         $this->summaryDurationSeconds = null;
         $this->summaryXp = null;
+        $this->summaryBaseXp = null;
     }
 
     public function getSubjectLabelProperty(): string

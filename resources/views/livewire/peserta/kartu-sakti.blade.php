@@ -43,8 +43,14 @@
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
                     </div>
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Daily Streak</p>
-                        <p class="text-lg font-bold text-slate-900">{{ $dailyStreak > 0 ? $dailyStreak.' hari' : 'Belum ada' }}</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Streak Konsistensi</p>
+                        <p class="text-lg font-bold text-slate-900">
+                            @if ($dailyStreak > 0)
+                                {{ $dailyStreak }} hari · {{ $streakMultiplierLabel }}
+                            @else
+                                Belum ada
+                            @endif
+                        </p>
                     </div>
                 </div>
                 <div class="ui-card flex items-center gap-3 p-4">
@@ -236,7 +242,12 @@
                     </div>
                     <div class="flex items-center justify-between gap-3">
                         <dt class="text-slate-500">Reward sesi ini</dt>
-                        <dd class="font-bold text-amber-700">+{{ $summaryXp ?? 0 }} XP</dd>
+                        <dd class="font-bold text-amber-700">
+                            +{{ $summaryXp ?? 0 }} XP
+                            @if (($summaryBaseXp ?? 0) > 0 && ($summaryXp ?? 0) > ($summaryBaseXp ?? 0))
+                                <span class="text-xs font-semibold text-amber-500">({{ $summaryBaseXp }} × {{ $streakMultiplierLabel }})</span>
+                            @endif
+                        </dd>
                     </div>
                     <div class="flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
                         <dt class="text-slate-500">Kartu due besok</dt>
@@ -244,7 +255,7 @@
                     </div>
                     @if ($dailyStreak > 0)
                         <div class="rounded-xl bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">
-                            🔥 {{ $dailyStreak }} hari streak Kartu Sakti!
+                            🔥 {{ $dailyStreak }} hari streak konsistensi · pengali XP {{ $streakMultiplierLabel }} aktif hari ini!
                         </div>
                     @endif
                 </dl>

@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Peserta;
 
+use App\Enums\DailyActivityType;
 use App\Enums\FlashcardSourceType;
 use App\Enums\SubjectCode;
 use App\Models\Material;
+use App\Services\DailyStreakService;
 use App\Services\FlashcardService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -33,6 +35,25 @@ class MateriBelajarShow extends Component
         abort_unless($material->cheatSheet?->isPublished(), 404);
 
         $this->material = $material;
+    }
+
+    public function markCheatSheetComplete(DailyStreakService $dailyStreakService): void
+    {
+        $dailyStreakService->logActivity(
+            auth()->user(),
+            DailyActivityType::CheatSheet,
+            $this->material->id,
+        );
+
+        session()->flash('success', 'Materi ditandai selesai! Streak harian Anda diperbarui.');
+    }
+
+    public function getIsCheatSheetCompletedTodayProperty(): bool
+    {
+        return app(DailyStreakService::class)->hasCompletedCheatSheetToday(
+            auth()->user(),
+            $this->material->id,
+        );
     }
 
     public function saveToFlashcard(FlashcardService $flashcardService): void

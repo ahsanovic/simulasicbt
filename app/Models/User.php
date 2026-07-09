@@ -119,6 +119,11 @@ class User extends Authenticatable
         return $this->hasMany(FlashcardReviewSession::class);
     }
 
+    public function dailyActivityLogs(): HasMany
+    {
+        return $this->hasMany(DailyActivityLog::class);
+    }
+
     public function flashcards(): HasMany
     {
         return $this->hasMany(Flashcard::class);

@@ -51,6 +51,8 @@ class LeaderboardHubTest extends TestCase
             ->call('setTab', 'xp')
             ->assertSet('tab', 'xp')
             ->assertSee('Hall of Fame — Total XP')
+            ->assertSee('Cara dapat XP')
+            ->assertSee('Kartu Sakti')
             ->assertSee('150 XP');
     }
 

@@ -32,6 +32,10 @@
         :current-user="$currentUser"
         metric="xp"
         empty-title="Belum ada XP"
-        empty-message="Mulai Audio Mode atau aktivitas belajar untuk mengumpulkan XP."
+        empty-message="Kerjakan aktivitas belajar untuk mulai mengumpulkan XP."
     />
+
+    <div class="border-t border-violet-100/80 bg-violet-50/40 px-4 py-3">
+        <x-peserta.xp-earn-guide variant="compact" />
+    </div>
 </div>

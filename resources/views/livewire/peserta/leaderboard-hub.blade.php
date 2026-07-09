@@ -113,7 +113,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <h2 class="text-lg font-bold text-white">Hall of Fame — Total XP</h2>
-                            <p class="mt-0.5 text-xs text-violet-100">Akumulasi XP dari Audio Mode dan aktivitas belajar lainnya</p>
+                            <p class="mt-0.5 text-xs text-violet-100">Akumulasi XP dari simulasi, duel, Audio Mode, Kartu Sakti, dan aktivitas lainnya</p>
                         </div>
                         <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white ring-1 ring-white/20">
                             All Time
@@ -126,18 +126,11 @@
                     :current-user="$xpData['current_user']"
                     metric="xp"
                     empty-title="Belum ada XP"
-                    empty-message="Mulai Audio Mode atau aktivitas belajar untuk mengumpulkan XP."
+                    empty-message="Kerjakan aktivitas belajar untuk mulai mengumpulkan XP."
                 />
 
                 <div class="border-t border-violet-100/80 bg-violet-50/40 px-4 py-3 sm:px-6">
-                    <a href="{{ route('peserta.audio.index') }}"
-                       wire:navigate
-                       class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 transition hover:text-violet-900">
-                        Cara dapat XP → Mulai Audio Mode
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
+                    <x-peserta.xp-earn-guide variant="compact" />
                 </div>
             </div>
         @endif

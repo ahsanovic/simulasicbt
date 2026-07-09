@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DailyActivityType;
 use App\Enums\DevotionBadge;
 use App\Models\AudioLearningSession;
 use App\Models\ExamAnswer;
@@ -170,9 +171,19 @@ class GamificationService
             return null;
         }
 
-        $amount = $won ? self::DUEL_WIN_XP_REWARD : self::DUEL_LOSE_XP_REWARD;
+        $dailyStreak = app(DailyStreakService::class);
+        $dailyStreak->logActivity($user, DailyActivityType::Duel, $attempt->duel_session_id);
+
+        $baseAmount = $won ? self::DUEL_WIN_XP_REWARD : self::DUEL_LOSE_XP_REWARD;
+        $amount = $dailyStreak->applyMultiplier($baseAmount, $dailyStreak->dailyStreak($user));
 
         return $this->awardXp($user, ExamAttempt::class, $attempt->id, $amount);
+    }
+
+    /** @return array{streak: int, multiplier: float, multiplier_label: string, next_tier_at: ?int, next_multiplier_label: ?string} */
+    public function dailyStreakInfo(User $user): array
+    {
+        return app(DailyStreakService::class)->streakInfo($user);
     }
 
     public function isRemedialUnlocked(int $xp): bool

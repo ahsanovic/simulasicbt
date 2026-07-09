@@ -1,5 +1,6 @@
 @props([
     'progress',
+    'streakInfo' => null,
 ])
 
 <div id="devotion-badge-card" class="ui-card relative scroll-mt-24 overflow-hidden border-emerald-200/60 bg-gradient-to-b from-white via-emerald-50/20 to-indigo-50/20 shadow-lg shadow-emerald-100/20">
@@ -28,6 +29,10 @@
             </div>
             <p class="mt-2 text-xs leading-relaxed text-slate-600">{{ $progress['current_badge']['description'] }}</p>
         </div>
+
+        @if ($streakInfo)
+            <x-peserta.daily-streak-panel :streak-info="$streakInfo" variant="full" />
+        @endif
 
         @if ($progress['is_max_tier'])
             <div class="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2.5">
@@ -92,27 +97,7 @@
             </ol>
         </div>
 
-        <div class="rounded-xl border border-indigo-100 bg-indigo-50/50 px-3 py-2.5">
-            <p class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Cara Naik XP</p>
-            <ul class="mt-1.5 space-y-1 text-[11px] leading-relaxed text-indigo-900/80">
-                <li class="flex items-start gap-1.5">
-                    <span class="shrink-0 text-indigo-400">•</span>
-                    <span>Selesaikan sesi <a href="{{ route('peserta.audio.index') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">Audio Mode</a> (+XP per soal)</span>
-                </li>
-                <li class="flex items-start gap-1.5">
-                    <span class="shrink-0 text-indigo-400">•</span>
-                    <span>Selesaikan <a href="{{ route('peserta.dashboard') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">tes simulasi</a> (+{{ \App\Services\GamificationService::EXAM_PASS_XP_REWARD }} XP lulus, +{{ \App\Services\GamificationService::EXAM_FAIL_XP_REWARD }} XP belum lulus)</span>
-                </li>
-                <li class="flex items-start gap-1.5">
-                    <span class="shrink-0 text-indigo-400">•</span>
-                    <span>Menang <a href="{{ route('peserta.duel.index') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">duel 1v1</a> (+{{ \App\Services\GamificationService::DUEL_WIN_XP_REWARD }} XP), kalah (+{{ \App\Services\GamificationService::DUEL_LOSE_XP_REWARD }} XP)</span>
-                </li>
-                <li class="flex items-start gap-1.5">
-                    <span class="shrink-0 text-indigo-400">•</span>
-                    <span>Kirim <a href="{{ route('peserta.testimonials.index') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">testimoni pertama</a> (+{{ \App\Services\GamificationService::TESTIMONIAL_XP_REWARD }} XP)</span>
-                </li>
-            </ul>
-        </div>
+        <x-peserta.xp-earn-guide variant="list" />
 
         <p class="text-center text-[10px] leading-relaxed text-slate-400">
             Lencana tampil di samping nama Anda di papan peringkat &amp; testimoni.

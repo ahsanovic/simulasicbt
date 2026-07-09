@@ -7,7 +7,9 @@ use App\Enums\ExamAttemptStatus;
 use App\Models\DuelSession;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
+use App\Models\XpReward;
 use App\Services\DuelService;
+use App\Services\GamificationService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -282,6 +284,46 @@ class DuelRoom extends Component
     {
         unset($this->currentAnswer);
         $this->selectedOptionId = $this->currentAnswer?->selected_option_id;
+    }
+
+    /** @return array{amount: int, base: int, multiplier_label: string, has_bonus: bool}|null */
+    public function getDuelXpSummaryProperty(): ?array
+    {
+        if (! $this->showResult) {
+            return null;
+        }
+
+        $myAttempt = $this->session->attemptFor(auth()->id());
+
+        if (! $myAttempt) {
+            return null;
+        }
+
+        $isWinner = $this->session->winner_user_id === auth()->id();
+        $base = $isWinner
+            ? GamificationService::DUEL_WIN_XP_REWARD
+            : GamificationService::DUEL_LOSE_XP_REWARD;
+
+        $reward = XpReward::query()
+            ->where('source_type', ExamAttempt::class)
+            ->where('source_id', $myAttempt->id)
+            ->first();
+
+        $amount = $reward?->amount ?? $base;
+        $streakInfo = app(GamificationService::class)->dailyStreakInfo(auth()->user());
+
+        return [
+            'amount' => $amount,
+            'base' => $base,
+            'multiplier_label' => $streakInfo['multiplier_label'],
+            'has_bonus' => $amount > $base,
+        ];
+    }
+
+    /** @return array{streak: int, multiplier: float, multiplier_label: string, next_tier_at: ?int, next_multiplier_label: ?string} */
+    public function getDailyStreakInfoProperty(): array
+    {
+        return app(GamificationService::class)->dailyStreakInfo(auth()->user());
     }
 
     public function render()

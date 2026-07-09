@@ -1,5 +1,5 @@
 <div class="ui-card relative flex h-full flex-col overflow-hidden border-amber-200/60 bg-gradient-to-b from-white via-amber-50/20 to-primary-50/30 shadow-lg shadow-amber-100/30"
-     wire:poll.15s.visible>
+     wire:poll.60s.visible>
 
     {{-- Header --}}
     <div class="relative overflow-hidden border-b border-amber-100/80 bg-gradient-to-r from-primary-600 via-primary-600 to-indigo-600 px-4 py-3.5">

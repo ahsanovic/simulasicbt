@@ -55,7 +55,7 @@
 
         @if ($tab === 'score')
             <div class="ui-card relative flex min-h-[28rem] flex-col overflow-hidden border-amber-200/60 bg-gradient-to-b from-white via-amber-50/20 to-primary-50/30 shadow-lg shadow-amber-100/30"
-                 wire:poll.15s.visible>
+                 wire:poll.60s.visible>
                 <div class="relative overflow-hidden border-b border-amber-100/80 bg-gradient-to-r from-primary-600 via-primary-600 to-indigo-600 px-4 py-4 sm:px-6">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div>
@@ -89,7 +89,7 @@
             </div>
         @elseif ($tab === 'duel')
             <div class="ui-card relative flex min-h-[28rem] flex-col overflow-hidden border-rose-200/60 bg-gradient-to-b from-white via-rose-50/20 to-orange-50/30 shadow-lg shadow-rose-100/30"
-                 wire:poll.15s.visible>
+                 wire:poll.60s.visible>
                 <div class="relative overflow-hidden border-b border-rose-100/80 bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 px-4 py-4 sm:px-6">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div>

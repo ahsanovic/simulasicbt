@@ -56,6 +56,31 @@ class LeaderboardHubTest extends TestCase
             ->assertSee('150 XP');
     }
 
+    public function test_leaderboard_hub_score_tab_shows_simulation_cta(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+
+        Livewire::actingAs($user)
+            ->test(LeaderboardHub::class)
+            ->assertSet('tab', 'score')
+            ->assertSee('Mulai Simulasi')
+            ->assertSee('Tantang skor terbaikmu — mulai simulasi sekarang.')
+            ->assertSeeHtml(route('peserta.dashboard'));
+    }
+
+    public function test_leaderboard_hub_duel_tab_shows_duel_cta(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+
+        Livewire::actingAs($user)
+            ->test(LeaderboardHub::class)
+            ->call('setTab', 'duel')
+            ->assertSet('tab', 'duel')
+            ->assertSee('Main Duel')
+            ->assertSee('Naik peringkat duel — tantang lawan sekarang.')
+            ->assertSeeHtml(route('peserta.duel.index'));
+    }
+
     public function test_dashboard_shows_leaderboard_summary_card(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);

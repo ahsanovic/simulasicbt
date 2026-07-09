@@ -78,6 +78,13 @@
                     metric="score"
                     empty-title="Belum ada skor"
                     empty-message="Selesaikan simulasi untuk masuk leaderboard skor terbaik."
+                    :empty-action-href="route('peserta.dashboard')"
+                    empty-action-label="Mulai Simulasi"
+                />
+
+                <x-peserta.leaderboard-action-cta
+                    metric="score"
+                    :current-user="$scoreData['current_user']"
                 />
             </div>
         @elseif ($tab === 'duel')
@@ -105,6 +112,13 @@
                     metric="duel"
                     empty-title="Belum ada duel"
                     empty-message="Menangkan duel pertama untuk masuk leaderboard duel."
+                    :empty-action-href="route('peserta.duel.index')"
+                    empty-action-label="Main Duel"
+                />
+
+                <x-peserta.leaderboard-action-cta
+                    metric="duel"
+                    :current-user="$duelData['current_user']"
                 />
             </div>
         @else

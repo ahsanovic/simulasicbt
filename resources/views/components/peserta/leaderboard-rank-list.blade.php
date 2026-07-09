@@ -4,6 +4,8 @@
     'metric' => 'score',
     'emptyTitle' => 'Belum ada data',
     'emptyMessage' => 'Data leaderboard akan muncul setelah ada aktivitas.',
+    'emptyActionHref' => null,
+    'emptyActionLabel' => null,
 ])
 
 @php
@@ -68,6 +70,13 @@
             </div>
             <p class="mt-4 text-sm font-semibold text-slate-700">{{ $emptyTitle }}</p>
             <p class="mt-1 max-w-xs text-xs leading-relaxed text-slate-400">{{ $emptyMessage }}</p>
+            @if ($emptyActionHref && $emptyActionLabel)
+                <a href="{{ $emptyActionHref }}"
+                   wire:navigate
+                   class="ui-btn-primary mt-4 inline-flex items-center gap-1.5 text-xs">
+                    {{ $emptyActionLabel }}
+                </a>
+            @endif
         </div>
     @else
         <ol class="p-2">

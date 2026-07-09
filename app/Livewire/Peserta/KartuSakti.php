@@ -21,6 +21,10 @@ class KartuSakti extends Component
     #[Locked]
     public array $cardIds = [];
 
+    /** @var list<array{id: int, front_html: string, back_html: string, subject_label: string, source_label: string}> */
+    #[Locked]
+    public array $cardsPayload = [];
+
     public int $currentIndex = 0;
 
     public bool $revealed = false;
@@ -67,6 +71,16 @@ class KartuSakti extends Component
         }
 
         $this->cardIds = $cards->pluck('id')->all();
+        $this->cardsPayload = $cards
+            ->values()
+            ->map(fn (Flashcard $card) => [
+                'id' => $card->id,
+                'front_html' => html_for_display($card->front) ?? '',
+                'back_html' => $card->back,
+                'subject_label' => $card->subject_code->label(),
+                'source_label' => $card->source_type->label(),
+            ])
+            ->all();
         $this->currentIndex = 0;
         $this->revealed = false;
         $this->reviewedCount = 0;
@@ -91,7 +105,13 @@ class KartuSakti extends Component
             return;
         }
 
-        $card = $this->currentCard;
+        $cardId = $this->cardsPayload[$this->currentIndex]['id'] ?? null;
+
+        if ($cardId === null) {
+            return;
+        }
+
+        $card = Flashcard::query()->find($cardId);
 
         if (! $card) {
             return;
@@ -132,6 +152,7 @@ class KartuSakti extends Component
     {
         $this->mode = 'setup';
         $this->cardIds = [];
+        $this->cardsPayload = [];
         $this->currentIndex = 0;
         $this->revealed = false;
         $this->reviewedCount = 0;
@@ -165,17 +186,10 @@ class KartuSakti extends Component
         session()->flash('success', "{$result['saved']} kartu dari materi lemah berhasil disimpan ke Kartu Sakti.");
     }
 
-    public function getCurrentCardProperty(): ?Flashcard
+    /** @return array{id: int, front_html: string, back_html: string, subject_label: string, source_label: string}|null */
+    public function getCurrentCardPayloadProperty(): ?array
     {
-        $cardId = $this->cardIds[$this->currentIndex] ?? null;
-
-        if ($cardId === null) {
-            return null;
-        }
-
-        return Flashcard::query()
-            ->with('material')
-            ->find($cardId);
+        return $this->cardsPayload[$this->currentIndex] ?? null;
     }
 
     /** @return Collection<int, Flashcard> */
@@ -201,7 +215,7 @@ class KartuSakti extends Component
 
     private function advanceOrFinish(FlashcardService $flashcardService): void
     {
-        if ($this->currentIndex >= count($this->cardIds) - 1) {
+        if ($this->currentIndex >= count($this->cardsPayload) - 1) {
             $this->finishSession($flashcardService, app(GamificationService::class));
 
             return;

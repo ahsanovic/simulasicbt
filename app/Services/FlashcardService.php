@@ -90,7 +90,9 @@ class FlashcardService
 
     public function saveFromQuestion(User $user, Question $question): Flashcard
     {
-        $question->loadMissing(['subject', 'material', 'options']);
+        $question = Question::query()
+            ->with(['subject', 'material', 'options'])
+            ->findOrFail($question->id);
 
         if ($this->isSaved($user, FlashcardSourceType::Question, $question->id)) {
             throw ValidationException::withMessages([
@@ -311,9 +313,9 @@ class FlashcardService
 
     private function buildQuestionBack(Question $question): string
     {
-        $keyOption = $question->usesWeightedScoring()
-            ? $question->options->sortByDesc('score_weight')->first()
-            : $question->correctOption();
+        $keyOption = $question->options->first(
+            fn ($option) => $question->isKeyOption($option),
+        );
 
         $parts = [];
 

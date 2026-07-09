@@ -164,37 +164,35 @@
                         class="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/20">
                     Akhiri Sesi
                 </button>
-                <span class="text-xs font-semibold">{{ $currentIndex + 1 }} / {{ count($cardIds) }}</span>
+                <span class="text-xs font-semibold">{{ $currentIndex + 1 }} / {{ count($cardsPayload) }}</span>
             </div>
 
             <div class="mb-2 h-1 overflow-hidden rounded-full bg-white/10">
                 <div class="h-full rounded-full bg-amber-400 transition-all duration-500"
-                     style="width: {{ count($cardIds) > 0 ? (($currentIndex + ($revealed ? 0.5 : 0)) / count($cardIds)) * 100 : 0 }}%"></div>
+                     style="width: {{ count($cardsPayload) > 0 ? (($currentIndex + ($revealed ? 0.5 : 0)) / count($cardsPayload)) * 100 : 0 }}%"></div>
             </div>
 
-            @if ($this->currentCard)
-                <div class="flex-1">
+            @if ($this->currentCardPayload)
+                <div class="flex-1" wire:key="flashcard-{{ $this->currentCardPayload['id'] }}-{{ $revealed ? 'back' : 'front' }}">
                     <div class="rounded-3xl bg-gradient-to-br from-amber-600/30 via-orange-700/20 to-rose-900/30 p-6 ring-1 ring-white/10 backdrop-blur-sm sm:p-8">
                         <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                             <span class="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-200">
                                 {{ $revealed ? 'Jawaban' : 'Pertanyaan' }}
                             </span>
                             <span class="text-xs font-semibold text-amber-200">
-                                {{ $this->currentCard->subject_code->label() }} · {{ $this->currentCard->source_type->label() }}
+                                {{ $this->currentCardPayload['subject_label'] }} · {{ $this->currentCardPayload['source_label'] }}
                             </span>
                         </div>
 
-                        @if (! $revealed)
-                            <div class="prose prose-invert prose-sm max-w-none text-white/90">
-                                <div>{!! html_for_display($this->currentCard->front) !!}</div>
-                            </div>
-                            <p class="mt-6 text-center text-sm text-amber-100/80">Jawab dalam hati, lalu buka jawaban.</p>
-                        @else
-                            <div class="prose prose-invert prose-sm max-w-none text-white/90">
-                                <div>{!! $this->currentCard->back !!}</div>
-                            </div>
-                            <p class="mt-6 text-center text-sm text-amber-100/80">Seberapa hafal Anda dengan materi ini?</p>
-                        @endif
+                        <div class="prose prose-invert prose-sm max-w-none text-white/90">
+                            @if (! $revealed)
+                                <div>{!! $this->currentCardPayload['front_html'] !!}</div>
+                                <p class="mt-6 text-center text-sm text-amber-100/80">Jawab dalam hati, lalu buka jawaban.</p>
+                            @else
+                                <div>{!! $this->currentCardPayload['back_html'] !!}</div>
+                                <p class="mt-6 text-center text-sm text-amber-100/80">Seberapa hafal Anda dengan materi ini?</p>
+                            @endif
+                        </div>
                     </div>
                 </div>
 

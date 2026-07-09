@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DailyActivityType;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\FlashcardRating;
 use App\Enums\FlashcardSourceType;

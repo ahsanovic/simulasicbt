@@ -221,5 +221,7 @@
                 </div>
             </div>
         </main>
+
+        @include('livewire.peserta.duel-room.last-question-modal')
     @endif
 </div>

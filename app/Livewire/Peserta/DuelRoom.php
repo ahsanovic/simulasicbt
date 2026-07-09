@@ -34,6 +34,8 @@ class DuelRoom extends Component
 
     public bool $waitingForOpponent = false;
 
+    public bool $showLastQuestionModal = false;
+
     public function mount(DuelSession $session, DuelService $duelService): void
     {
         if (! $session->isParticipant(auth()->id())) {
@@ -100,6 +102,11 @@ class DuelRoom extends Component
     public function getAnsweredCountProperty(): int
     {
         return $this->answers->whereNotNull('selected_option_id')->count();
+    }
+
+    public function getUnansweredCountProperty(): int
+    {
+        return $this->answers->count() - $this->answeredCount;
     }
 
     public function getRemainingSecondsProperty(): int
@@ -175,6 +182,7 @@ class DuelRoom extends Component
             return;
         }
 
+        $this->showLastQuestionModal = false;
         $this->saveAnswer();
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
@@ -196,11 +204,37 @@ class DuelRoom extends Component
             $this->currentIndex++;
             $this->loadCurrentAnswer();
             $this->syncProgress();
+        } else {
+            $this->showLastQuestionModal = true;
+        }
+    }
+
+    public function closeLastQuestionModal(): void
+    {
+        $this->showLastQuestionModal = false;
+    }
+
+    public function goBackFromLastQuestionModal(): void
+    {
+        $this->showLastQuestionModal = false;
+
+        $firstUnansweredIndex = $this->answers
+            ->search(fn (ExamAnswer $answer) => $answer->selected_option_id === null);
+
+        if ($firstUnansweredIndex !== false) {
+            $this->goToQuestion($firstUnansweredIndex);
+
+            return;
+        }
+
+        if ($this->currentIndex > 0) {
+            $this->goToQuestion(0);
         }
     }
 
     public function submitDuel(DuelService $duelService): void
     {
+        $this->showLastQuestionModal = false;
         $this->saveAnswer();
         $this->session = $duelService->submitPlayerAttempt($this->session, auth()->user(), $this->attempt);
         $this->session->load(['hostAttempt', 'opponentAttempt', 'winner', 'host', 'opponent']);
@@ -268,7 +302,7 @@ class DuelRoom extends Component
             $answer->answered_at = $optionId ? now() : null;
         }
 
-        unset($this->answers, $this->currentAnswer, $this->answeredCount);
+        unset($this->answers, $this->currentAnswer, $this->answeredCount, $this->unansweredCount);
     }
 
     private function isValidOptionForCurrentQuestion(int $optionId): bool

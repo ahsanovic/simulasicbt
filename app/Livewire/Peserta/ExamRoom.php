@@ -3,12 +3,15 @@
 namespace App\Livewire\Peserta;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\HelpItem;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\QuestionOption;
 use App\Services\ExamPsychologyTelemetryService;
 use App\Services\ExamService;
+use App\Services\HelpItemService;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -35,6 +38,12 @@ class ExamRoom extends Component
     public bool $isRemedial = false;
 
     #[Locked]
+    public bool $isDuel = false;
+
+    #[Locked]
+    public bool $helpItemsEnabled = false;
+
+    #[Locked]
     public int $currentIndex = 0;
 
     /** @var list<array{id: int, sort_order: int, question_id: int, selected_option_id: ?int, is_marked: bool}> */
@@ -55,7 +64,15 @@ class ExamRoom extends Component
 
     public bool $showLastQuestionModal = false;
 
-    public function mount(Exam $exam): void
+    public bool $skipTrackerActive = false;
+
+    /** @var array<string, list<int>> */
+    public array $fiftyFiftyEliminated = [];
+
+    /** @var array<string, int> */
+    public array $inventory = [];
+
+    public function mount(Exam $exam, HelpItemService $helpItemService): void
     {
         $attempt = ExamAttempt::query()
             ->where('exam_id', $exam->id)
@@ -82,6 +99,8 @@ class ExamRoom extends Component
         $this->examTitle = $exam->title;
         $this->attemptId = $attempt->id;
         $this->isRemedial = $attempt->isRemedial();
+        $this->isDuel = $attempt->isDuelAttempt();
+        $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDuel;
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
         $this->answerStates = $attempt->answers
             ->sortBy(fn (ExamAnswer $answer) => $answer->sort_order ?: 999)
@@ -102,8 +121,17 @@ class ExamRoom extends Component
 
         $this->loadAnswerBehavior($attempt);
 
+        $helpState = $attempt->help_items_state ?? $helpItemService->defaultHelpItemsState();
+        $this->skipTrackerActive = (bool) ($helpState['skip_tracker_active'] ?? false);
+        $this->fiftyFiftyEliminated = collect($helpState['fifty_fifty'] ?? [])
+            ->mapWithKeys(fn (array $optionIds, $sortOrder) => [(string) $sortOrder => array_map('intval', $optionIds)])
+            ->all();
+
+        $this->inventory = $helpItemService->inventory(auth()->user());
+
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
+        $this->dispatch('question-changed');
     }
 
     public function getAnswersProperty()
@@ -148,6 +176,137 @@ class ExamRoom extends Component
         return (int) round(($this->answeredCount / count($this->answerStates)) * 100);
     }
 
+    public function getCurrentEliminatedOptionIdsProperty(): array
+    {
+        $state = $this->currentAnswerState();
+
+        if ($state === null) {
+            return [];
+        }
+
+        return $this->fiftyFiftyEliminated[(string) $state['sort_order']] ?? [];
+    }
+
+    public function getCanUseFiftyFiftyProperty(): bool
+    {
+        if (! $this->helpItemsEnabled || ($this->inventory[HelpItem::FiftyFifty->value] ?? 0) < 1) {
+            return false;
+        }
+
+        $question = $this->currentAnswer?->question;
+
+        if ($question === null) {
+            return false;
+        }
+
+        $state = $this->currentAnswerState();
+
+        if ($state === null) {
+            return false;
+        }
+
+        if (isset($this->fiftyFiftyEliminated[(string) $state['sort_order']])) {
+            return false;
+        }
+
+        return app(HelpItemService::class)->canUseFiftyFifty($question);
+    }
+
+    public function activateSkipTracker(HelpItemService $helpItemService): void
+    {
+        if (! $this->helpItemsEnabled || $this->skipTrackerActive) {
+            return;
+        }
+
+        try {
+            $helpItemService->consume(auth()->user(), HelpItem::SkipTracker);
+            $this->skipTrackerActive = true;
+            $this->inventory = $helpItemService->inventory(auth()->user());
+            $this->persistHelpItemsState();
+            session()->flash('success', 'Skip Tracker aktif untuk simulasi ini.');
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first();
+            session()->flash('error', $message ?? 'Gagal mengaktifkan Skip Tracker.');
+        }
+    }
+
+    public function useFiftyFifty(HelpItemService $helpItemService): void
+    {
+        if (! $this->canUseFiftyFifty) {
+            return;
+        }
+
+        $question = $this->currentAnswer?->question;
+        $state = $this->currentAnswerState();
+
+        if ($question === null || $state === null) {
+            return;
+        }
+
+        try {
+            $attempt = $this->resolveAttempt();
+            $eliminated = $helpItemService->eliminateWrongOptions($attempt, $question);
+            $helpItemService->consume(auth()->user(), HelpItem::FiftyFifty);
+
+            $this->fiftyFiftyEliminated[(string) $state['sort_order']] = $eliminated;
+            $this->inventory = $helpItemService->inventory(auth()->user());
+            $this->persistHelpItemsState();
+            session()->flash('success', '50:50 aktif — dua pilihan salah disembunyikan.');
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first();
+            session()->flash('error', $message ?? 'Gagal menggunakan 50:50.');
+        }
+    }
+
+    public function skipAndMarkQuestion(): void
+    {
+        if (! $this->helpItemsEnabled || ! $this->skipTrackerActive) {
+            return;
+        }
+
+        $state = $this->currentAnswerState();
+
+        if ($state === null) {
+            return;
+        }
+
+        if (! $state['is_marked']) {
+            ExamAnswer::query()
+                ->whereKey($state['id'])
+                ->where('exam_attempt_id', $this->attemptId)
+                ->update(['is_marked' => true]);
+
+            $this->syncMarkedInMemory(true);
+        }
+
+        $this->saveAnswer();
+        $this->accumulateCurrentQuestionDuration();
+        $this->persistAttemptMetadata();
+
+        $nextIndex = $this->findNextUnansweredIndex($this->currentIndex + 1);
+
+        if ($nextIndex === null) {
+            $nextIndex = $this->findNextUnansweredIndex(0, $this->currentIndex);
+        }
+
+        if ($nextIndex === null) {
+            session()->flash('info', 'Semua soal sudah dijawab.');
+
+            return;
+        }
+
+        $this->showLastQuestionModal = false;
+        $this->currentIndex = $nextIndex;
+        $this->loadCurrentAnswer();
+        $this->startQuestionTimer();
+        $this->dispatch('question-changed');
+    }
+
+    public function goToShop(): void
+    {
+        $this->redirect(route('peserta.shop.index'), navigate: true);
+    }
+
     public function getRemainingSecondsProperty(): int
     {
         return max(0, $this->attemptExpiresAt - now()->timestamp);
@@ -155,6 +314,10 @@ class ExamRoom extends Component
 
     public function selectOption(int $optionId): void
     {
+        if (in_array($optionId, $this->currentEliminatedOptionIds, true)) {
+            return;
+        }
+
         if (! $this->isValidOptionForCurrentQuestion($optionId)) {
             return;
         }
@@ -222,6 +385,7 @@ class ExamRoom extends Component
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
+        $this->dispatch('question-changed');
     }
 
     public function previous(): void
@@ -241,6 +405,7 @@ class ExamRoom extends Component
             $this->currentIndex++;
             $this->loadCurrentAnswer();
             $this->startQuestionTimer();
+            $this->dispatch('question-changed');
         } else {
             $this->showLastQuestionModal = true;
         }
@@ -275,6 +440,7 @@ class ExamRoom extends Component
         $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
+        $this->persistHelpItemsState();
         if (! $this->isRemedial) {
             $this->persistTelemetries();
         }
@@ -288,6 +454,7 @@ class ExamRoom extends Component
         if ($this->remainingSeconds <= 0) {
             $this->accumulateCurrentQuestionDuration();
             $this->persistAttemptMetadata();
+            $this->persistHelpItemsState();
             if (! $this->isRemedial) {
                 $this->persistTelemetries();
             }
@@ -389,6 +556,32 @@ class ExamRoom extends Component
                 'question_duration' => ['by_sort_order' => $this->questionDurations],
                 'answer_behavior' => ['by_sort_order' => $this->answerBehavior],
             ]);
+    }
+
+    private function persistHelpItemsState(): void
+    {
+        ExamAttempt::query()
+            ->whereKey($this->attemptId)
+            ->where('user_id', auth()->id())
+            ->update([
+                'help_items_state' => [
+                    'skip_tracker_active' => $this->skipTrackerActive,
+                    'fifty_fifty' => $this->fiftyFiftyEliminated,
+                ],
+            ]);
+    }
+
+    private function findNextUnansweredIndex(int $start, ?int $endBefore = null): ?int
+    {
+        $limit = $endBefore ?? count($this->answerStates);
+
+        for ($index = $start; $index < $limit; $index++) {
+            if (($this->answerStates[$index]['selected_option_id'] ?? null) === null) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     private function trackAnswerBehavior(?int $previousOptionId, ?int $newOptionId): void

@@ -21,6 +21,19 @@ class ExamService
 
     private const REMEDIAL_MIN_TOTAL_MINUTES = 3;
 
+    public function findActiveFullAttempt(User $user): ?ExamAttempt
+    {
+        return ExamAttempt::query()
+            ->where('user_id', $user->id)
+            ->where('status', ExamAttemptStatus::InProgress)
+            ->where('attempt_type', ExamAttemptType::Full)
+            ->whereNull('duel_session_id')
+            ->with('exam')
+            ->latest('id')
+            ->get()
+            ->first(fn (ExamAttempt $attempt) => $attempt->isActive() && ! $attempt->isDuelAttempt());
+    }
+
     public function startAttempt(Exam $exam, User $user): ExamAttempt
     {
         return DB::transaction(function () use ($exam, $user) {
@@ -208,6 +221,7 @@ class ExamService
 
                 if ($rewardUser !== null) {
                     $gamification->awardExamAttemptXp($attempt, $rewardUser);
+                    app(CoinService::class)->awardExamAttemptCoins($attempt, $rewardUser);
                 }
 
                 $attempt->update(['psychology_report_status' => 'pending']);

@@ -2,6 +2,8 @@
      wire:key="exam-room-{{ $attemptId }}"
      wire:poll.30s="checkExpiry">
 
+    <x-ui.flash-toast />
+
     @include('livewire.peserta.exam-room.header')
 
     <main class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -10,6 +12,7 @@
 
             <div class="space-y-5 min-w-0">
                 @include('livewire.peserta.exam-room.progress')
+                @include('livewire.peserta.exam-room.help-items')
                 @include('livewire.peserta.exam-room.question')
                 @include('livewire.peserta.exam-room.actions')
             </div>

@@ -128,4 +128,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(XpReward::class);
     }
+
+    public function coinTransactions(): HasMany
+    {
+        return $this->hasMany(CoinTransaction::class);
+    }
+
+    public function helpItems(): HasMany
+    {
+        return $this->hasMany(UserHelpItem::class);
+    }
 }

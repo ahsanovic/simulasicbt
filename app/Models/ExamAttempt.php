@@ -27,6 +27,7 @@ class ExamAttempt extends Model
         'total_score',
         'question_duration',
         'answer_behavior',
+        'help_items_state',
         'psychology_report',
         'psychology_report_status',
         'psychology_report_generated_at',
@@ -46,6 +47,7 @@ class ExamAttempt extends Model
             'total_score' => 'integer',
             'question_duration' => 'array',
             'answer_behavior' => 'array',
+            'help_items_state' => 'array',
             'psychology_report_generated_at' => 'datetime',
         ];
     }

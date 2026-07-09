@@ -100,6 +100,19 @@
                     <span class="sm:hidden">Kartu</span>
                 </span>
             </a>
+            <a href="{{ route('peserta.shop.index') }}"
+               wire:navigate
+               @class([
+                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
+                   'bg-white text-primary-700 shadow-sm' => $active === 'shop',
+                   'text-slate-600 hover:text-slate-900' => $active !== 'shop',
+               ])>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="text-sm leading-none" aria-hidden="true">🪙</span>
+                    <span class="hidden sm:inline">Toko Koin</span>
+                    <span class="sm:hidden">Toko</span>
+                </span>
+            </a>
             <a href="{{ route('peserta.duel.index') }}"
                wire:navigate
                @class([

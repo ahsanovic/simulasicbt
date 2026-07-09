@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\PublicStorageController;
 use App\Http\Middleware\TrackPesertaPresence;
+use App\Livewire\Admin\CoinPurchases\Index as CoinPurchasesIndex;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
 use App\Livewire\Admin\OnlineParticipants\Index as OnlineParticipantsIndex;
@@ -92,6 +93,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/exams', ExamsIndex::class)->name('exams.index');
     Route::get('/peserta-ujian', OnlineParticipantsIndex::class)->name('online-participants.index');
     Route::get('/results', ResultsIndex::class)->name('results.index');
+    Route::get('/pembelian-koin', CoinPurchasesIndex::class)->name('coin-purchases.index');
     Route::get('/testimoni', TestimonialsIndex::class)->name('testimonials.index');
     Route::get('/reports', ReportsIndex::class)->name('reports.index');
     Route::get('/reports/export-participants', function () {

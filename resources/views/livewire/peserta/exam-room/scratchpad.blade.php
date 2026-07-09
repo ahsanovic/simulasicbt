@@ -49,7 +49,7 @@
                     </div>
                     <div class="px-3.5 py-3">
                         <p class="text-xs leading-relaxed text-slate-600">
-                            Buka kanvas transparan untuk coret-coret hitungan matematika, deret angka, dan catatan sementara tanpa mengganggu soal.
+                            Buka kanvas transparan untuk coret-coret, ketik angka/teks dengan keyboard, atau hapus coretan tertentu tanpa mengganggu soal.
                         </p>
                     </div>
                 </div>
@@ -79,11 +79,43 @@
                 </div>
                 <div>
                     <p class="text-sm font-bold text-slate-900">Kalkulator Coretan</p>
-                    <p class="text-xs text-slate-500">Coret di layar untuk hitungan &amp; catatan</p>
+                    <p class="text-xs text-slate-500">Pena, teks keyboard, atau hapus coretan tertentu</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
+                <div class="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
+                    <button type="button"
+                            x-on:click="setTool('pen')"
+                            :class="activeTool === 'pen' ? 'bg-white text-amber-700 shadow-sm ring-1 ring-amber-200' : 'text-slate-600 hover:text-slate-900'"
+                            class="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition"
+                            title="Coret dengan mouse">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                        <span class="hidden sm:inline">Pena</span>
+                    </button>
+                    <button type="button"
+                            x-on:click="setTool('text')"
+                            :class="activeTool === 'text' ? 'bg-white text-amber-700 shadow-sm ring-1 ring-amber-200' : 'text-slate-600 hover:text-slate-900'"
+                            class="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition"
+                            title="Ketik angka atau teks di kanvas">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <span class="hidden sm:inline">Teks</span>
+                    </button>
+                    <button type="button"
+                            x-on:click="setTool('eraser')"
+                            :class="activeTool === 'eraser' ? 'bg-white text-amber-700 shadow-sm ring-1 ring-amber-200' : 'text-slate-600 hover:text-slate-900'"
+                            class="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition"
+                            title="Hapus coretan tertentu">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        <span class="hidden sm:inline">Hapus</span>
+                    </button>
+                </div>
                 <button type="button"
                         x-on:click="clearCanvas()"
                         class="ui-btn-secondary px-3 py-2 text-sm">
@@ -100,7 +132,8 @@
         {{-- Area kanvas transparan --}}
         <div class="relative min-h-0 flex-1 bg-slate-900/10">
             <canvas x-ref="canvas"
-                    class="absolute inset-0 h-full w-full touch-none cursor-crosshair"
+                    tabindex="0"
+                    :class="'absolute inset-0 h-full w-full touch-none outline-none ' + cursorClass()"
                     x-on:mousedown="startDraw($event)"
                     x-on:mousemove="draw($event)"
                     x-on:mouseup="stopDraw()"
@@ -108,7 +141,13 @@
                     x-on:touchstart="startDraw($event)"
                     x-on:touchmove="draw($event)"
                     x-on:touchend="stopDraw()"
-                    x-on:touchcancel="stopDraw()"></canvas>
+                    x-on:touchcancel="stopDraw()"
+                    x-on:keydown="handleKeydown($event)"></canvas>
+            <p x-show="activeTool === 'text'"
+               x-cloak
+               class="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-4 py-2 text-xs text-slate-600 shadow-md backdrop-blur-sm">
+                Klik posisi → ketik angka/teks → <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> untuk simpan
+            </p>
         </div>
     </div>
 </div>

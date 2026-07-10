@@ -108,7 +108,7 @@
                    'text-slate-600 hover:text-slate-900' => $active !== 'shop',
                ])>
                 <span class="inline-flex items-center gap-1.5">
-                    <span class="text-sm leading-none" aria-hidden="true">🪙</span>
+                    <x-ui.coin-icon class="h-4 w-4 shrink-0 text-amber-500" />
                     <span class="hidden sm:inline">Toko Koin</span>
                     <span class="sm:hidden">Toko</span>
                 </span>

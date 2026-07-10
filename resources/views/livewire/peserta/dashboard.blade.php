@@ -30,7 +30,7 @@
                     <a href="{{ route('peserta.shop.index') }}"
                        wire:navigate
                        class="group inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/25">
-                        <span class="text-base leading-none" aria-hidden="true">🪙</span>
+                        <x-ui.coin-icon class="h-4 w-4 shrink-0 text-amber-300" />
                         <span class="flex flex-col items-start leading-tight">
                             <span class="tabular-nums">{{ number_format($coinBalance) }} koin</span>
                             <span class="text-[10px] font-medium text-primary-200/90 transition group-hover:text-white">Toko koin →</span>

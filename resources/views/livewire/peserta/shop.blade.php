@@ -10,14 +10,17 @@
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-widest text-amber-100">Item Bantuan Simulasi</p>
-                    <h1 class="mt-1 text-2xl font-bold tracking-tight">Toko Koin 🪙</h1>
+                    <h1 class="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                        Toko Koin
+                        <x-ui.coin-icon class="h-6 w-6 shrink-0 text-amber-100" />
+                    </h1>
                     <p class="mt-2 max-w-2xl text-sm text-amber-50">
                         Beli alat bantu latihan untuk melatih insting manajemen waktu saat simulasi harian.
                         Koin didapat dari menyelesaikan simulasi — bukan dari menukar XP.
                     </p>
                 </div>
                 <div class="flex items-center gap-2 rounded-xl bg-white/15 px-4 py-3 text-sm font-semibold ring-1 ring-white/20">
-                    <span class="text-xl" aria-hidden="true">🪙</span>
+                    <x-ui.coin-icon class="h-6 w-6 shrink-0 text-amber-100" />
                     <div>
                         <p class="text-[10px] font-bold uppercase tracking-wider text-amber-100">Saldo Koin</p>
                         <p class="text-xl font-bold tabular-nums">{{ number_format($balance) }}</p>
@@ -97,7 +100,7 @@
 
                         <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
                             <div class="flex items-center gap-2">
-                                <span class="text-2xl" aria-hidden="true">🪙</span>
+                                <x-ui.coin-icon class="h-7 w-7 shrink-0 text-amber-500" />
                                 <div>
                                     <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Harga</p>
                                     <p class="text-xl font-bold text-slate-900">{{ number_format($item->price()) }} koin</p>

@@ -118,15 +118,15 @@ class QuestionGenerationService
     private function systemPrompt(SubjectCode $subjectCode): string
     {
         $base = <<<'PROMPT'
-Bertindaklah sebagai pakar pembuat soal seleksi CPNS (SKD) resmi dari BKN. Tugas Anda adalah membuat soal simulasi CPNS berkualitas tinggi dengan tingkat kesulitan SEDANG hingga SULIT (berbasis HOTS/Higher Order Thinking Skills).
+Bertindaklah sebagai pakar pembuat soal seleksi CPNS (SKD) resmi dari BKN. Tugas Anda adalah membuat soal simulasi CPNS berkualitas tinggi dengan tingkat kesulitan: SULIT (berbasis HOTS/Higher Order Thinking Skills).
 
 Silakan buat soal dengan ketentuan sebagai berikut:
 
 Kriteria Kualitas Soal (WAJIB DIPATUHI):
-- Tingkat Kesulitan: Sedang hingga Sulit. Jangan banyak pertanyaan hafalan langsung (misal: "Kapan UU ini disahkan?"), boleh tapi jangan sering. Gunakan soal berbasis studi kasus, penalaran logis, atau analisis situasi yang mengecoh.
+- Tingkat Kesulitan: Sulit. Jangan banyak pertanyaan hafalan langsung (misal: "Kapan UU ini disahkan?"), boleh tapi jangan sering. Gunakan soal berbasis studi kasus, penalaran logis, atau analisis situasi yang mengecoh.
 - Pilihan Ganda: Wajib menyediakan 5 opsi (A, B, C, D, E). 
 - Distractor (Pengecoh): Opsi pengecoh harus terlihat sangat logis dan mirip dengan jawaban benar agar menantang bagi peserta.
-- Khusus TKP: Semua opsi harus mencerminkan tindakan positif, namun memiliki gradasi poin nilai (1 sampai 5) berdasarkan efektivitas, profesionalisme, dan solusi jangka panjang terbaik. Buat soal TKP yang benar-benar menantang dan memerlukan penalaran yang mendalam.
+- Khusus TKP: Soal harus panjang dan memerlukan penalaran yang mendalam. Semua opsi harus mencerminkan tindakan positif, namun memiliki gradasi poin nilai (1 sampai 5) berdasarkan efektivitas, profesionalisme, dan solusi jangka panjang terbaik. Buat soal TKP yang benar-benar menantang dan sulit serta banyak jebakan.
 
 Kunci Jawaban: [Jawaban yang Benar, atau Pembagian Poin 1-5 jika ini soal TKP]
 Pembahasan: [Berikan penjelasan ilmiah, logis, atau dasar hukum/rumus mengapa jawaban tersebut benar dan mengapa opsi lain kurang tepat. Pembahasan harus detail agar peserta paham.]

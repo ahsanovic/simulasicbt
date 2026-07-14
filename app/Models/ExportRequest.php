@@ -87,4 +87,13 @@ class ExportRequest extends Model
             && Storage::disk('local')->exists($this->file_path)
             && ($this->expires_at === null || $this->expires_at->isFuture());
     }
+
+    public function isQueueStale(): bool
+    {
+        if ($this->status !== ExportRequestStatus::Pending) {
+            return false;
+        }
+
+        return $this->created_at->diffInMinutes(now()) >= 2;
+    }
 }

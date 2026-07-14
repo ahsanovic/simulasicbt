@@ -47,7 +47,7 @@ class ExamResultsExportService
             'total_rows' => $totalRows,
         ]);
 
-        ExportExamResultsJob::dispatch($exportRequest->id);
+        ExportExamResultsJob::dispatch($exportRequest->id)->afterResponse();
 
         return $exportRequest;
     }
@@ -64,9 +64,7 @@ class ExamResultsExportService
         $directory = 'exports/exam-results/'.$exportRequest->id;
         $fileName = 'hasil-ujian-'.now()->format('Y-m-d-His').'.csv';
         $relativePath = $directory.'/'.$fileName;
-        $absolutePath = Storage::disk('local')->path($relativePath);
-
-        Storage::disk('local')->makeDirectory($directory);
+        $absolutePath = $this->prepareExportDirectory($directory).'/'.$fileName;
 
         try {
             $this->writeCsvFile($filters, $absolutePath);
@@ -171,6 +169,26 @@ class ExamResultsExportService
             }
         } finally {
             fclose($handle);
+            $this->applyExportPermissions($absolutePath);
         }
+    }
+
+    private function prepareExportDirectory(string $relativeDirectory): string
+    {
+        $absoluteDirectory = Storage::disk('local')->path($relativeDirectory);
+
+        if (! is_dir($absoluteDirectory) && ! mkdir($absoluteDirectory, 0775, true) && ! is_dir($absoluteDirectory)) {
+            throw new RuntimeException("Tidak dapat membuat folder export: {$absoluteDirectory}");
+        }
+
+        @chmod($absoluteDirectory, 0775);
+
+        return $absoluteDirectory;
+    }
+
+    private function applyExportPermissions(string $absolutePath): void
+    {
+        @chmod($absolutePath, 0664);
+        @chmod(dirname($absolutePath), 0775);
     }
 }

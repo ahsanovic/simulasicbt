@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\ExamAttemptType;
 use App\Models\ExamAttempt;
 
 final class ExamResultsCsvMapper
@@ -35,8 +36,8 @@ final class ExamResultsCsvMapper
     {
         $this->rowNumber++;
 
-        $isDuel = $attempt->isDuelAttempt();
-        $isRemedial = $attempt->isRemedial();
+        $isDuel = $this->isDuelAttempt($attempt);
+        $isRemedial = $attempt->attempt_type === ExamAttemptType::Remedial;
 
         return [
             $this->rowNumber,
@@ -86,5 +87,14 @@ final class ExamResultsCsvMapper
             $attempt->score_tkp,
             $attempt->total_score,
         ) ? 'Lulus' : 'Belum Lulus';
+    }
+
+    private function isDuelAttempt(ExamAttempt $attempt): bool
+    {
+        if ($attempt->duel_session_id !== null) {
+            return true;
+        }
+
+        return (bool) ($attempt->exam?->settings['is_duel'] ?? false);
     }
 }

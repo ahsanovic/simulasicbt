@@ -6,14 +6,14 @@
             wire:loading.attr="disabled"
             wire:target="requestExport"
             @disabled($exportRowCount === 0)
-            class="ui-btn-success disabled:cursor-not-allowed disabled:opacity-60"
+            class="ui-btn-success relative min-w-[9.5rem] disabled:cursor-not-allowed disabled:opacity-60"
         >
-            <span wire:loading.remove wire:target="requestExport" class="inline-flex items-center gap-2">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            <span class="inline-flex items-center gap-2" wire:loading.class="invisible" wire:target="requestExport">
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Export CSV
             </span>
-            <span wire:loading wire:target="requestExport" class="inline-flex items-center gap-2">
-                <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <span wire:loading wire:target="requestExport" class="absolute inset-0 inline-flex items-center justify-center gap-2">
+                <svg class="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 Memproses...
             </span>
         </button>
@@ -60,6 +60,7 @@
                             File siap diunduh ({{ number_format($activeExport->total_rows ?? 0) }} baris). Link berlaku hingga {{ $activeExport->expires_at?->format('d M Y, H:i') }}.
                         @else
                             {{ $activeExport->error_message ?? 'Export gagal diproses.' }}
+                            <span class="mt-1 block text-xs opacity-80">Detail teknis tercatat di log server (storage/logs/laravel.log).</span>
                         @endif
                     </p>
                 </div>

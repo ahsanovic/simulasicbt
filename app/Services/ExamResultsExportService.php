@@ -4,17 +4,17 @@ namespace App\Services;
 
 use App\Data\ExamResultsExportFilters;
 use App\Enums\ExportRequestStatus;
-use App\Exports\ExamResultsSummaryExport;
 use App\Jobs\ExportExamResultsJob;
 use App\Models\ExportRequest;
 use App\Models\User;
+use App\Support\ExamResultsCsvMapper;
 use App\Support\ExamResultsQuery;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Maatwebsite\Excel\Excel as ExcelFormat;
-use Maatwebsite\Excel\Facades\Excel;
 use RuntimeException;
+use Throwable;
 
 class ExamResultsExportService
 {
@@ -64,28 +64,35 @@ class ExamResultsExportService
         $directory = 'exports/exam-results/'.$exportRequest->id;
         $fileName = 'hasil-ujian-'.now()->format('Y-m-d-His').'.csv';
         $relativePath = $directory.'/'.$fileName;
+        $absolutePath = Storage::disk('local')->path($relativePath);
 
         Storage::disk('local')->makeDirectory($directory);
 
         try {
-            Excel::store(
-                new ExamResultsSummaryExport($filters),
-                $relativePath,
-                'local',
-                ExcelFormat::CSV,
-            );
+            $this->writeCsvFile($filters, $absolutePath);
+
+            if (! is_file($absolutePath) || filesize($absolutePath) === 0) {
+                throw new RuntimeException('File export tidak berhasil dibuat atau kosong.');
+            }
 
             $totalRows = $this->countRows($filters);
 
             $exportRequest->markCompleted($relativePath, $fileName, $totalRows);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Storage::disk('local')->deleteDirectory($directory);
 
-            $exportRequest->markFailed('Gagal membuat file export hasil ujian.');
+            $message = $this->resolveExportErrorMessage($exception);
+
+            $exportRequest->markFailed($message);
 
             Log::error('Export hasil ujian gagal.', [
                 'export_request_id' => $exportRequest->id,
+                'filters' => $exportRequest->filters,
+                'exception' => $exception::class,
                 'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'trace' => $exception->getTraceAsString(),
             ]);
 
             throw $exception;
@@ -122,5 +129,48 @@ class ExamResultsExportService
             });
 
         return $removed;
+    }
+
+    public function resolveExportErrorMessage(Throwable $exception): string
+    {
+        if (config('app.debug')) {
+            return Str::limit($exception->getMessage(), 500);
+        }
+
+        $message = $exception->getMessage();
+
+        return match (true) {
+            $exception instanceof QueryException => 'Gagal membaca data hasil ujian dari database.',
+            str_contains($message, 'Permission denied'),
+            str_contains($message, 'failed to open stream') => 'Folder penyimpanan export tidak dapat ditulis. Periksa izin storage/app/private.',
+            default => 'Gagal membuat file export hasil ujian.',
+        };
+    }
+
+    private function writeCsvFile(ExamResultsExportFilters $filters, string $absolutePath): void
+    {
+        $handle = fopen($absolutePath, 'w');
+
+        if ($handle === false) {
+            throw new RuntimeException("Tidak dapat membuka file export: {$absolutePath}");
+        }
+
+        try {
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            $mapper = new ExamResultsCsvMapper;
+            fputcsv($handle, $mapper->headings());
+
+            $query = ExamResultsQuery::filtered($filters)
+                ->with(['user.instansi', 'exam', 'duelSession'])
+                ->orderBy('submitted_at')
+                ->orderBy('id');
+
+            foreach ($query->lazy(1000) as $attempt) {
+                fputcsv($handle, $mapper->map($attempt));
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 }

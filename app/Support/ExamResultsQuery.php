@@ -37,11 +37,7 @@ final class ExamResultsQuery
 
         if ($filters->examTypeFilter === 'simulasi') {
             $query->whereNull('duel_session_id')
-                ->whereHas('exam', function (Builder $examQuery) {
-                    $examQuery->where(fn (Builder $settingsQuery) => $settingsQuery
-                        ->whereNull('settings->is_duel')
-                        ->orWhere('settings->is_duel', false));
-                });
+                ->whereDoesntHave('exam', fn (Builder $examQuery) => $examQuery->where('settings->is_duel', true));
         }
 
         if ($filters->dateFrom !== '') {

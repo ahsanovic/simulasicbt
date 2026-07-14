@@ -3,6 +3,7 @@
 use App\Exports\ParticipantsExport;
 use App\Exports\ParticipantsImportTemplate;
 use App\Exports\QuestionsImportTemplateExport;
+use App\Http\Controllers\Admin\ExamResultsExportController;
 use App\Http\Controllers\Admin\ParticipantImportController;
 use App\Http\Controllers\Admin\QuestionContentImageController;
 use App\Http\Controllers\Admin\QuestionImportController;
@@ -93,6 +94,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/exams', ExamsIndex::class)->name('exams.index');
     Route::get('/peserta-ujian', OnlineParticipantsIndex::class)->name('online-participants.index');
     Route::get('/results', ResultsIndex::class)->name('results.index');
+    Route::get('/results/exports/{exportRequest}/download', [ExamResultsExportController::class, 'download'])
+        ->name('results.exports.download');
     Route::get('/pembelian-koin', CoinPurchasesIndex::class)->name('coin-purchases.index');
     Route::get('/testimoni', TestimonialsIndex::class)->name('testimonials.index');
     Route::get('/reports', ReportsIndex::class)->name('reports.index');

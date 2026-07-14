@@ -1,5 +1,89 @@
-<div>
-    <x-ui.page-header title="Hasil Ujian" description="Pantau skor TWK, TIU, TKP, dan total nilai peserta beserta status kelulusan ambang batas." />
+<div @if ($activeExport?->status->isActive()) wire:poll.5s @endif>
+    <x-ui.page-header title="Hasil Ujian" description="Pantau skor TWK, TIU, TKP, dan total nilai peserta beserta status kelulusan ambang batas.">
+        <button
+            type="button"
+            wire:click="requestExport"
+            wire:loading.attr="disabled"
+            wire:target="requestExport"
+            @disabled($exportRowCount === 0)
+            class="ui-btn-success disabled:cursor-not-allowed disabled:opacity-60"
+        >
+            <span wire:loading.remove wire:target="requestExport" class="inline-flex items-center gap-2">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export CSV
+            </span>
+            <span wire:loading wire:target="requestExport" class="inline-flex items-center gap-2">
+                <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Memproses...
+            </span>
+        </button>
+    </x-ui.page-header>
+
+    @if (session('success'))
+        <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @error('export')
+        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {{ $message }}
+        </div>
+    @enderror
+
+    @if ($activeExport)
+        <div @class([
+            'mb-5 rounded-xl border px-4 py-4',
+            'border-blue-200 bg-blue-50' => $activeExport->status->isActive(),
+            'border-emerald-200 bg-emerald-50' => $activeExport->status === \App\Enums\ExportRequestStatus::Completed,
+            'border-red-200 bg-red-50' => $activeExport->status === \App\Enums\ExportRequestStatus::Failed,
+        ])>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p @class([
+                        'text-sm font-semibold',
+                        'text-blue-900' => $activeExport->status->isActive(),
+                        'text-emerald-900' => $activeExport->status === \App\Enums\ExportRequestStatus::Completed,
+                        'text-red-900' => $activeExport->status === \App\Enums\ExportRequestStatus::Failed,
+                    ])>
+                        Export Hasil Ujian — {{ $activeExport->status->label() }}
+                    </p>
+                    <p @class([
+                        'mt-1 text-sm',
+                        'text-blue-800' => $activeExport->status->isActive(),
+                        'text-emerald-800' => $activeExport->status === \App\Enums\ExportRequestStatus::Completed,
+                        'text-red-800' => $activeExport->status === \App\Enums\ExportRequestStatus::Failed,
+                    ])>
+                        @if ($activeExport->status->isActive())
+                            Sedang menyiapkan {{ number_format($activeExport->total_rows ?? $exportRowCount) }} baris data sesuai filter aktif.
+                        @elseif ($activeExport->status === \App\Enums\ExportRequestStatus::Completed)
+                            File siap diunduh ({{ number_format($activeExport->total_rows ?? 0) }} baris). Link berlaku hingga {{ $activeExport->expires_at?->format('d M Y, H:i') }}.
+                        @else
+                            {{ $activeExport->error_message ?? 'Export gagal diproses.' }}
+                        @endif
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    @if ($activeExport->status === \App\Enums\ExportRequestStatus::Completed && $activeExport->isDownloadable())
+                        <a
+                            href="{{ route('admin.results.exports.download', $activeExport) }}"
+                            class="ui-btn-success"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Unduh CSV
+                        </a>
+                    @endif
+
+                    @unless ($activeExport->status->isActive())
+                        <button type="button" wire:click="dismissExport" class="ui-btn-secondary">
+                            Tutup
+                        </button>
+                    @endunless
+                </div>
+            </div>
+        </div>
+    @endif
 
     <div @class(['mb-5 grid gap-4', 'sm:grid-cols-2' => $examTypeFilter !== 'duel', 'sm:grid-cols-1' => $examTypeFilter === 'duel'])>
         <x-ui.stat-card
@@ -35,7 +119,17 @@
                 <option value="simulasi">Simulasi</option>
                 <option value="duel">Duel Mini-Tryout</option>
             </select>
+            <input type="date" wire:model.live="dateFrom" class="ui-input w-full sm:w-40 sm:shrink-0" title="Dari tanggal selesai">
+            <input type="date" wire:model.live="dateTo" class="ui-input w-full sm:w-40 sm:shrink-0" title="Sampai tanggal selesai">
         </x-ui.filter-toolbar>
+        <p class="mt-3 text-xs text-slate-500">
+            Filter tanggal berdasarkan waktu ujian selesai. Export CSV akan mengikuti filter yang aktif
+            @if ($exportRowCount > 0)
+                ({{ number_format($exportRowCount) }} baris).
+            @else
+                — tidak ada data untuk diekspor.
+            @endif
+        </p>
     </div>
 
     <div class="ui-table-wrap">

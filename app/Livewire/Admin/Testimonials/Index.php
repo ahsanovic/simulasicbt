@@ -18,10 +18,23 @@ class Index extends Component
 
     public string $search = '';
 
+    public string $ratingFilter = '';
+
     public ?int $viewingId = null;
 
     public function updatingSearch(): void
     {
+        $this->resetPage();
+    }
+
+    public function updatingRatingFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset(['search', 'ratingFilter']);
         $this->resetPage();
     }
 
@@ -52,8 +65,14 @@ class Index extends Component
                         });
                 });
             })
-            ->orderByRaw('(hearts_count + fires_count) DESC')
-            ->orderByDesc('created_at')
+            ->when($this->ratingFilter !== '', function (Builder $query) {
+                if ($this->ratingFilter === 'none') {
+                    $query->whereNull('rating');
+                } else {
+                    $query->where('rating', (int) $this->ratingFilter);
+                }
+            })
+            ->latest('created_at')
             ->paginate(15);
 
         $allTestimonials = Testimonial::query()->get(['hearts_count', 'fires_count', 'is_anonymous', 'turning_point', 'rating']);

@@ -34,9 +34,9 @@ class ExamService
             ->first(fn (ExamAttempt $attempt) => $attempt->isActive() && ! $attempt->isDuelAttempt());
     }
 
-    public function startAttempt(Exam $exam, User $user): ExamAttempt
+    public function startAttempt(Exam $exam, User $user, ?int $eventId = null, ?int $eventSessionId = null): ExamAttempt
     {
-        return DB::transaction(function () use ($exam, $user) {
+        return DB::transaction(function () use ($exam, $user, $eventId, $eventSessionId) {
             $generator = app(ExamQuestionGeneratorService::class);
             $difficulty = $exam->settings['difficulty'] ?? 'all';
 
@@ -50,6 +50,8 @@ class ExamService
 
             $attempt = ExamAttempt::query()->create([
                 'exam_id' => $exam->id,
+                'event_id' => $eventId,
+                'event_session_id' => $eventSessionId,
                 'user_id' => $user->id,
                 'started_at' => now(),
                 'expires_at' => now()->addMinutes($exam->duration_minutes),

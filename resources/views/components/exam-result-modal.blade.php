@@ -85,7 +85,10 @@
                 <p class="text-sm font-medium uppercase tracking-widest text-white/80">
                     {{ $isRemedial ? 'Remedial Selesai' : 'Simulasi Selesai' }}
                 </p>
-                <h2 id="exam-result-title" class="mt-1 text-xl font-bold sm:text-2xl">{{ $attempt->exam->title }}</h2>
+                <h2 id="exam-result-title" class="mt-1 text-xl font-bold sm:text-2xl">{{ $attempt->event?->name ?? $attempt->exam->title }}</h2>
+                @if ($attempt->event)
+                    <p class="mt-1 text-xs font-medium text-white/70">Event Offline · {{ $attempt->exam->title }}</p>
+                @endif
                 <p class="mt-2 text-sm text-white/80">
                     {{ $attempt->submitted_at?->format('d M Y, H:i') ?? $attempt->created_at->format('d M Y, H:i') }}
                 </p>

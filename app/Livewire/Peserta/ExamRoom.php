@@ -323,6 +323,10 @@ class ExamRoom extends Component
         }
 
         $this->selectedOptionId = $optionId;
+
+        // Persist immediately so a sudden disconnect/power loss never drops the
+        // current pick — the answer is written to the DB the moment it is chosen.
+        $this->saveAnswer();
     }
 
     public function saveAnswer(): void

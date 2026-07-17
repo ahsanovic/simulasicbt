@@ -84,7 +84,15 @@
                 ])>
                     <div class="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
-                            <h2 class="truncate text-base font-bold text-slate-900">{{ $attempt->exam->title }}</h2>
+                            <h2 class="truncate text-base font-bold text-slate-900">{{ $attempt->event?->name ?? $attempt->exam->title }}</h2>
+                            @if ($attempt->event)
+                                <p class="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                                    <span class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 font-semibold text-indigo-700">
+                                        <x-ui.icon name="events" class="h-3 w-3" /> Event Offline
+                                    </span>
+                                    <span class="truncate">{{ $attempt->exam->title }}</span>
+                                </p>
+                            @endif
                             <p class="mt-1 text-sm text-slate-500">
                                 {{ $attempt->submitted_at?->format('d M Y, H:i') ?? $attempt->created_at->format('d M Y, H:i') }}
                             </p>

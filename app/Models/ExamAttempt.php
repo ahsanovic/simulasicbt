@@ -13,6 +13,8 @@ class ExamAttempt extends Model
 {
     protected $fillable = [
         'exam_id',
+        'event_id',
+        'event_session_id',
         'duel_session_id',
         'attempt_type',
         'parent_attempt_id',
@@ -55,6 +57,16 @@ class ExamAttempt extends Model
     public function exam(): BelongsTo
     {
         return $this->belongsTo(Exam::class);
+    }
+
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
+    }
+
+    public function eventSession(): BelongsTo
+    {
+        return $this->belongsTo(EventSession::class);
     }
 
     public function duelSession(): BelongsTo
@@ -192,6 +204,7 @@ class ExamAttempt extends Model
             ->reviewableForUser($userId)
             ->with([
                 'exam',
+                'event:id,name',
                 'answers.question.subject',
                 'answers.question.options',
                 'answers.selectedOption',

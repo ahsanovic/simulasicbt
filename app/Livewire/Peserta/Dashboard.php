@@ -19,6 +19,10 @@ use Livewire\Component;
 #[Title('Dashboard Peserta')]
 class Dashboard extends Component
 {
+    public ?int $pinExamId = null;
+
+    public string $examPin = '';
+
     public function startExam(int $examId): void
     {
         $exam = Exam::query()->findOrFail($examId);
@@ -41,6 +45,62 @@ class Dashboard extends Component
             return;
         }
 
+        if ($exam->requiresPin()) {
+            $this->pinExamId = $exam->id;
+            $this->examPin = '';
+            $this->resetErrorBag('examPin');
+
+            return;
+        }
+
+        $this->beginExam($exam);
+    }
+
+    public function confirmPin(): void
+    {
+        if ($this->pinExamId === null) {
+            return;
+        }
+
+        $exam = Exam::query()->findOrFail($this->pinExamId);
+
+        if (! $exam->isAvailable()) {
+            $this->closePinModal();
+            session()->flash('error', 'Ujian tidak tersedia saat ini.');
+
+            return;
+        }
+
+        if (strtoupper(trim($this->examPin)) !== strtoupper((string) $exam->pin)) {
+            $this->addError('examPin', 'PIN ujian salah.');
+
+            return;
+        }
+
+        $existingAttempt = ExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->where('user_id', auth()->id())
+            ->where('status', ExamAttemptStatus::InProgress)
+            ->first();
+
+        if ($existingAttempt && $existingAttempt->isActive()) {
+            $this->redirect(route('peserta.exam.room', $exam));
+
+            return;
+        }
+
+        $this->beginExam($exam);
+    }
+
+    public function closePinModal(): void
+    {
+        $this->pinExamId = null;
+        $this->examPin = '';
+        $this->resetErrorBag('examPin');
+    }
+
+    private function beginExam(Exam $exam): void
+    {
         app(ExamService::class)->startAttempt($exam, auth()->user());
 
         $this->redirect(route('peserta.exam.room', $exam));

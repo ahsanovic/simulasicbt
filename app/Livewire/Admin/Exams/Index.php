@@ -36,6 +36,10 @@ class Index extends Component
 
     public string $status = 'draft';
 
+    public bool $use_pin = false;
+
+    public string $pin = '';
+
     public string $difficulty = 'all';
 
     protected function rules(): array
@@ -47,8 +51,29 @@ class Index extends Component
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'status' => ['required', 'in:draft,published,archived'],
+            'pin' => ['nullable', 'required_if:use_pin,true', 'string', 'size:4', 'regex:/^[A-Z0-9]+$/'],
             'difficulty' => ['required', 'in:all,easy,medium,hard'],
         ];
+    }
+
+    public function updatedUsePin(bool $value): void
+    {
+        if ($value) {
+            if ($this->pin === '') {
+                $this->pin = Exam::generatePin();
+            }
+        } else {
+            $this->pin = '';
+        }
+
+        $this->resetErrorBag('pin');
+    }
+
+    public function generatePin(): void
+    {
+        $this->use_pin = true;
+        $this->pin = Exam::generatePin();
+        $this->resetErrorBag('pin');
     }
 
     public function updatingSearch(): void
@@ -78,6 +103,8 @@ class Index extends Component
         $this->starts_at = $exam->starts_at?->format('Y-m-d\TH:i');
         $this->ends_at = $exam->ends_at?->format('Y-m-d\TH:i');
         $this->status = $exam->status->value;
+        $this->use_pin = filled($exam->pin);
+        $this->pin = $exam->pin ?? '';
         $this->difficulty = $exam->settings['difficulty'] ?? 'all';
         $this->showModal = true;
     }
@@ -100,6 +127,7 @@ class Index extends Component
                 'starts_at' => $validated['starts_at'] ?: null,
                 'ends_at' => $validated['ends_at'] ?: null,
                 'status' => ExamStatus::from($validated['status']),
+                'pin' => $this->use_pin ? strtoupper($validated['pin']) : null,
                 'settings' => $settings,
                 'created_by' => auth()->id(),
             ];
@@ -143,7 +171,7 @@ class Index extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'title', 'description', 'starts_at', 'ends_at']);
+        $this->reset(['editingId', 'title', 'description', 'starts_at', 'ends_at', 'use_pin', 'pin']);
         $this->duration_minutes = 100;
         $this->status = 'draft';
         $this->difficulty = 'all';

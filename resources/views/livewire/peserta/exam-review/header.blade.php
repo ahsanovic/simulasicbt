@@ -6,7 +6,10 @@
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 Kembali ke Riwayat
             </a>
-            <h1 class="mt-1 truncate text-lg font-bold text-slate-900">{{ $attempt->exam->title }}</h1>
+            <h1 class="mt-1 truncate text-lg font-bold text-slate-900">{{ $attempt->event?->name ?? $attempt->exam->title }}</h1>
+            @if ($attempt->event)
+                <p class="text-xs text-slate-400">Event Offline · {{ $attempt->exam->title }}</p>
+            @endif
             <p class="text-sm text-slate-500">
                 Kunci Jawaban dan Pembahasan · Soal <span class="font-semibold text-slate-800">{{ $currentIndex + 1 }}</span> dari {{ $this->answers->count() }}
             </p>

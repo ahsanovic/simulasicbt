@@ -21,6 +21,7 @@ class Exam extends Model
         'starts_at',
         'ends_at',
         'status',
+        'pin',
         'settings',
         'pass_score',
         'created_by',
@@ -77,5 +78,25 @@ class Exam extends Model
     public function isDuel(): bool
     {
         return (bool) ($this->settings['is_duel'] ?? false);
+    }
+
+    public function requiresPin(): bool
+    {
+        return filled($this->pin);
+    }
+
+    /**
+     * Generate a random exam PIN combining uppercase letters and digits.
+     */
+    public static function generatePin(int $length = 4): string
+    {
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $pin = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $pin .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+
+        return $pin;
     }
 }

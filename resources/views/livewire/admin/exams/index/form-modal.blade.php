@@ -39,6 +39,31 @@
                     </select>
                 </div>
 
+                <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                    <label class="flex items-start gap-3">
+                        <input type="checkbox" wire:model.live="use_pin" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500/20">
+                        <span>
+                            <span class="text-sm font-semibold text-slate-900">Lindungi dengan PIN ujian</span>
+                            <span class="block text-xs text-slate-500">Jika aktif, peserta harus memasukkan PIN sebelum memulai ujian ini dari dashboard.</span>
+                        </span>
+                    </label>
+
+                    @if ($use_pin)
+                        <div class="mt-3 flex items-end gap-3">
+                            <div>
+                                <label class="ui-label">PIN Ujian</label>
+                                <input type="text" wire:model="pin" readonly
+                                       class="ui-input w-40 text-center font-mono text-lg font-bold uppercase tracking-[0.3em]">
+                            </div>
+                            <button type="button" wire:click="generatePin" class="ui-btn-secondary mb-0.5">
+                                <x-ui.icon name="refresh" class="h-4 w-4" /> Buat ulang
+                            </button>
+                        </div>
+                        @error('pin') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <p class="mt-2 text-xs text-slate-500">4 karakter kombinasi huruf besar &amp; angka, dibuat otomatis.</p>
+                    @endif
+                </div>
+
                 <div class="rounded-xl border border-primary-200 bg-primary-50/50 p-4">
                     <h3 class="text-sm font-bold text-slate-900">Komposisi Soal (otomatis &amp; acak)</h3>
                     <p class="mt-1 text-sm text-slate-600">

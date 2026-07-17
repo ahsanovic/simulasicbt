@@ -11,6 +11,7 @@ use App\Services\ExamService;
 use App\Services\ExamWeaknessAnalysisService;
 use App\Services\FlashcardService;
 use App\Services\GamificationService;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -57,7 +58,7 @@ class ExamHistory extends Component
 
         if ($resultAttemptId) {
             $this->resultAttempt = ExamAttempt::query()
-                ->with(['exam', 'answers.question', 'answers.selectedOption'])
+                ->with(['exam', 'event:id,name', 'answers.question', 'answers.selectedOption'])
                 ->whereKey($resultAttemptId)
                 ->where('user_id', auth()->id())
                 ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
@@ -107,7 +108,7 @@ class ExamHistory extends Component
 
         try {
             $examService->startRemedialAttempt($parent, auth()->user());
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first()
                 ?? 'Tidak bisa memulai ujian remedial.';
 
@@ -162,7 +163,7 @@ class ExamHistory extends Component
     public function render(GamificationService $gamificationService)
     {
         $attempts = ExamAttempt::query()
-            ->with(['exam', 'answers.question', 'answers.selectedOption'])
+            ->with(['exam', 'event:id,name', 'answers.question', 'answers.selectedOption'])
             ->where('user_id', auth()->id())
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
             ->latest('submitted_at')

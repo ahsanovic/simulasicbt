@@ -12,6 +12,10 @@ use App\Http\Controllers\PublicStorageController;
 use App\Http\Middleware\TrackPesertaPresence;
 use App\Livewire\Admin\CoinPurchases\Index as CoinPurchasesIndex;
 use App\Livewire\Admin\Dashboard;
+use App\Http\Controllers\Admin\EventParticipantsExportController;
+use App\Livewire\Admin\Events\Index as EventsIndex;
+use App\Livewire\Admin\Events\LiveScore as EventLiveScore;
+use App\Livewire\Admin\Events\Sessions as EventSessions;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
 use App\Livewire\Admin\OnlineParticipants\Index as OnlineParticipantsIndex;
 use App\Livewire\Admin\Questions\Generate as QuestionsGenerate;
@@ -23,9 +27,12 @@ use App\Livewire\Admin\Testimonials\Index as TestimonialsIndex;
 use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Auth\Login;
+use App\Livewire\Public\LiveScoreIndex as PublicLiveScoreIndex;
+use App\Livewire\Public\LiveScoreShow as PublicLiveScoreShow;
 use App\Livewire\Peserta\AudioMode;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\DuelLobby;
+use App\Livewire\Peserta\Events\Index as PesertaEventsIndex;
 use App\Livewire\Peserta\DuelRoom;
 use App\Livewire\Peserta\Evaluasi as PesertaEvaluasi;
 use App\Livewire\Peserta\ExamHistory;
@@ -53,6 +60,10 @@ if ($appBasePath !== '') {
         ->where('path', '.*')
         ->name('storage.public.prefixed');
 }
+
+// Public livescore — accessible without login (for venue display screens).
+Route::get('livescore', PublicLiveScoreIndex::class)->name('public.livescore.index');
+Route::get('livescore/{event}', PublicLiveScoreShow::class)->name('public.livescore.show');
 
 Route::redirect('/', '/login');
 
@@ -92,6 +103,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         );
     })->name('questions.import-template');
     Route::get('/exams', ExamsIndex::class)->name('exams.index');
+    Route::get('/events', EventsIndex::class)->name('events.index');
+    Route::get('/events/{event}/sessions', EventSessions::class)->name('events.sessions');
+    Route::get('/events/{event}/sessions/{session}/livescore', EventLiveScore::class)->name('events.sessions.livescore');
+    Route::get('/events/{event}/export', [EventParticipantsExportController::class, 'event'])->name('events.export');
+    Route::get('/events/{event}/sessions/{session}/export', [EventParticipantsExportController::class, 'session'])->name('events.sessions.export');
     Route::get('/peserta-ujian', OnlineParticipantsIndex::class)->name('online-participants.index');
     Route::get('/results', ResultsIndex::class)->name('results.index');
     Route::get('/results/exports/{exportRequest}/download', [ExamResultsExportController::class, 'download'])
@@ -122,6 +138,7 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::redirect('/rapor', '/peserta/evaluasi');
     Route::get('/riwayat/{attempt}/review', ExamReview::class)->name('exam.review');
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
+    Route::get('/event', PesertaEventsIndex::class)->name('events.index');
     Route::get('/duel', DuelLobby::class)->name('duel.index');
     Route::get('/duel/{session}', DuelRoom::class)->name('duel.room');
     Route::get('/peringkat', LeaderboardHub::class)->name('leaderboard.index');

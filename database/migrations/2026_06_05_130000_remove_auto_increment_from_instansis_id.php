@@ -9,6 +9,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // SQLite stores an INTEGER PRIMARY KEY as a rowid alias that already
+        // accepts explicit id values, so only MySQL/MariaDB needs the column
+        // altered to drop AUTO_INCREMENT.
+        if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['instansi_id']);
         });
@@ -25,6 +32,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['instansi_id']);
         });

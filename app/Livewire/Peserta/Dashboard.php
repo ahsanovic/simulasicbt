@@ -110,6 +110,7 @@ class Dashboard extends Component
     {
         $exams = Exam::query()
             ->where('status', 'published')
+            ->whereNull('pin')
             ->withCount('questions')
             ->latest()
             ->get()

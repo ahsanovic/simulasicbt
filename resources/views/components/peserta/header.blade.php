@@ -1,5 +1,9 @@
 @props(['active' => 'dashboard'])
 
+@php
+    $belajarActive = in_array($active, ['materi', 'audio'], true);
+@endphp
+
 <header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
     <div class="mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div class="flex items-center gap-3">
@@ -12,7 +16,8 @@
             </a>
         </div>
 
-        <nav class="flex max-w-[min(100vw-12rem,42rem)] items-center gap-0.5 overflow-x-auto rounded-xl bg-slate-100 p-1 text-sm font-semibold scrollbar-none sm:max-w-none sm:gap-1">
+        <div class="flex max-w-[min(100vw-12rem,42rem)] items-center gap-0.5 overflow-visible rounded-xl bg-slate-100 p-1 text-sm font-semibold sm:max-w-none sm:gap-1">
+            <nav class="flex items-center gap-0.5 overflow-x-auto scrollbar-none sm:gap-1">
             <a href="{{ route('peserta.dashboard') }}"
                wire:navigate
                @class([
@@ -72,36 +77,77 @@
                     <span class="sm:hidden">Evaluasi</span>
                 </span>
             </a>
-            <a href="{{ route('peserta.materi.index') }}"
-               wire:navigate
-               @class([
-                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
-                   'bg-white text-primary-700 shadow-sm' => $active === 'materi',
-                   'text-slate-600 hover:text-slate-900' => $active !== 'materi',
-               ])>
-                <span class="inline-flex items-center gap-1.5">
+            </nav>
+
+            <div
+                x-data="{ open: false }"
+                @click.away="open = false"
+                @keydown.escape.window="open = false"
+                x-on:livewire:navigated.window="open = false"
+                class="relative shrink-0"
+            >
+                <button
+                    type="button"
+                    @click="open = !open"
+                    :aria-expanded="open"
+                    aria-haspopup="true"
+                    @class([
+                        'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition sm:gap-1.5 sm:px-3',
+                        'bg-white text-primary-700 shadow-sm' => $belajarActive,
+                        'text-slate-600 hover:text-slate-900' => ! $belajarActive,
+                    ])
+                >
                     <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
-                    <span class="hidden sm:inline">Materi Belajar</span>
-                    <span class="sm:hidden">Materi</span>
-                </span>
-            </a>
-            <a href="{{ route('peserta.audio.index') }}"
-               wire:navigate
-               @class([
-                   'shrink-0 rounded-lg px-2.5 py-1.5 transition sm:px-3',
-                   'bg-white text-primary-700 shadow-sm' => $active === 'audio',
-                   'text-slate-600 hover:text-slate-900' => $active !== 'audio',
-               ])>
-                <span class="inline-flex items-center gap-1.5">
-                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                    <span>Belajar</span>
+                    <svg class="h-3.5 w-3.5 shrink-0 opacity-60 transition" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                     </svg>
-                    <span class="hidden sm:inline">Audio Mode</span>
-                    <span class="sm:hidden">Audio</span>
-                </span>
-            </a>
+                </button>
+
+                <div
+                    x-show="open"
+                    x-cloak
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 scale-100"
+                    x-transition:leave-end="opacity-0 scale-95"
+                    class="absolute left-0 top-full z-[60] mt-1 min-w-[11.5rem] origin-top-left rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
+                    @click.stop
+                >
+                    <a href="{{ route('peserta.materi.index') }}"
+                       wire:navigate
+                       @click="open = false"
+                       @class([
+                           'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                           'bg-primary-50 text-primary-700' => $active === 'materi',
+                           'text-slate-700 hover:bg-slate-50' => $active !== 'materi',
+                       ])>
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        Materi Bacaan
+                    </a>
+                    <a href="{{ route('peserta.audio.index') }}"
+                       wire:navigate
+                       @click="open = false"
+                       @class([
+                           'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                           'bg-primary-50 text-primary-700' => $active === 'audio',
+                           'text-slate-700 hover:bg-slate-50' => $active !== 'audio',
+                       ])>
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                        </svg>
+                        Audio Mode
+                    </a>
+                </div>
+            </div>
+
+            <nav class="flex items-center gap-0.5 overflow-x-auto scrollbar-none sm:gap-1">
             <a href="{{ route('peserta.kartu-sakti.index') }}"
                wire:navigate
                @class([
@@ -156,7 +202,8 @@
                     Testimoni
                 </span>
             </a>
-        </nav>
+            </nav>
+        </div>
 
         <x-peserta.user-menu />
     </div>

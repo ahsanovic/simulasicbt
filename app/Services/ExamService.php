@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Jobs\GenerateExamPsychologyReportJob;
+use App\Models\CoinTransaction;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\User;
+use App\Models\XpReward;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -67,6 +69,85 @@ class ExamService
             }
 
             return $attempt->load(['answers.question.options', 'answers.question.subject']);
+        });
+    }
+
+    /**
+     * Restart an attempt from scratch, keeping the same attempt row so a
+     * participant still occupies exactly one slot on the livescore.
+     *
+     * Used by event organisers when a participant is stuck — e.g. a clock/time
+     * zone mismatch expired their exam and extending time is no longer possible.
+     */
+    public function resetAttempt(ExamAttempt $attempt): ExamAttempt
+    {
+        return DB::transaction(function () use ($attempt) {
+            $attempt = ExamAttempt::query()
+                ->whereKey($attempt->id)
+                ->lockForUpdate()
+                ->with('exam')
+                ->firstOrFail();
+
+            $exam = $attempt->exam;
+
+            if ($exam === null) {
+                throw ValidationException::withMessages([
+                    'reset' => 'Paket ujian tidak ditemukan untuk percobaan ini.',
+                ]);
+            }
+
+            $generator = app(ExamQuestionGeneratorService::class);
+            $difficulty = $exam->settings['difficulty'] ?? 'all';
+
+            try {
+                $generator->assertSufficientQuestions($difficulty);
+            } catch (ValidationException $exception) {
+                throw ValidationException::withMessages([
+                    'reset' => 'Bank soal tidak cukup untuk mengulang ujian.',
+                ]);
+            }
+
+            // Drop everything produced by the previous run.
+            $attempt->answers()->delete();
+            $attempt->telemetries()->delete();
+
+            XpReward::query()
+                ->where('source_type', ExamAttempt::class)
+                ->where('source_id', $attempt->id)
+                ->delete();
+
+            CoinTransaction::query()
+                ->where('source_type', ExamAttempt::class)
+                ->where('source_id', $attempt->id)
+                ->delete();
+
+            $attempt->update([
+                'started_at' => now(),
+                'expires_at' => now()->addMinutes($exam->duration_minutes),
+                'submitted_at' => null,
+                'status' => ExamAttemptStatus::InProgress,
+                'score_twk' => null,
+                'score_tiu' => null,
+                'score_tkp' => null,
+                'total_score' => null,
+                'question_duration' => null,
+                'answer_behavior' => null,
+                'help_items_state' => null,
+                'psychology_report' => null,
+                'psychology_report_status' => 'skipped', // column default — not nullable
+                'psychology_report_generated_at' => null,
+            ]);
+
+            // Fresh randomised question set, exactly like a brand new attempt.
+            foreach ($generator->generate($difficulty) as $item) {
+                ExamAnswer::query()->create([
+                    'exam_attempt_id' => $attempt->id,
+                    'question_id' => $item['id'],
+                    'sort_order' => $item['sort_order'],
+                ]);
+            }
+
+            return $attempt->fresh();
         });
     }
 

@@ -63,7 +63,7 @@ class Index extends Component
             ->exists();
 
         if ($finished) {
-            $this->addError('code', 'Anda sudah menyelesaikan sesi ini.');
+            $this->addError('code', 'Anda sudah menyelesaikan sesi ini. Hubungi panitia bila perlu mengulang — ujian Anda dapat direset dari panel panitia.');
 
             return;
         }

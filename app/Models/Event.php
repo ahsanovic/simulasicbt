@@ -19,6 +19,7 @@ class Event extends Model
         'exam_id',
         'status',
         'public_livescore',
+        'public_code',
         'starts_at',
         'ends_at',
         'description',
@@ -81,5 +82,29 @@ class Event extends Model
         } while (static::query()->where('code', $code)->exists());
 
         return $code;
+    }
+
+    /**
+     * URL-safe code used for the public livescore link (/livescore/{public_code}).
+     */
+    public static function generatePublicCode(int $length = 8): string
+    {
+        $chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+        do {
+            $code = '';
+            for ($i = 0; $i < $length; $i++) {
+                $code .= $chars[random_int(0, strlen($chars) - 1)];
+            }
+        } while (static::query()->where('public_code', $code)->exists());
+
+        return $code;
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $event) {
+            $event->public_code ??= static::generatePublicCode();
+        });
     }
 }

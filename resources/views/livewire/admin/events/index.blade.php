@@ -39,10 +39,19 @@
                                     <p class="mt-0.5 max-w-xs truncate text-xs text-slate-500">{{ $event->description }}</p>
                                 @endif
                                 @if($event->public_livescore)
-                                    <a href="{{ route('public.livescore.show', $event) }}" target="_blank"
-                                       class="mt-1 inline-flex items-center gap-1 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700 hover:bg-sky-100">
-                                        <x-ui.icon name="online" class="h-3 w-3" /> Livescore publik ↗
-                                    </a>
+                                    <div class="mt-1 flex items-center gap-1">
+                                        <a href="{{ route('public.livescore.show', $event) }}" target="_blank"
+                                           title="{{ route('public.livescore.show', $event) }}"
+                                           class="inline-flex items-center gap-1 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700 hover:bg-sky-100">
+                                            <x-ui.icon name="online" class="h-3 w-3" /> /livescore/{{ $event->public_code }} ↗
+                                        </a>
+                                        <button wire:click="regeneratePublicCode({{ $event->id }})"
+                                                wire:confirm="Buat ulang link publik? Link lama tidak akan berlaku lagi."
+                                                title="Buat ulang link publik"
+                                                class="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                                            <x-ui.icon name="refresh" class="h-3 w-3" />
+                                        </button>
+                                    </div>
                                 @endif
                             </td>
                             <td class="px-5 py-4 text-slate-600">

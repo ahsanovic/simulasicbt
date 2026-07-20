@@ -63,7 +63,7 @@ if ($appBasePath !== '') {
 
 // Public livescore — accessible without login (for venue display screens).
 Route::get('livescore', PublicLiveScoreIndex::class)->name('public.livescore.index');
-Route::get('livescore/{event}', PublicLiveScoreShow::class)->name('public.livescore.show');
+Route::get('livescore/{event:public_code}', PublicLiveScoreShow::class)->name('public.livescore.show');
 
 Route::redirect('/', '/login');
 

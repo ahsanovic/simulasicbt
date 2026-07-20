@@ -102,6 +102,13 @@ class Index extends Component
         $this->closeModal();
     }
 
+    public function regeneratePublicCode(int $eventId): void
+    {
+        $event = Event::query()->findOrFail($eventId);
+        $event->update(['public_code' => Event::generatePublicCode()]);
+        session()->flash('success', 'Link livescore publik diperbarui. Link lama tidak berlaku lagi.');
+    }
+
     public function delete(int $eventId): void
     {
         Event::query()->whereKey($eventId)->delete();

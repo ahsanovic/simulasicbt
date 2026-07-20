@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Class-based dark mode (opt-in per page via .dark on <html>), used by the
+   public livescore so viewers can switch between day and dark mode. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../views';
 @source '../views/vendor/pagination/*.blade.php';
 @source '../views/vendor/livewire/*.blade.php';

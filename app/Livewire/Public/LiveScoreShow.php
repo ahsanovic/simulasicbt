@@ -60,9 +60,16 @@ class LiveScoreShow extends Component
 
                 $inProgress = $attempt->status === ExamAttemptStatus::InProgress;
 
-                $score = $inProgress
-                    ? $attempt->calculateScores()['total']
-                    : (int) $attempt->total_score;
+                if ($inProgress) {
+                    $scores = $attempt->calculateScores();
+                } else {
+                    $scores = [
+                        'twk' => (int) $attempt->score_twk,
+                        'tiu' => (int) $attempt->score_tiu,
+                        'tkp' => (int) $attempt->score_tkp,
+                        'total' => (int) $attempt->total_score,
+                    ];
+                }
 
                 return [
                     'name' => $attempt->user?->name ?? 'Peserta',
@@ -70,7 +77,10 @@ class LiveScoreShow extends Component
                     'session' => $attempt->eventSession?->name,
                     'answered' => $answered,
                     'total' => $total,
-                    'score' => $score,
+                    'twk' => $scores['twk'],
+                    'tiu' => $scores['tiu'],
+                    'tkp' => $scores['tkp'],
+                    'score' => $scores['total'],
                     'in_progress' => $inProgress,
                 ];
             })

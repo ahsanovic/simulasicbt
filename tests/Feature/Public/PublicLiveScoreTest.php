@@ -41,6 +41,25 @@ class PublicLiveScoreTest extends TestCase
             ->assertSee('Tryout Publik');
     }
 
+    public function test_public_url_uses_the_unique_code_not_the_id(): void
+    {
+        $event = $this->makeEvent('Tryout Publik', publicLivescore: true);
+
+        $this->assertNotEmpty($event->public_code);
+        $this->assertStringEndsWith('/livescore/'.$event->public_code, route('public.livescore.show', $event));
+
+        // The old id-based URL must no longer resolve.
+        $this->get('/livescore/'.$event->id)->assertNotFound();
+    }
+
+    public function test_every_new_event_gets_a_unique_public_code(): void
+    {
+        $a = $this->makeEvent('Event A', publicLivescore: true);
+        $b = $this->makeEvent('Event B', publicLivescore: true);
+
+        $this->assertNotSame($a->public_code, $b->public_code);
+    }
+
     public function test_non_public_event_livescore_returns_404_even_to_guests(): void
     {
         $event = $this->makeEvent('Rahasia', publicLivescore: false);

@@ -1,4 +1,4 @@
-<div wire:poll.5s class="min-h-screen">
+<div wire:poll.30s class="min-h-screen">
     <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 pr-16 sm:px-6 sm:pr-20">
             <div class="min-w-0">

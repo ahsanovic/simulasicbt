@@ -50,6 +50,12 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function resetFilters(): void
+    {
+        $this->reset(['search']);
+        $this->resetPage();
+    }
+
     public function openCreateModal(): void
     {
         $this->resetForm();

@@ -1,7 +1,7 @@
 @props(['active' => 'dashboard'])
 
 @php
-    $belajarActive = in_array($active, ['materi', 'audio'], true);
+    $belajarActive = in_array($active, ['materi', 'audio', 'kartu-sakti'], true);
     $riwayatEventActive = in_array($active, ['history', 'events'], true);
     $evaluasiActive = in_array($active, ['evaluasi', 'simulasi-formasi'], true);
 @endphp
@@ -245,21 +245,20 @@
                             </svg>
                             Audio Mode
                         </a>
+                        <a href="{{ route('peserta.kartu-sakti.index') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'kartu-sakti',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'kartu-sakti',
+                           ])>
+                            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-sm" aria-hidden="true">✨</span>
+                            Kartu Sakti
+                        </a>
                     </div>
                 </div>
 
-                <a href="{{ route('peserta.kartu-sakti.index') }}"
-                   wire:navigate
-                   @class([
-                       'shrink-0 rounded-lg px-3 py-1.5 transition',
-                       'bg-white text-primary-700 shadow-sm' => $active === 'kartu-sakti',
-                       'text-slate-600 hover:text-slate-900' => $active !== 'kartu-sakti',
-                   ])>
-                    <span class="inline-flex items-center gap-1.5">
-                        <span class="text-sm leading-none" aria-hidden="true">✨</span>
-                        Kartu Sakti
-                    </span>
-                </a>
                 <a href="{{ route('peserta.shop.index') }}"
                    wire:navigate
                    @class([
@@ -494,20 +493,19 @@
                            ])>
                             Audio Mode
                         </a>
+                        <a href="{{ route('peserta.kartu-sakti.index') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'kartu-sakti',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'kartu-sakti',
+                           ])>
+                            Kartu Sakti
+                        </a>
                     </div>
                 </div>
 
-                <a href="{{ route('peserta.kartu-sakti.index') }}"
-                   wire:navigate
-                   @click="mobileOpen = false"
-                   @class([
-                       'flex items-center gap-3 rounded-xl px-3 py-2.5 transition',
-                       'bg-primary-50 text-primary-700' => $active === 'kartu-sakti',
-                       'text-slate-700 hover:bg-slate-50' => $active !== 'kartu-sakti',
-                   ])>
-                    <span class="text-sm leading-none" aria-hidden="true">✨</span>
-                    Kartu Sakti
-                </a>
                 <a href="{{ route('peserta.shop.index') }}"
                    wire:navigate
                    @click="mobileOpen = false"

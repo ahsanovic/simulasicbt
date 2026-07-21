@@ -45,9 +45,27 @@ class LiveScore extends Component
     /**
      * @return list<array{attempt_id: int, name: string, instansi: ?string, answered: int, total: int, score: int, status: ExamAttemptStatus, in_progress: bool, remaining: ?string, submitted_at: ?string}>
      */
+    /**
+     * Participants whose time ran out while offline never submitted themselves,
+     * so close them out before reporting status.
+     */
+    private function closeExpiredAttempts(): void
+    {
+        $expired = ExamAttempt::query()
+            ->where('event_session_id', $this->session->id)
+            ->expiredButOpen()
+            ->get();
+
+        if ($expired->isNotEmpty()) {
+            app(ExamService::class)->finalizeExpiredAttempts($expired);
+        }
+    }
+
     #[Computed]
     public function rows(): array
     {
+        $this->closeExpiredAttempts();
+
         $attempts = ExamAttempt::query()
             ->where('event_session_id', $this->session->id)
             ->with([

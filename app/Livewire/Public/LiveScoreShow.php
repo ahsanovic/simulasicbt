@@ -5,6 +5,7 @@ namespace App\Livewire\Public;
 use App\Enums\ExamAttemptStatus;
 use App\Models\Event;
 use App\Models\ExamAttempt;
+use App\Services\ExamService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -34,9 +35,27 @@ class LiveScoreShow extends Component
     /**
      * @return list<array{rank: int, name: string, instansi: ?string, session: ?string, answered: int, total: int, score: int, in_progress: bool}>
      */
+    /**
+     * Participants whose time ran out while offline never submitted themselves,
+     * so close them out before reporting status.
+     */
+    private function closeExpiredAttempts(): void
+    {
+        $expired = ExamAttempt::query()
+            ->where('event_id', $this->event->id)
+            ->expiredButOpen()
+            ->get();
+
+        if ($expired->isNotEmpty()) {
+            app(ExamService::class)->finalizeExpiredAttempts($expired);
+        }
+    }
+
     #[Computed]
     public function rows(): array
     {
+        $this->closeExpiredAttempts();
+
         $attempts = ExamAttempt::query()
             ->where('event_id', $this->event->id)
             ->when($this->sessionId, fn ($query) => $query->where('event_session_id', $this->sessionId))

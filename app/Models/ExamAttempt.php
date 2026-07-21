@@ -113,6 +113,17 @@ class ExamAttempt extends Model
         return $query->where('attempt_type', ExamAttemptType::Full);
     }
 
+    /**
+     * Still marked as running even though the deadline has passed — these need
+     * closing out before their status is reported anywhere.
+     */
+    public function scopeExpiredButOpen(Builder $query): Builder
+    {
+        return $query
+            ->where('status', ExamAttemptStatus::InProgress)
+            ->where('expires_at', '<=', now());
+    }
+
     public function wrongAnswerCount(): int
     {
         $this->loadMissing(['answers.question', 'answers.selectedOption']);

@@ -115,6 +115,56 @@ class EventLiveScoreTest extends TestCase
         $this->assertEqualsWithDelta(0, $before->diffInMinutes($target->fresh()->expires_at), 0.2);
     }
 
+    public function test_livescore_closes_attempts_whose_time_ran_out(): void
+    {
+        [$admin, $event, $session, $attempts] = $this->createSessionWithAttempts();
+        $stuck = $attempts[0];
+
+        // Participant went offline, so their in-exam expiry poll never fired.
+        $stuck->update(['expires_at' => now()->subMinutes(5)]);
+
+        $rows = Livewire::actingAs($admin)
+            ->test(LiveScore::class, ['event' => $event, 'session' => $session])
+            ->get('rows');
+
+        $row = collect($rows)->firstWhere('attempt_id', $stuck->id);
+        $this->assertFalse($row['in_progress'], 'Status harus otomatis jadi Selesai saat waktu habis.');
+
+        $fresh = $stuck->fresh();
+        $this->assertNotSame(ExamAttemptStatus::InProgress, $fresh->status);
+        $this->assertNotNull($fresh->submitted_at);
+        $this->assertNotNull($fresh->total_score, 'Skor akhir harus dihitung saat ditutup.');
+    }
+
+    public function test_closing_an_expired_attempt_records_the_real_expiry_time(): void
+    {
+        [$admin, $event, $session, $attempts] = $this->createSessionWithAttempts();
+        $stuck = $attempts[0];
+        $expiredAt = now()->subMinutes(12);
+        $stuck->update(['expires_at' => $expiredAt]);
+
+        Livewire::actingAs($admin)
+            ->test(LiveScore::class, ['event' => $event, 'session' => $session])
+            ->get('rows');
+
+        // Finish time is when the exam actually ran out, not when we noticed.
+        $this->assertEqualsWithDelta(0, $expiredAt->diffInSeconds($stuck->fresh()->submitted_at), 2);
+    }
+
+    public function test_summary_counts_expired_participants_as_finished(): void
+    {
+        [$admin, $event, $session, $attempts] = $this->createSessionWithAttempts();
+        $attempts[0]->update(['expires_at' => now()->subMinute()]);
+
+        $summary = Livewire::actingAs($admin)
+            ->test(LiveScore::class, ['event' => $event, 'session' => $session])
+            ->get('summary');
+
+        // 1 still running, 2 finished (1 submitted earlier + 1 just expired).
+        $this->assertSame(1, $summary['in_progress']);
+        $this->assertSame(2, $summary['finished']);
+    }
+
     public function test_livescore_rows_expose_per_subject_scores(): void
     {
         [$admin, $event, $session, , $finished] = $this->createSessionWithAttempts();
@@ -267,20 +317,28 @@ class EventLiveScoreTest extends TestCase
         $this->assertDatabaseMissing('coin_transactions', ['source_type' => ExamAttempt::class, 'source_id' => $finished->id]);
     }
 
-    public function test_adding_time_revives_a_just_expired_attempt(): void
+    public function test_an_expired_attempt_is_closed_and_recovered_via_reset_not_extra_time(): void
     {
         [$admin, $event, $session, $attempts] = $this->createSessionWithAttempts();
+        $this->seedQuestionBank();
         $target = $attempts[0];
         $target->update(['expires_at' => now()->subMinutes(3)]);
 
-        Livewire::actingAs($admin)
-            ->test(LiveScore::class, ['event' => $event, 'session' => $session])
-            ->set('addMinutes', 5)
-            ->call('addTime', $target->id)
-            ->assertHasNoErrors();
+        $component = Livewire::actingAs($admin)
+            ->test(LiveScore::class, ['event' => $event, 'session' => $session]);
 
-        $this->assertTrue($target->fresh()->expires_at->isFuture());
-        $this->assertSame(ExamAttemptStatus::InProgress, $target->fresh()->status);
+        // Opening the livescore closes it out, so extra time no longer applies.
+        $this->assertNotSame(ExamAttemptStatus::InProgress, $target->fresh()->status);
+
+        $component->set('addMinutes', 5)->call('addTime', $target->id);
+        $this->assertFalse($target->fresh()->expires_at->isFuture(), 'Waktu tidak boleh ditambahkan ke ujian yang sudah ditutup.');
+
+        // Reset is the way back in.
+        $component->call('resetAttempt', $target->id)->assertHasNoErrors();
+
+        $revived = $target->fresh();
+        $this->assertSame(ExamAttemptStatus::InProgress, $revived->status);
+        $this->assertTrue($revived->expires_at->isFuture());
     }
 
     /**

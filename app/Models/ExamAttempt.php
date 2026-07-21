@@ -30,6 +30,9 @@ class ExamAttempt extends Model
         'question_duration',
         'answer_behavior',
         'help_items_state',
+        'stress_test_enabled',
+        'stress_test_telemetry',
+        'stress_test_analysis',
         'psychology_report',
         'psychology_report_status',
         'psychology_report_generated_at',
@@ -50,6 +53,9 @@ class ExamAttempt extends Model
             'question_duration' => 'array',
             'answer_behavior' => 'array',
             'help_items_state' => 'array',
+            'stress_test_enabled' => 'boolean',
+            'stress_test_telemetry' => 'array',
+            'stress_test_analysis' => 'array',
             'psychology_report_generated_at' => 'datetime',
         ];
     }

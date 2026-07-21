@@ -50,8 +50,8 @@
         wire:click="closeResultModal"
     ></div>
 
-    <div class="relative mx-auto flex min-h-full w-full items-center justify-center">
-        <div class="relative flex w-full max-w-2xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-900/30">
+    <div class="relative mx-auto flex min-h-full w-full max-w-4xl items-center justify-center">
+        <div class="relative flex w-full max-h-[min(94dvh,920px)] min-h-[min(72dvh,640px)] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-900/30 sm:min-h-[min(78dvh,720px)]">
         {{-- Header --}}
         <div @class([
             'relative shrink-0 overflow-hidden px-6 pb-5 pt-4 text-white sm:px-8 sm:pb-6 sm:pt-6',
@@ -126,7 +126,7 @@
         </div>
 
         {{-- Score breakdown --}}
-        <div class="flex-1 space-y-4 overflow-y-auto px-6 py-6 sm:px-8">
+        <div class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-7">
             @if ($isRemedial)
                 <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 text-center">
                     <p class="text-sm font-semibold text-indigo-900">Drill Soal Salah</p>
@@ -144,7 +144,7 @@
                 <p class="text-xs text-slate-500">Bandingkan dengan ambang batas</p>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-2">
                 @foreach ($subjects as $subject)
                     @php
                         $score = $subject['score'] !== null && $subject['score'] !== '' ? (int) round((float) $subject['score']) : null;
@@ -213,42 +213,56 @@
                     Anda dinyatakan lulus jika <strong>semua</strong> komponen (TWK, TIU, TKP, dan Total) memenuhi ambang batas masing-masing.
                 </p>
             </div>
+
+            @if ($attempt->stress_test_enabled && ($attempt->stress_test_analysis['has_data'] ?? false))
+                <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                    <p class="text-sm font-semibold text-rose-900">
+                        Mode Stress-Test aktif — Ketahanan Stres: {{ $attempt->stress_test_analysis['score'] }}% ({{ $attempt->stress_test_analysis['level_label'] }})
+                    </p>
+                    <p class="mt-1 text-xs text-rose-800/80">Lihat analisis lengkap di Kunci Jawaban dan Pembahasan.</p>
+                </div>
+            @endif
             @endif
         </div>
 
         {{-- Sticky footer: Kartu Sakti + action buttons --}}
-        <div class="shrink-0 space-y-3 border-t border-slate-200 bg-white px-6 py-4 sm:px-8">
-            @if (! $isRemedial && ! $attempt->isDuelAttempt() && $wrongCount > 0)
-                <div class="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
-                    <p class="text-sm font-semibold text-indigo-900">Ujian Remedial — Drill Soal Salah</p>
-                    <p class="mt-1 text-xs text-indigo-800/80">
-                        Ulangi hanya {{ $wrongCount }} soal yang salah tanpa mengerjakan seluruh paket.
-                    </p>
-                    @if ($remedialUnlock)
-                        <div class="mt-3">
-                            <x-peserta.remedial-action
-                                :attempt="$attempt"
-                                :remedial-unlock="$remedialUnlock"
-                                :total-xp="$totalXp"
-                            />
+        <div class="shrink-0 space-y-4 border-t border-slate-200 bg-white px-5 py-5 sm:px-8 sm:py-6">
+            @if (! $isRemedial && $wrongCount > 0)
+                <div class="grid gap-4 lg:grid-cols-2">
+                    @if (! $attempt->isDuelAttempt())
+                        <div class="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 sm:p-5">
+                            <p class="text-sm font-semibold text-indigo-900">Ujian Remedial — Drill Soal Salah</p>
+                            <p class="mt-1 text-xs text-indigo-800/80">
+                                Ulangi hanya {{ $wrongCount }} soal yang salah tanpa mengerjakan seluruh paket.
+                            </p>
+                            @if ($remedialUnlock)
+                                <div class="mt-3">
+                                    <x-peserta.remedial-action
+                                        :attempt="$attempt"
+                                        :remedial-unlock="$remedialUnlock"
+                                        :total-xp="$totalXp"
+                                    />
+                                </div>
+                            @endif
                         </div>
                     @endif
-                </div>
-            @endif
 
-            @if (! $isRemedial && $wrongCount > 0)
-                <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-                    <p class="text-sm font-semibold text-amber-900">Kartu Sakti — Spaced Repetition</p>
-                    <p class="mt-1 text-xs text-amber-800/80">
-                        Simpan {{ $wrongCount }} soal salah agar otomatis direview sebelum Anda lupa.
-                    </p>
-                    <button type="button"
-                            wire:click="saveResultWrongToFlashcard"
-                            wire:loading.attr="disabled"
-                            class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">
-                        <span wire:loading.remove wire:target="saveResultWrongToFlashcard">⭐ Simpan ke Kartu Sakti</span>
-                        <span wire:loading wire:target="saveResultWrongToFlashcard">Menyimpan...</span>
-                    </button>
+                    <div @class([
+                        'rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5',
+                        'lg:col-span-2' => $attempt->isDuelAttempt(),
+                    ])>
+                        <p class="text-sm font-semibold text-amber-900">Kartu Sakti — Spaced Repetition</p>
+                        <p class="mt-1 text-xs text-amber-800/80">
+                            Simpan {{ $wrongCount }} soal salah agar otomatis direview sebelum Anda lupa.
+                        </p>
+                        <button type="button"
+                                wire:click="saveResultWrongToFlashcard"
+                                wire:loading.attr="disabled"
+                                class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">
+                            <span wire:loading.remove wire:target="saveResultWrongToFlashcard">⭐ Simpan ke Kartu Sakti</span>
+                            <span wire:loading wire:target="saveResultWrongToFlashcard">Menyimpan...</span>
+                        </button>
+                    </div>
                 </div>
             @endif
 

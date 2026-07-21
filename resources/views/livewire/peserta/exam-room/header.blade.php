@@ -13,9 +13,17 @@
                 <div class="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100">
                     <svg class="h-4 w-4 shrink-0 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <div x-data="examTimer({{ max(0, $this->remainingSeconds) }})">
+                <div x-data="examTimer({{ max(0, $this->remainingSeconds) }}, {
+                    stressMode: @js($stressTestEnabled),
+                    clockPressureSeconds: 1800,
+                })">
                     <p class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Sisa Waktu</p>
-                    <p class="text-xl font-bold tabular-nums text-rose-700" x-text="formattedTime"></p>
+                    <p @class([
+                        'text-xl font-bold tabular-nums text-rose-700',
+                        'animate-pulse' => false,
+                    ])
+                       :class="{ 'animate-pulse text-rose-800': isClockPressure }"
+                       x-text="formattedTime"></p>
                 </div>
             </div>
 

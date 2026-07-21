@@ -8,13 +8,14 @@ use App\Models\AiRecommendation;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Services\DeepSeekRecommendationService;
-use App\Services\ExamService;
 use App\Services\ExamWeaknessAnalysisService;
 use App\Services\FlashcardService;
 use Throwable;
 
 trait InteractsWithAiReadinessReport
 {
+    use InteractsWithStressTestModal;
+
     public string $variant = 'sidebar';
 
     public ?string $focusHighlight = null;
@@ -140,9 +141,7 @@ trait InteractsWithAiReadinessReport
             return;
         }
 
-        app(ExamService::class)->startAttempt($exam, auth()->user());
-
-        $this->redirect(route('peserta.exam.room', $exam), navigate: true);
+        $this->promptStressTestOrBeginExam($exam);
     }
 
     public function seedWeakMaterialsToFlashcard(FlashcardService $flashcardService): void

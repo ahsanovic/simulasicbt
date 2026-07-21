@@ -1,7 +1,9 @@
 document.addEventListener('alpine:init', () => {
-    Alpine.data('examTimer', (initialSeconds) => ({
+    Alpine.data('examTimer', (initialSeconds, options = {}) => ({
         seconds: Math.max(0, Number(initialSeconds) || 0),
         intervalId: null,
+        stressMode: Boolean(options.stressMode),
+        clockPressureSeconds: Number(options.clockPressureSeconds) || 1800,
 
         get formattedTime() {
             const hours = Math.floor(this.seconds / 3600);
@@ -11,6 +13,12 @@ document.addEventListener('alpine:init', () => {
             return [hours, minutes, secs]
                 .map((value) => String(value).padStart(2, '0'))
                 .join(':');
+        },
+
+        get isClockPressure() {
+            return this.stressMode
+                && this.seconds > 0
+                && this.seconds <= this.clockPressureSeconds;
         },
 
         init() {
@@ -26,6 +34,7 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 this.seconds--;
+                this.$dispatch('exam-timer-tick', { remainingSeconds: this.seconds });
             }, 1000);
         },
 

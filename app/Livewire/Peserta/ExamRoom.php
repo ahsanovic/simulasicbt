@@ -10,6 +10,7 @@ use App\Models\ExamAttempt;
 use App\Models\QuestionOption;
 use App\Services\ExamPsychologyTelemetryService;
 use App\Services\ExamService;
+use App\Services\ExamStressResilienceService;
 use App\Services\HelpItemService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -42,6 +43,18 @@ class ExamRoom extends Component
 
     #[Locked]
     public bool $helpItemsEnabled = false;
+
+    #[Locked]
+    public bool $stressTestEnabled = false;
+
+    #[Locked]
+    public int $examDurationMinutes = 0;
+
+    /** @var array{red_zone_triggers: int, red_zone_questions: list<int>} */
+    public array $stressTestTelemetry = [
+        'red_zone_triggers' => 0,
+        'red_zone_questions' => [],
+    ];
 
     #[Locked]
     public int $currentIndex = 0;
@@ -101,6 +114,8 @@ class ExamRoom extends Component
         $this->isRemedial = $attempt->isRemedial();
         $this->isDuel = $attempt->isDuelAttempt();
         $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDuel;
+        $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;
+        $this->examDurationMinutes = (int) $exam->duration_minutes;
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
         $this->answerStates = $attempt->answers
             ->sortBy(fn (ExamAnswer $answer) => $answer->sort_order ?: 999)
@@ -120,6 +135,7 @@ class ExamRoom extends Component
             ->all();
 
         $this->loadAnswerBehavior($attempt);
+        $this->loadStressTestTelemetry($attempt);
 
         $helpState = $attempt->help_items_state ?? $helpItemService->defaultHelpItemsState();
         $this->skipTrackerActive = (bool) ($helpState['skip_tracker_active'] ?? false);
@@ -131,7 +147,7 @@ class ExamRoom extends Component
 
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
-        $this->dispatch('question-changed');
+        $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
     }
 
     public function getAnswersProperty()
@@ -299,7 +315,7 @@ class ExamRoom extends Component
         $this->currentIndex = $nextIndex;
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
-        $this->dispatch('question-changed');
+        $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
     }
 
     public function goToShop(): void
@@ -389,7 +405,7 @@ class ExamRoom extends Component
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
-        $this->dispatch('question-changed');
+        $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
     }
 
     public function previous(): void
@@ -409,7 +425,7 @@ class ExamRoom extends Component
             $this->currentIndex++;
             $this->loadCurrentAnswer();
             $this->startQuestionTimer();
-            $this->dispatch('question-changed');
+            $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
         } else {
             $this->showLastQuestionModal = true;
         }
@@ -447,6 +463,7 @@ class ExamRoom extends Component
         $this->persistHelpItemsState();
         if (! $this->isRemedial) {
             $this->persistTelemetries();
+            $this->persistStressTestAnalysis();
         }
         $attempt = $examService->submitAttempt($this->resolveAttempt(), auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
@@ -461,6 +478,7 @@ class ExamRoom extends Component
             $this->persistHelpItemsState();
             if (! $this->isRemedial) {
                 $this->persistTelemetries();
+                $this->persistStressTestAnalysis();
             }
             $attempt = app(ExamService::class)->submitAttempt($this->resolveAttempt(), auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
@@ -630,6 +648,54 @@ class ExamRoom extends Component
             $this->answerBehavior,
             $this->remainingSeconds,
         );
+    }
+
+    public function syncStressTestTelemetry(int $redZoneTriggers, array $redZoneQuestions): void
+    {
+        if (! $this->stressTestEnabled) {
+            return;
+        }
+
+        $this->stressTestTelemetry = [
+            'red_zone_triggers' => max(0, $redZoneTriggers),
+            'red_zone_questions' => array_values(array_unique(array_map('intval', $redZoneQuestions))),
+        ];
+    }
+
+    private function persistStressTestAnalysis(): void
+    {
+        if (! $this->stressTestEnabled) {
+            return;
+        }
+
+        $attempt = ExamAttempt::query()
+            ->whereKey($this->attemptId)
+            ->where('user_id', auth()->id())
+            ->with(['answers.question', 'answers.selectedOption', 'exam'])
+            ->firstOrFail();
+
+        $analysis = app(ExamStressResilienceService::class)->analyzeAttempt(
+            $attempt,
+            $this->stressTestTelemetry,
+        );
+
+        ExamAttempt::query()
+            ->whereKey($this->attemptId)
+            ->where('user_id', auth()->id())
+            ->update([
+                'stress_test_telemetry' => $this->stressTestTelemetry,
+                'stress_test_analysis' => $analysis,
+            ]);
+    }
+
+    private function loadStressTestTelemetry(ExamAttempt $attempt): void
+    {
+        $stored = $attempt->stress_test_telemetry ?? [];
+
+        $this->stressTestTelemetry = [
+            'red_zone_triggers' => max(0, (int) ($stored['red_zone_triggers'] ?? 0)),
+            'red_zone_questions' => array_values(array_map('intval', $stored['red_zone_questions'] ?? [])),
+        ];
     }
 
     private function loadAnswerBehavior(ExamAttempt $attempt): void

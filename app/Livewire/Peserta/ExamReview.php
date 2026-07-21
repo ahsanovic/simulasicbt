@@ -6,6 +6,7 @@ use App\Enums\AnswerReviewOutcome;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Services\ExamPsychologyAnalysisService;
+use App\Services\ExamStressResilienceService;
 use App\Services\ExamTimeManagementService;
 use App\Services\FlashcardService;
 use Illuminate\Validation\ValidationException;
@@ -88,6 +89,18 @@ class ExamReview extends Component
     public function getPsychologyAnalysisProperty(): array
     {
         return app(ExamPsychologyAnalysisService::class)->aggregateForAttempt($this->attempt);
+    }
+
+    public function getStressResilienceAnalysisProperty(): array
+    {
+        if (! $this->attempt->stress_test_enabled) {
+            return ['has_data' => false];
+        }
+
+        return app(ExamStressResilienceService::class)->analyzeAttempt(
+            $this->attempt,
+            $this->attempt->stress_test_telemetry ?? [],
+        );
     }
 
     public function getPsychologyReportPendingProperty(): bool

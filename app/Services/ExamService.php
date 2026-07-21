@@ -36,9 +36,14 @@ class ExamService
             ->first(fn (ExamAttempt $attempt) => $attempt->isActive() && ! $attempt->isDuelAttempt());
     }
 
-    public function startAttempt(Exam $exam, User $user, ?int $eventId = null, ?int $eventSessionId = null): ExamAttempt
-    {
-        return DB::transaction(function () use ($exam, $user, $eventId, $eventSessionId) {
+    public function startAttempt(
+        Exam $exam,
+        User $user,
+        ?int $eventId = null,
+        ?int $eventSessionId = null,
+        bool $stressTestEnabled = false,
+    ): ExamAttempt {
+        return DB::transaction(function () use ($exam, $user, $eventId, $eventSessionId, $stressTestEnabled) {
             $generator = app(ExamQuestionGeneratorService::class);
             $difficulty = $exam->settings['difficulty'] ?? 'all';
 
@@ -58,6 +63,7 @@ class ExamService
                 'started_at' => now(),
                 'expires_at' => now()->addMinutes($exam->duration_minutes),
                 'status' => ExamAttemptStatus::InProgress,
+                'stress_test_enabled' => $stressTestEnabled && $eventId === null,
             ]);
 
             foreach ($generator->generate($difficulty) as $item) {
@@ -167,6 +173,9 @@ class ExamService
                 'question_duration' => null,
                 'answer_behavior' => null,
                 'help_items_state' => null,
+                'stress_test_enabled' => false,
+                'stress_test_telemetry' => null,
+                'stress_test_analysis' => null,
                 'psychology_report' => null,
                 'psychology_report_status' => 'skipped', // column default — not nullable
                 'psychology_report_generated_at' => null,

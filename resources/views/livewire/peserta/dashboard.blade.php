@@ -157,4 +157,6 @@
             </div>
         </div>
     @endif
+
+    <x-exam-stress-test-modal :stress-test-exam-id="$stressTestExamId" />
 </div>

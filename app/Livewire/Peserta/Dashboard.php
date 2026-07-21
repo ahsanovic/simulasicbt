@@ -3,10 +3,10 @@
 namespace App\Livewire\Peserta;
 
 use App\Enums\ExamAttemptStatus;
+use App\Livewire\Concerns\InteractsWithStressTestModal;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Services\CoinService;
-use App\Services\ExamService;
 use App\Services\FlashcardService;
 use App\Services\GamificationService;
 use App\Services\LeaderboardSummaryService;
@@ -19,6 +19,8 @@ use Livewire\Component;
 #[Title('Dashboard Peserta')]
 class Dashboard extends Component
 {
+    use InteractsWithStressTestModal;
+
     public ?int $pinExamId = null;
 
     public string $examPin = '';
@@ -53,7 +55,7 @@ class Dashboard extends Component
             return;
         }
 
-        $this->beginExam($exam);
+        $this->promptStressTestOrBeginExam($exam);
     }
 
     public function confirmPin(): void
@@ -89,7 +91,7 @@ class Dashboard extends Component
             return;
         }
 
-        $this->beginExam($exam);
+        $this->beginExamAttempt($exam, false);
     }
 
     public function closePinModal(): void
@@ -97,13 +99,6 @@ class Dashboard extends Component
         $this->pinExamId = null;
         $this->examPin = '';
         $this->resetErrorBag('examPin');
-    }
-
-    private function beginExam(Exam $exam): void
-    {
-        app(ExamService::class)->startAttempt($exam, auth()->user());
-
-        $this->redirect(route('peserta.exam.room', $exam));
     }
 
     public function render(CoinService $coinService, FlashcardService $flashcardService, GamificationService $gamificationService, LeaderboardSummaryService $leaderboardSummary)

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\DuelSessionStatus;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
+use App\Enums\ScoreTrendPeriod;
 use App\Models\DuelSession;
 use App\Models\ExamAttempt;
 use App\Models\User;
@@ -25,7 +26,7 @@ class PesertaStatisticsService
     /**
      * @return array<string, mixed>
      */
-    public function forUser(User $user): array
+    public function forUser(User $user, ScoreTrendPeriod $scoreTrendPeriod = ScoreTrendPeriod::All): array
     {
         $userId = (int) $user->id;
         $officialAttempts = $this->officialSubmittedAttempts($userId);
@@ -44,7 +45,7 @@ class PesertaStatisticsService
             'best_scores' => $bestScores,
             'passing_grades' => $passingGrades,
             'score_max' => $scoreMax,
-            'score_trend' => $this->scoreTrend($officialAttempts, $passingGrades),
+            'score_trend' => $this->scoreTrend($officialAttempts, $passingGrades, $scoreTrendPeriod),
             'pillar_comparison' => $this->pillarComparison($bestScores, $passingGrades, $scoreMax),
             'weakness_stats' => $weaknessStats,
             'time_management' => $weaknessStats['time_management'] ?? ['has_data' => false],
@@ -141,9 +142,17 @@ class PesertaStatisticsService
     /**
      * @param  array{twk: int, tiu: int, tkp: int, total: int}  $passingGrades
      */
-    private function scoreTrend(Collection $officialAttempts, array $passingGrades): array
+    private function scoreTrend(Collection $officialAttempts, array $passingGrades, ScoreTrendPeriod $period): array
     {
-        $points = $officialAttempts
+        $attempts = $officialAttempts;
+
+        if ($since = $period->since()) {
+            $attempts = $attempts->filter(
+                fn (ExamAttempt $attempt) => $attempt->submitted_at?->gte($since) ?? false,
+            );
+        }
+
+        $points = $attempts
             ->take(-self::SCORE_TREND_LIMIT)
             ->values()
             ->map(function (ExamAttempt $attempt, int $index) {

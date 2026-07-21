@@ -196,21 +196,53 @@
 
             {{-- Score trend chart --}}
             <section id="stat-section-trend" class="scroll-mt-28 mb-8">
-                @if (count($scoreTrendChart['labels']) >= 1)
-                    <div
-                        wire:ignore
-                        data-score-trend-chart
-                        class="ui-card overflow-hidden"
-                        x-init="$nextTick(() => window.initStatisticsCharts?.($el))"
-                    >
-                        <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="ui-card overflow-hidden">
+                    <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-4">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                                 <h2 class="text-lg font-bold text-slate-900">Progres Skor Simulasi</h2>
                                 <p class="mt-0.5 text-sm text-slate-500">
-                                    {{ count($scoreTrendChart['labels']) }} simulasi terakhir · hover untuk detail · titik hijau/merah pada skor total = lulus/belum
+                                    @if (count($scoreTrendChart['labels']) >= 1)
+                                        {{ count($scoreTrendChart['labels']) }} simulasi
+                                        @if ($activeScoreTrendPeriod !== \App\Enums\ScoreTrendPeriod::All)
+                                            dalam {{ strtolower($activeScoreTrendPeriod->label()) }}
+                                        @else
+                                            terakhir
+                                        @endif
+                                        · hover untuk detail · titik hijau/merah pada skor total = lulus/belum
+                                    @else
+                                        Pilih periode lain atau selesaikan simulasi untuk melihat grafik progres skor.
+                                    @endif
                                 </p>
                             </div>
-                            <div class="flex flex-wrap gap-1.5">
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach ($scoreTrendPeriods as $periodOption)
+                                <button
+                                    type="button"
+                                    wire:click="setScoreTrendPeriod('{{ $periodOption->value }}')"
+                                    wire:loading.attr="disabled"
+                                    wire:target="setScoreTrendPeriod"
+                                    @class([
+                                        'rounded-lg px-3 py-1.5 text-xs font-semibold transition',
+                                        'bg-slate-800 text-white shadow-sm' => $activeScoreTrendPeriod === $periodOption,
+                                        'bg-slate-100 text-slate-600 hover:bg-slate-200' => $activeScoreTrendPeriod !== $periodOption,
+                                    ])
+                                >
+                                    {{ $periodOption->label() }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    @if (count($scoreTrendChart['labels']) >= 1)
+                        <div
+                            wire:key="score-trend-{{ $activeScoreTrendPeriod->value }}"
+                            data-score-trend-chart
+                            class="bg-white p-4 sm:p-6"
+                            x-init="$nextTick(() => window.initStatisticsCharts?.($el))"
+                        >
+                            <div class="mb-4 flex flex-wrap justify-end gap-1.5">
                                 @foreach (['total' => 'Total', 'twk' => 'TWK', 'tiu' => 'TIU', 'tkp' => 'TKP'] as $metric => $label)
                                     <button
                                         type="button"
@@ -221,22 +253,21 @@
                                     </button>
                                 @endforeach
                             </div>
-                        </div>
-                        <div class="bg-white p-4 sm:p-6">
                             <script type="application/json" data-score-trend-payload>@json($scoreTrendChart)</script>
                             <div class="h-72 sm:h-80">
                                 <canvas></canvas>
                             </div>
                         </div>
-                    </div>
-                @else
-                    <div class="ui-card overflow-hidden">
-                        <div class="border-b border-slate-100 px-6 py-4">
-                            <h2 class="text-lg font-bold text-slate-900">Progres Skor Simulasi</h2>
-                        </div>
-                        <p class="px-6 py-8 text-center text-sm text-slate-500">Selesaikan simulasi pertama untuk melihat grafik progres skor.</p>
-                    </div>
-                @endif
+                    @else
+                        <p class="px-6 py-8 text-center text-sm text-slate-500">
+                            @if ($hasHistory)
+                                Tidak ada simulasi dalam periode {{ strtolower($activeScoreTrendPeriod->label()) }}.
+                            @else
+                                Selesaikan simulasi pertama untuk melihat grafik progres skor.
+                            @endif
+                        </p>
+                    @endif
+                </div>
             </section>
 
             {{-- Best scores per pillar --}}

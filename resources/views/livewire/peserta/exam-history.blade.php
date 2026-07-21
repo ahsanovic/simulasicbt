@@ -252,13 +252,31 @@
             @empty
                 <div class="ui-card flex flex-col items-center justify-center border-dashed px-6 py-16 text-center">
                     <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary-400">
-                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
                     </div>
-                    <p class="mt-4 font-semibold text-slate-700">Belum ada riwayat tes</p>
-                    <p class="mt-1 text-sm text-slate-500">
-                        Mulai simulasi dari menu
-                        <a href="{{ route('peserta.dashboard') }}" wire:navigate class="font-semibold text-primary-600 hover:underline">Simulasi</a>.
-                    </p>
+                    @if ($activeFilter->value === 'all')
+                        <p class="mt-4 font-semibold text-slate-700">Belum ada riwayat tes</p>
+                        <p class="mt-1 max-w-sm text-sm text-slate-500">
+                            Selesaikan simulasi pertama Anda untuk melihat riwayat di sini.
+                        </p>
+                        <a href="{{ route('peserta.simulasi.index') }}" wire:navigate class="ui-btn-primary mt-6">
+                            Mulai Simulasi →
+                        </a>
+                    @else
+                        <p class="mt-4 font-semibold text-slate-700">Tidak ada riwayat {{ $activeFilter->label() }}</p>
+                        <p class="mt-1 max-w-sm text-sm text-slate-500">
+                            Belum ada hasil tes dengan kategori ini. Coba filter lain atau tampilkan semua riwayat.
+                        </p>
+                        <button
+                            type="button"
+                            wire:click="$set('typeFilter', 'all')"
+                            class="ui-btn-secondary mt-6"
+                        >
+                            Tampilkan Semua Riwayat
+                        </button>
+                    @endif
                 </div>
             @endforelse
 

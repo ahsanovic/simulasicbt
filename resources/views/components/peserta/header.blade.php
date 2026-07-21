@@ -1,20 +1,22 @@
 @props(['active' => 'dashboard'])
 
 @php
-    $belajarActive = in_array($active, ['materi', 'audio', 'kartu-sakti'], true);
-    $riwayatEventActive = in_array($active, ['history', 'events'], true);
-    $evaluasiActive = in_array($active, ['evaluasi', 'simulasi-formasi'], true);
+    $latihanActive = in_array($active, ['simulasi', 'drill', 'kartu-sakti'], true);
+    $belajarActive = in_array($active, ['materi', 'audio'], true);
+    $progresActive = in_array($active, ['history', 'evaluasi'], true);
+    $kompetisiActive = in_array($active, ['simulasi-formasi', 'leaderboard', 'duel', 'events'], true);
 @endphp
 
 <header
     x-data="{
         mobileOpen: false,
-        riwayatOpen: @js($riwayatEventActive),
-        evaluasiOpen: @js($evaluasiActive),
+        latihanOpen: @js($latihanActive),
         belajarOpen: @js($belajarActive),
+        progresOpen: @js($progresActive),
+        kompetisiOpen: @js($kompetisiActive),
     }"
     @keydown.escape.window="mobileOpen = false"
-    x-on:livewire:navigated.window="mobileOpen = false; riwayatOpen = false; evaluasiOpen = false; belajarOpen = false"
+    x-on:livewire:navigated.window="mobileOpen = false; latihanOpen = false; belajarOpen = false; progresOpen = false; kompetisiOpen = false"
     class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl"
 >
     <div class="relative mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
@@ -42,22 +44,7 @@
                         <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
                         </svg>
-                        Dashboard
-                    </span>
-                </a>
-
-                <a href="{{ route('peserta.drill.index') }}"
-                   wire:navigate
-                   @class([
-                       'shrink-0 rounded-lg px-3 py-1.5 transition',
-                       'bg-white text-primary-700 shadow-sm' => $active === 'drill',
-                       'text-slate-600 hover:text-slate-900' => $active !== 'drill',
-                   ])>
-                    <span class="inline-flex items-center gap-1.5">
-                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                        </svg>
-                        Drill Soal
+                        Beranda
                     </span>
                 </a>
 
@@ -75,14 +62,14 @@
                         aria-haspopup="true"
                         @class([
                             'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition',
-                            'bg-white text-primary-700 shadow-sm' => $riwayatEventActive,
-                            'text-slate-600 hover:text-slate-900' => ! $riwayatEventActive,
+                            'bg-white text-primary-700 shadow-sm' => $latihanActive,
+                            'text-slate-600 hover:text-slate-900' => ! $latihanActive,
                         ])
                     >
                         <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                         </svg>
-                        <span>Riwayat & Event</span>
+                        <span>Latihan</span>
                         <svg class="h-3.5 w-3.5 shrink-0 opacity-60 transition" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                         </svg>
@@ -100,97 +87,42 @@
                         class="absolute left-0 top-full z-[60] mt-1 min-w-[11.5rem] origin-top-left rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
                         @click.stop
                     >
-                        <a href="{{ route('peserta.history') }}"
+                        <a href="{{ route('peserta.simulasi.index') }}"
                            wire:navigate
                            @click="open = false"
                            @class([
                                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                               'bg-primary-50 text-primary-700' => $active === 'history',
-                               'text-slate-700 hover:bg-slate-50' => $active !== 'history',
+                               'bg-primary-50 text-primary-700' => $active === 'simulasi',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'simulasi',
                            ])>
                             <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                             </svg>
-                            Riwayat Tes
+                            Simulasi SKD Penuh
                         </a>
-                        <a href="{{ route('peserta.events.index') }}"
+                        <a href="{{ route('peserta.drill.index') }}"
                            wire:navigate
                            @click="open = false"
                            @class([
                                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                               'bg-primary-50 text-primary-700' => $active === 'events',
-                               'text-slate-700 hover:bg-slate-50' => $active !== 'events',
+                               'bg-primary-50 text-primary-700' => $active === 'drill',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'drill',
                            ])>
                             <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                             </svg>
-                            Event Offline
+                            Drill Soal
                         </a>
-                    </div>
-                </div>
-
-                <div
-                    x-data="{ open: false }"
-                    @click.away="open = false"
-                    @keydown.escape.window="open = false"
-                    x-on:livewire:navigated.window="open = false"
-                    class="relative shrink-0"
-                >
-                    <button
-                        type="button"
-                        @click="open = !open"
-                        :aria-expanded="open"
-                        aria-haspopup="true"
-                        @class([
-                            'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition',
-                            'bg-white text-primary-700 shadow-sm' => $evaluasiActive,
-                            'text-slate-600 hover:text-slate-900' => ! $evaluasiActive,
-                        ])
-                    >
-                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <span>Evaluasi & Rapor</span>
-                        <svg class="h-3.5 w-3.5 shrink-0 opacity-60 transition" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-
-                    <div
-                        x-show="open"
-                        x-cloak
-                        x-transition:enter="transition ease-out duration-150"
-                        x-transition:enter-start="opacity-0 scale-95"
-                        x-transition:enter-end="opacity-100 scale-100"
-                        x-transition:leave="transition ease-in duration-100"
-                        x-transition:leave-start="opacity-100 scale-100"
-                        x-transition:leave-end="opacity-0 scale-95"
-                        class="absolute left-0 top-full z-[60] mt-1 min-w-[13rem] origin-top-left rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
-                        @click.stop
-                    >
-                        <a href="{{ route('peserta.evaluasi') }}"
+                        <a href="{{ route('peserta.kartu-sakti.index') }}"
                            wire:navigate
                            @click="open = false"
                            @class([
                                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                               'bg-primary-50 text-primary-700' => $active === 'evaluasi',
-                               'text-slate-700 hover:bg-slate-50' => $active !== 'evaluasi',
+                               'bg-primary-50 text-primary-700' => $active === 'kartu-sakti',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'kartu-sakti',
                            ])>
-                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                            </svg>
-                            Evaluasi Kesiapan
-                        </a>
-                        <a href="{{ route('peserta.simulasi-formasi') }}"
-                           wire:navigate
-                           @click="open = false"
-                           @class([
-                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                               'bg-primary-50 text-primary-700' => $active === 'simulasi-formasi',
-                               'text-slate-700 hover:bg-slate-50' => $active !== 'simulasi-formasi',
-                           ])>
-                            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-sm" aria-hidden="true">🎯</span>
-                            Simulasi Formasi
+                            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-sm" aria-hidden="true">✨</span>
+                            Kartu Sakti
                         </a>
                     </div>
                 </div>
@@ -260,16 +192,165 @@
                             </svg>
                             Audio Mode
                         </a>
-                        <a href="{{ route('peserta.kartu-sakti.index') }}"
+                    </div>
+                </div>
+
+                <div
+                    x-data="{ open: false }"
+                    @click.away="open = false"
+                    @keydown.escape.window="open = false"
+                    x-on:livewire:navigated.window="open = false"
+                    class="relative shrink-0"
+                >
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        :aria-expanded="open"
+                        aria-haspopup="true"
+                        @class([
+                            'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition',
+                            'bg-white text-primary-700 shadow-sm' => $progresActive,
+                            'text-slate-600 hover:text-slate-900' => ! $progresActive,
+                        ])
+                    >
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                        </svg>
+                        <span>Progres</span>
+                        <svg class="h-3.5 w-3.5 shrink-0 opacity-60 transition" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    <div
+                        x-show="open"
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="absolute left-0 top-full z-[60] mt-1 min-w-[11.5rem] origin-top-left rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
+                        @click.stop
+                    >
+                        <a href="{{ route('peserta.history') }}"
                            wire:navigate
                            @click="open = false"
                            @class([
                                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                               'bg-primary-50 text-primary-700' => $active === 'kartu-sakti',
-                               'text-slate-700 hover:bg-slate-50' => $active !== 'kartu-sakti',
+                               'bg-primary-50 text-primary-700' => $active === 'history',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'history',
                            ])>
-                            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-sm" aria-hidden="true">✨</span>
-                            Kartu Sakti
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                            </svg>
+                            Riwayat Tes
+                        </a>
+                        <a href="{{ route('peserta.evaluasi') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'evaluasi',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'evaluasi',
+                           ])>
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Evaluasi Kesiapan
+                        </a>
+                    </div>
+                </div>
+
+                <div
+                    x-data="{ open: false }"
+                    @click.away="open = false"
+                    @keydown.escape.window="open = false"
+                    x-on:livewire:navigated.window="open = false"
+                    class="relative shrink-0"
+                >
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        :aria-expanded="open"
+                        aria-haspopup="true"
+                        @class([
+                            'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition',
+                            'bg-white text-primary-700 shadow-sm' => $kompetisiActive,
+                            'text-slate-600 hover:text-slate-900' => ! $kompetisiActive,
+                        ])
+                    >
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                        </svg>
+                        <span>Kompetisi</span>
+                        <svg class="h-3.5 w-3.5 shrink-0 opacity-60 transition" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    <div
+                        x-show="open"
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="absolute left-0 top-full z-[60] mt-1 min-w-[13rem] origin-top-left rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
+                        @click.stop
+                    >
+                        <a href="{{ route('peserta.simulasi-formasi') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'simulasi-formasi',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'simulasi-formasi',
+                           ])>
+                            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-sm" aria-hidden="true">🎯</span>
+                            Simulasi Formasi
+                        </a>
+                        <a href="{{ route('peserta.leaderboard.index') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'leaderboard',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'leaderboard',
+                           ])>
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Papan Peringkat
+                        </a>
+                        <a href="{{ route('peserta.duel.index') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'duel',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'duel',
+                           ])>
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Duel
+                        </a>
+                        <a href="{{ route('peserta.events.index') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'events',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'events',
+                           ])>
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Event Offline
                         </a>
                     </div>
                 </div>
@@ -284,20 +365,6 @@
                     <span class="inline-flex items-center gap-1.5">
                         <x-ui.coin-icon class="h-4 w-4 shrink-0 text-amber-500" />
                         Toko Koin
-                    </span>
-                </a>
-                <a href="{{ route('peserta.duel.index') }}"
-                   wire:navigate
-                   @class([
-                       'shrink-0 rounded-lg px-3 py-1.5 transition',
-                       'bg-white text-primary-700 shadow-sm' => $active === 'duel',
-                       'text-slate-600 hover:text-slate-900' => $active !== 'duel',
-                   ])>
-                    <span class="inline-flex items-center gap-1.5">
-                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        Duel
                     </span>
                 </a>
                 <a href="{{ route('peserta.testimonials.index') }}"
@@ -373,109 +440,60 @@
                     <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
                     </svg>
-                    Dashboard
-                </a>
-
-                <a href="{{ route('peserta.drill.index') }}"
-                   wire:navigate
-                   @click="mobileOpen = false"
-                   @class([
-                       'flex items-center gap-3 rounded-xl px-3 py-2.5 transition',
-                       'bg-primary-50 text-primary-700' => $active === 'drill',
-                       'text-slate-700 hover:bg-slate-50' => $active !== 'drill',
-                   ])>
-                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                    </svg>
-                    Drill Soal
+                    Beranda
                 </a>
 
                 <div class="overflow-hidden rounded-xl">
                     <button
                         type="button"
-                        @click="riwayatOpen = !riwayatOpen"
-                        :aria-expanded="riwayatOpen"
+                        @click="latihanOpen = !latihanOpen"
+                        :aria-expanded="latihanOpen"
                         @class([
                             'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition',
-                            'bg-primary-50 text-primary-700' => $riwayatEventActive,
-                            'text-slate-700 hover:bg-slate-50' => ! $riwayatEventActive,
+                            'bg-primary-50 text-primary-700' => $latihanActive,
+                            'text-slate-700 hover:bg-slate-50' => ! $latihanActive,
                         ])
                     >
                         <span class="inline-flex items-center gap-3">
                             <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                             </svg>
-                            Riwayat & Event
+                            Latihan
                         </span>
-                        <svg class="h-4 w-4 shrink-0 opacity-60 transition" :class="{ 'rotate-180': riwayatOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-4 w-4 shrink-0 opacity-60 transition" :class="{ 'rotate-180': latihanOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div x-show="riwayatOpen" x-cloak class="space-y-1 px-3 pb-2">
-                        <a href="{{ route('peserta.history') }}"
+                    <div x-show="latihanOpen" x-cloak class="space-y-1 px-3 pb-2">
+                        <a href="{{ route('peserta.simulasi.index') }}"
                            wire:navigate
                            @click="mobileOpen = false"
                            @class([
                                'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
-                               'font-semibold text-primary-700' => $active === 'history',
-                               'text-slate-600 hover:bg-slate-50' => $active !== 'history',
+                               'font-semibold text-primary-700' => $active === 'simulasi',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'simulasi',
                            ])>
-                            Riwayat Tes
+                            Simulasi SKD Penuh
                         </a>
-                        <a href="{{ route('peserta.events.index') }}"
+                        <a href="{{ route('peserta.drill.index') }}"
                            wire:navigate
                            @click="mobileOpen = false"
                            @class([
                                'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
-                               'font-semibold text-primary-700' => $active === 'events',
-                               'text-slate-600 hover:bg-slate-50' => $active !== 'events',
+                               'font-semibold text-primary-700' => $active === 'drill',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'drill',
                            ])>
-                            Event Offline
+                            Drill Soal
                         </a>
-                    </div>
-                </div>
-
-                <div class="overflow-hidden rounded-xl">
-                    <button
-                        type="button"
-                        @click="evaluasiOpen = !evaluasiOpen"
-                        :aria-expanded="evaluasiOpen"
-                        @class([
-                            'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition',
-                            'bg-primary-50 text-primary-700' => $evaluasiActive,
-                            'text-slate-700 hover:bg-slate-50' => ! $evaluasiActive,
-                        ])
-                    >
-                        <span class="inline-flex items-center gap-3">
-                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                            Evaluasi & Rapor
-                        </span>
-                        <svg class="h-4 w-4 shrink-0 opacity-60 transition" :class="{ 'rotate-180': evaluasiOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    <div x-show="evaluasiOpen" x-cloak class="space-y-1 px-3 pb-2">
-                        <a href="{{ route('peserta.evaluasi') }}"
+                        <a href="{{ route('peserta.kartu-sakti.index') }}"
                            wire:navigate
                            @click="mobileOpen = false"
                            @class([
                                'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
-                               'font-semibold text-primary-700' => $active === 'evaluasi',
-                               'text-slate-600 hover:bg-slate-50' => $active !== 'evaluasi',
+                               'font-semibold text-primary-700' => $active === 'kartu-sakti',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'kartu-sakti',
                            ])>
-                            Evaluasi Kesiapan
-                        </a>
-                        <a href="{{ route('peserta.simulasi-formasi') }}"
-                           wire:navigate
-                           @click="mobileOpen = false"
-                           @class([
-                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
-                               'font-semibold text-primary-700' => $active === 'simulasi-formasi',
-                               'text-slate-600 hover:bg-slate-50' => $active !== 'simulasi-formasi',
-                           ])>
-                            Simulasi Formasi
+                            Kartu Sakti
                         </a>
                     </div>
                 </div>
@@ -522,15 +540,115 @@
                            ])>
                             Audio Mode
                         </a>
-                        <a href="{{ route('peserta.kartu-sakti.index') }}"
+                    </div>
+                </div>
+
+                <div class="overflow-hidden rounded-xl">
+                    <button
+                        type="button"
+                        @click="progresOpen = !progresOpen"
+                        :aria-expanded="progresOpen"
+                        @class([
+                            'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition',
+                            'bg-primary-50 text-primary-700' => $progresActive,
+                            'text-slate-700 hover:bg-slate-50' => ! $progresActive,
+                        ])
+                    >
+                        <span class="inline-flex items-center gap-3">
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                            </svg>
+                            Progres
+                        </span>
+                        <svg class="h-4 w-4 shrink-0 opacity-60 transition" :class="{ 'rotate-180': progresOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="progresOpen" x-cloak class="space-y-1 px-3 pb-2">
+                        <a href="{{ route('peserta.history') }}"
                            wire:navigate
                            @click="mobileOpen = false"
                            @class([
                                'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
-                               'font-semibold text-primary-700' => $active === 'kartu-sakti',
-                               'text-slate-600 hover:bg-slate-50' => $active !== 'kartu-sakti',
+                               'font-semibold text-primary-700' => $active === 'history',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'history',
                            ])>
-                            Kartu Sakti
+                            Riwayat Tes
+                        </a>
+                        <a href="{{ route('peserta.evaluasi') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'evaluasi',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'evaluasi',
+                           ])>
+                            Evaluasi Kesiapan
+                        </a>
+                    </div>
+                </div>
+
+                <div class="overflow-hidden rounded-xl">
+                    <button
+                        type="button"
+                        @click="kompetisiOpen = !kompetisiOpen"
+                        :aria-expanded="kompetisiOpen"
+                        @class([
+                            'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition',
+                            'bg-primary-50 text-primary-700' => $kompetisiActive,
+                            'text-slate-700 hover:bg-slate-50' => ! $kompetisiActive,
+                        ])
+                    >
+                        <span class="inline-flex items-center gap-3">
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                            Kompetisi
+                        </span>
+                        <svg class="h-4 w-4 shrink-0 opacity-60 transition" :class="{ 'rotate-180': kompetisiOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="kompetisiOpen" x-cloak class="space-y-1 px-3 pb-2">
+                        <a href="{{ route('peserta.simulasi-formasi') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'simulasi-formasi',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'simulasi-formasi',
+                           ])>
+                            Simulasi Formasi
+                        </a>
+                        <a href="{{ route('peserta.leaderboard.index') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'leaderboard',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'leaderboard',
+                           ])>
+                            Papan Peringkat
+                        </a>
+                        <a href="{{ route('peserta.duel.index') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'duel',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'duel',
+                           ])>
+                            Duel
+                        </a>
+                        <a href="{{ route('peserta.events.index') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'events',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'events',
+                           ])>
+                            Event Offline
                         </a>
                     </div>
                 </div>
@@ -545,19 +663,6 @@
                    ])>
                     <x-ui.coin-icon class="h-4 w-4 shrink-0 text-amber-500" />
                     Toko Koin
-                </a>
-                <a href="{{ route('peserta.duel.index') }}"
-                   wire:navigate
-                   @click="mobileOpen = false"
-                   @class([
-                       'flex items-center gap-3 rounded-xl px-3 py-2.5 transition',
-                       'bg-primary-50 text-primary-700' => $active === 'duel',
-                       'text-slate-700 hover:bg-slate-50' => $active !== 'duel',
-                   ])>
-                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    Duel
                 </a>
                 <a href="{{ route('peserta.testimonials.index') }}"
                    wire:navigate

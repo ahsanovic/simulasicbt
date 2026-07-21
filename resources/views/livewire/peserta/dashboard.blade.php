@@ -56,13 +56,18 @@
 
         <x-peserta.platform-features :has-history="$hasHistory" />
 
+        <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <x-peserta.formation-matchmaking-summary-card variant="compact" :has-history="$hasHistory" :summary="$formationSummary" />
+            <x-peserta.leaderboard-summary-card variant="compact" :ranks="$leaderboardRanks" />
+            <x-peserta.devotion-badge-card variant="compact" :progress="$devotionProgress" :streak-info="$dailyStreakInfo" />
+        </div>
+
         <div class="mb-6 flex items-center justify-between">
             <h2 class="text-lg font-bold text-slate-900">Ujian Tersedia</h2>
             <span class="ui-badge bg-primary-100 text-primary-700">{{ $exams->count() }} ujian</span>
         </div>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,26%)] lg:items-start">
-            <div class="grid min-w-0 gap-4">
+        <div class="grid min-w-0 gap-4">
             @forelse ($exams as $exam)
                 <article class="ui-card group overflow-hidden transition hover:shadow-lg hover:shadow-primary-500/10">
                     <div class="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -120,14 +125,15 @@
                     <p class="mt-1 text-sm text-slate-500">Belum ada ujian simulasi yang dipublikasikan.</p>
                 </div>
             @endforelse
-            </div>
-
-            <aside class="space-y-4 lg:sticky lg:top-6">
-                <x-peserta.formation-matchmaking-summary-card :has-history="$hasHistory" :summary="$formationSummary" />
-                <x-peserta.leaderboard-summary-card :ranks="$leaderboardRanks" />
-                <x-peserta.devotion-badge-card :progress="$devotionProgress" :streak-info="$dailyStreakInfo" />
-            </aside>
         </div>
+
+        <section class="mt-10" aria-labelledby="devotion-detail-heading">
+            <div class="mb-4 flex items-center justify-between gap-3">
+                <h2 id="devotion-detail-heading" class="text-lg font-bold text-slate-900">Detail Lencana Pengabdian</h2>
+                <span class="text-xs font-medium text-slate-500">Tingkatan pangkat &amp; cara dapat XP</span>
+            </div>
+            <x-peserta.devotion-badge-card :progress="$devotionProgress" :streak-info="$dailyStreakInfo" />
+        </section>
     </main>
 
     @if ($pinExamId)

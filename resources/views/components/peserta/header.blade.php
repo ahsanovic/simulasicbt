@@ -3,7 +3,7 @@
 @php
     $latihanActive = in_array($active, ['simulasi', 'drill', 'kartu-sakti'], true);
     $belajarActive = in_array($active, ['materi', 'audio'], true);
-    $progresActive = in_array($active, ['history', 'evaluasi'], true);
+    $progresActive = in_array($active, ['statistik', 'history', 'evaluasi'], true);
     $kompetisiActive = in_array($active, ['simulasi-formasi', 'leaderboard', 'duel', 'events'], true);
 @endphp
 
@@ -234,6 +234,19 @@
                         class="absolute left-0 top-full z-[60] mt-1 min-w-[11.5rem] origin-top-left rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
                         @click.stop
                     >
+                        <a href="{{ route('peserta.statistik.index') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'statistik',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'statistik',
+                           ])>
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Statistik Saya
+                        </a>
                         <a href="{{ route('peserta.history') }}"
                            wire:navigate
                            @click="open = false"
@@ -565,6 +578,16 @@
                         </svg>
                     </button>
                     <div x-show="progresOpen" x-cloak class="space-y-1 px-3 pb-2">
+                        <a href="{{ route('peserta.statistik.index') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'statistik',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'statistik',
+                           ])>
+                            Statistik Saya
+                        </a>
                         <a href="{{ route('peserta.history') }}"
                            wire:navigate
                            @click="mobileOpen = false"

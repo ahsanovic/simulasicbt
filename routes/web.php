@@ -45,6 +45,7 @@ use App\Livewire\Peserta\MateriBelajarShow;
 use App\Livewire\Peserta\Shop;
 use App\Livewire\Peserta\SimulasiFormasi;
 use App\Livewire\Peserta\SimulasiIndex;
+use App\Livewire\Peserta\Statistik;
 use App\Livewire\Peserta\Testimonials;
 use App\Livewire\Public\LiveScoreIndex as PublicLiveScoreIndex;
 use App\Livewire\Public\LiveScoreShow as PublicLiveScoreShow;
@@ -138,6 +139,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
 Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
     Route::get('/', PesertaDashboard::class)->name('dashboard');
+    Route::get('/statistik', Statistik::class)->name('statistik.index');
     Route::get('/simulasi', SimulasiIndex::class)->name('simulasi.index');
     Route::get('/drill', DrillSetup::class)->name('drill.index');
     Route::get('/riwayat', ExamHistory::class)->name('history');

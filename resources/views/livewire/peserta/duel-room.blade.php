@@ -170,13 +170,7 @@
                     @if ($this->currentAnswer)
                         <div class="ui-card p-6 sm:p-8">
                             <div class="mb-5 flex flex-wrap items-center gap-2">
-                                @php $code = $this->currentAnswer->question->subject->code->value; @endphp
-                                <span @class([
-                                    'ui-badge',
-                                    'bg-blue-100 text-blue-700' => $code === 'twk',
-                                    'bg-amber-100 text-amber-700' => $code === 'tiu',
-                                    'bg-violet-100 text-violet-700' => $code === 'tkp',
-                                ])>{{ $this->currentAnswer->question->subject->code->label() }}</span>
+                                <x-peserta.exam-question-badges :question="$this->currentAnswer->question" />
                             </div>
 
                             <div class="prose-exam mb-8 text-base">

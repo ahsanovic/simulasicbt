@@ -231,7 +231,7 @@ class DuelService
             $existing = $session->attemptFor($user->id);
 
             if ($existing) {
-                return $existing->load(['answers.question.options', 'answers.question.subject']);
+                return $existing->load(['answers.question.options', 'answers.question.subject', 'answers.question.material.materialGroup']);
             }
 
             $attempt = $this->createAttemptFromSession($session, $user);
@@ -246,7 +246,7 @@ class DuelService
                 $this->shadowBot->initializeBotAttempt($session->fresh());
             }
 
-            return $attempt->load(['answers.question.options', 'answers.question.subject']);
+            return $attempt->load(['answers.question.options', 'answers.question.subject', 'answers.question.material.materialGroup']);
         });
     }
 

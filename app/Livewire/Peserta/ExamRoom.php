@@ -171,7 +171,7 @@ class ExamRoom extends Component
         return ExamAnswer::query()
             ->whereKey($state['id'])
             ->where('exam_attempt_id', $this->attemptId)
-            ->with(['question.options', 'question.subject'])
+            ->with(['question.options', 'question.subject', 'question.material.materialGroup'])
             ->first();
     }
 

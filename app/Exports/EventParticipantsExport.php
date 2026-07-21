@@ -6,6 +6,7 @@ use App\Enums\ExamAttemptStatus;
 use App\Models\Event;
 use App\Models\EventSession;
 use App\Models\ExamAttempt;
+use App\Services\ExamService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -49,6 +50,18 @@ class EventParticipantsExport implements FromCollection, WithHeadings, WithTitle
 
     public function collection(): Collection
     {
+        // Close out anyone whose time ran out while offline, so the export
+        // reports a final status and score rather than "sedang berlangsung".
+        $expired = ExamAttempt::query()
+            ->where('event_id', $this->event->id)
+            ->when($this->session, fn ($query) => $query->where('event_session_id', $this->session->id))
+            ->expiredButOpen()
+            ->get();
+
+        if ($expired->isNotEmpty()) {
+            app(ExamService::class)->finalizeExpiredAttempts($expired);
+        }
+
         return ExamAttempt::query()
             ->where('event_id', $this->event->id)
             ->when($this->session, fn ($query) => $query->where('event_session_id', $this->session->id))

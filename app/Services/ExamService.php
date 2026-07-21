@@ -73,6 +73,40 @@ class ExamService
     }
 
     /**
+     * Close out attempts whose time is already up but that were never submitted —
+     * e.g. the participant closed their browser or lost connection, so the
+     * in-exam expiry poll never fired and they stayed "in progress" forever.
+     *
+     * Keeps livescore and reports truthful without depending on a queue worker
+     * or cron being available at the venue.
+     *
+     * @param  iterable<ExamAttempt>  $attempts
+     */
+    public function finalizeExpiredAttempts(iterable $attempts): int
+    {
+        $closed = 0;
+
+        foreach ($attempts as $attempt) {
+            if ($attempt->status !== ExamAttemptStatus::InProgress || $attempt->expires_at->isFuture()) {
+                continue;
+            }
+
+            $expiredAt = $attempt->expires_at;
+
+            $this->submitAttempt($attempt);
+
+            // Record when the exam actually ran out, not when we noticed it.
+            ExamAttempt::query()
+                ->whereKey($attempt->id)
+                ->update(['submitted_at' => $expiredAt]);
+
+            $closed++;
+        }
+
+        return $closed;
+    }
+
+    /**
      * Restart an attempt from scratch, keeping the same attempt row so a
      * participant still occupies exactly one slot on the livescore.
      *

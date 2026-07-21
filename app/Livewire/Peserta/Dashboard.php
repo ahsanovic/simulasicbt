@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Services\CoinService;
 use App\Services\FlashcardService;
+use App\Services\FormationMatchmakingService;
 use App\Services\GamificationService;
 use App\Services\LeaderboardSummaryService;
 use Illuminate\Support\Collection;
@@ -101,7 +102,7 @@ class Dashboard extends Component
         $this->resetErrorBag('examPin');
     }
 
-    public function render(CoinService $coinService, FlashcardService $flashcardService, GamificationService $gamificationService, LeaderboardSummaryService $leaderboardSummary)
+    public function render(CoinService $coinService, FlashcardService $flashcardService, GamificationService $gamificationService, LeaderboardSummaryService $leaderboardSummary, FormationMatchmakingService $formationMatchmaking)
     {
         $exams = Exam::query()
             ->where('status', 'published')
@@ -147,7 +148,10 @@ class Dashboard extends Component
         $dailyStreakInfo = $gamificationService->dailyStreakInfo($user);
         $flashcardDueCount = $flashcardService->dueCount($user);
         $leaderboardRanks = $leaderboardSummary->getRanks((int) auth()->id());
+        $formationSummary = $hasHistory
+            ? $formationMatchmaking->getDashboardSummary($user)
+            : null;
 
-        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'coinBalance', 'devotionProgress', 'dailyStreakInfo', 'flashcardDueCount', 'leaderboardRanks'));
+        return view('livewire.peserta.dashboard', compact('exams', 'hasHistory', 'totalXp', 'coinBalance', 'devotionProgress', 'dailyStreakInfo', 'flashcardDueCount', 'leaderboardRanks', 'formationSummary'));
     }
 }

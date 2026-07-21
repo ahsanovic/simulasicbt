@@ -7,6 +7,7 @@
             :wrong-count="$this->resultAttemptWrongCount"
             :remedial-unlock="$remedialUnlock"
             :total-xp="$totalXp"
+            :formation-name="$formationName"
         />
     @endif
 

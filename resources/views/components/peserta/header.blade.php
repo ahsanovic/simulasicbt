@@ -3,16 +3,18 @@
 @php
     $belajarActive = in_array($active, ['materi', 'audio'], true);
     $riwayatEventActive = in_array($active, ['history', 'events'], true);
+    $evaluasiActive = in_array($active, ['evaluasi', 'simulasi-formasi'], true);
 @endphp
 
 <header
     x-data="{
         mobileOpen: false,
         riwayatOpen: @js($riwayatEventActive),
+        evaluasiOpen: @js($evaluasiActive),
         belajarOpen: @js($belajarActive),
     }"
     @keydown.escape.window="mobileOpen = false"
-    x-on:livewire:navigated.window="mobileOpen = false; riwayatOpen = false; belajarOpen = false"
+    x-on:livewire:navigated.window="mobileOpen = false; riwayatOpen = false; evaluasiOpen = false; belajarOpen = false"
     class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl"
 >
     <div class="relative mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
@@ -112,20 +114,71 @@
                     </div>
                 </div>
 
-                <a href="{{ route('peserta.evaluasi') }}"
-                   wire:navigate
-                   @class([
-                       'shrink-0 rounded-lg px-3 py-1.5 transition',
-                       'bg-white text-primary-700 shadow-sm' => $active === 'evaluasi',
-                       'text-slate-600 hover:text-slate-900' => $active !== 'evaluasi',
-                   ])>
-                    <span class="inline-flex items-center gap-1.5">
+                <div
+                    x-data="{ open: false }"
+                    @click.away="open = false"
+                    @keydown.escape.window="open = false"
+                    x-on:livewire:navigated.window="open = false"
+                    class="relative shrink-0"
+                >
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        :aria-expanded="open"
+                        aria-haspopup="true"
+                        @class([
+                            'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition',
+                            'bg-white text-primary-700 shadow-sm' => $evaluasiActive,
+                            'text-slate-600 hover:text-slate-900' => ! $evaluasiActive,
+                        ])
+                    >
                         <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
-                        Evaluasi & Rapor
-                    </span>
-                </a>
+                        <span>Evaluasi & Rapor</span>
+                        <svg class="h-3.5 w-3.5 shrink-0 opacity-60 transition" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    <div
+                        x-show="open"
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="absolute left-0 top-full z-[60] mt-1 min-w-[13rem] origin-top-left rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
+                        @click.stop
+                    >
+                        <a href="{{ route('peserta.evaluasi') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'evaluasi',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'evaluasi',
+                           ])>
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Evaluasi Kesiapan
+                        </a>
+                        <a href="{{ route('peserta.simulasi-formasi') }}"
+                           wire:navigate
+                           @click="open = false"
+                           @class([
+                               'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                               'bg-primary-50 text-primary-700' => $active === 'simulasi-formasi',
+                               'text-slate-700 hover:bg-slate-50' => $active !== 'simulasi-formasi',
+                           ])>
+                            <span class="flex h-4 w-4 shrink-0 items-center justify-center text-sm" aria-hidden="true">🎯</span>
+                            Simulasi Formasi
+                        </a>
+                    </div>
+                </div>
 
                 <div
                     x-data="{ open: false }"
@@ -354,19 +407,50 @@
                     </div>
                 </div>
 
-                <a href="{{ route('peserta.evaluasi') }}"
-                   wire:navigate
-                   @click="mobileOpen = false"
-                   @class([
-                       'flex items-center gap-3 rounded-xl px-3 py-2.5 transition',
-                       'bg-primary-50 text-primary-700' => $active === 'evaluasi',
-                       'text-slate-700 hover:bg-slate-50' => $active !== 'evaluasi',
-                   ])>
-                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Evaluasi & Rapor
-                </a>
+                <div class="overflow-hidden rounded-xl">
+                    <button
+                        type="button"
+                        @click="evaluasiOpen = !evaluasiOpen"
+                        :aria-expanded="evaluasiOpen"
+                        @class([
+                            'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition',
+                            'bg-primary-50 text-primary-700' => $evaluasiActive,
+                            'text-slate-700 hover:bg-slate-50' => ! $evaluasiActive,
+                        ])
+                    >
+                        <span class="inline-flex items-center gap-3">
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Evaluasi & Rapor
+                        </span>
+                        <svg class="h-4 w-4 shrink-0 opacity-60 transition" :class="{ 'rotate-180': evaluasiOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="evaluasiOpen" x-cloak class="space-y-1 px-3 pb-2">
+                        <a href="{{ route('peserta.evaluasi') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'evaluasi',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'evaluasi',
+                           ])>
+                            Evaluasi Kesiapan
+                        </a>
+                        <a href="{{ route('peserta.simulasi-formasi') }}"
+                           wire:navigate
+                           @click="mobileOpen = false"
+                           @class([
+                               'flex items-center gap-3 rounded-lg py-2 pl-7 pr-3 text-sm transition',
+                               'font-semibold text-primary-700' => $active === 'simulasi-formasi',
+                               'text-slate-600 hover:bg-slate-50' => $active !== 'simulasi-formasi',
+                           ])>
+                            Simulasi Formasi
+                        </a>
+                    </div>
+                </div>
 
                 <div class="overflow-hidden rounded-xl">
                     <button

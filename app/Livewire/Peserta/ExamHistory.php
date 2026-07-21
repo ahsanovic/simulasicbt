@@ -177,6 +177,7 @@ class ExamHistory extends Component
             ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score']);
 
         $totalXp = $gamificationService->totalXp(auth()->user());
+        $formationName = auth()->user()->formation?->name;
 
         $stats = [
             'total' => $submittedAttempts->count(),
@@ -199,6 +200,7 @@ class ExamHistory extends Component
             'repeatExam' => $this->resolveRepeatExam(),
             'totalXp' => $totalXp,
             'remedialUnlock' => $gamificationService->remedialUnlockProgress($totalXp),
+            'formationName' => $formationName,
         ]);
     }
 }

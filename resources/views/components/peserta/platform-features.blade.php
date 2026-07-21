@@ -17,7 +17,7 @@
     <div
         x-data="{
             activeIndex: 0,
-            cardCount: 8,
+            cardCount: 9,
             autoplayMs: 3000,
             autoplayTimer: null,
             isInteractionPaused: false,
@@ -428,6 +428,32 @@
                         </p>
                         <p class="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-rose-600 group-hover:gap-1.5 transition-all">
                             Mulai duel
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </p>
+                    </div>
+                </div>
+            </a>
+            {{-- 9. Simulasi Kelulusan Formasi --}}
+            <a href="{{ $hasHistory ? route('peserta.simulasi-formasi') : route('peserta.dashboard') }}"
+               wire:navigate
+               data-carousel-card="8"
+               class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-lg hover:shadow-teal-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
+                <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-teal-100/80 to-cyan-100/40 opacity-0 transition group-hover:opacity-100"></div>
+
+                <div class="relative flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-md shadow-teal-500/25">
+                        <span class="text-lg" aria-hidden="true">🎯</span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <h3 class="text-sm font-bold text-slate-900 group-hover:text-teal-700">Simulasi Kelulusan Formasi</h3>
+                            <span class="ui-badge bg-teal-50 text-teal-700 text-[10px]">Matchmaking</span>
+                        </div>
+                        <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                            Pilih target jabatan dan bandingkan skor terbaik Anda dengan pelamar jabatan yang sama.
+                        </p>
+                        <p class="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-teal-600 group-hover:gap-1.5 transition-all">
+                            {{ $hasHistory ? 'Lihat simulasi' : 'Tersedia setelah simulasi' }}
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                         </p>
                     </div>

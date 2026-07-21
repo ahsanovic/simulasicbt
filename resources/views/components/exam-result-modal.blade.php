@@ -5,6 +5,7 @@
     'wrongCount' => 0,
     'remedialUnlock' => null,
     'totalXp' => 0,
+    'formationName' => null,
 ])
 
 @php
@@ -222,6 +223,31 @@
                     <p class="mt-1 text-xs text-rose-800/80">Lihat analisis lengkap di Kunci Jawaban dan Pembahasan.</p>
                 </div>
             @endif
+
+            <div class="rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 via-cyan-50/80 to-primary-50/60 p-4 sm:p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-teal-900">Simulasi Kelulusan Formasi</p>
+                        @if ($formationName)
+                            <p class="mt-1 text-xs leading-relaxed text-teal-800/90">
+                                Lihat posisi kompetitif skor Anda untuk jabatan <span class="font-semibold">{{ $formationName }}</span>.
+                            </p>
+                        @else
+                            <p class="mt-1 text-xs leading-relaxed text-teal-800/90">
+                                Sudah punya target jabatan? Bandingkan skor Anda dengan pelamar jabatan yang sama di aplikasi ini.
+                            </p>
+                        @endif
+                    </div>
+                    <a href="{{ route('peserta.simulasi-formasi') }}"
+                       wire:navigate
+                       class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-teal-300/40 transition hover:bg-teal-700">
+                        {{ $formationName ? 'Lihat posisi saya' : 'Pilih target jabatan' }}
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
             @endif
         </div>
 

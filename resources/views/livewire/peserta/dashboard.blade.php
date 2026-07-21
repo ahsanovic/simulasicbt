@@ -123,6 +123,7 @@
             </div>
 
             <aside class="space-y-4 lg:sticky lg:top-6">
+                <x-peserta.formation-matchmaking-summary-card :has-history="$hasHistory" :summary="$formationSummary" />
                 <x-peserta.leaderboard-summary-card :ranks="$leaderboardRanks" />
                 <x-peserta.devotion-badge-card :progress="$devotionProgress" :streak-info="$dailyStreakInfo" />
             </aside>

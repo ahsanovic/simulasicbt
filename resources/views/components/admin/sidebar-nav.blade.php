@@ -35,6 +35,12 @@
             ],
         ],
         [
+            'label' => 'Referensi',
+            'items' => [
+                ['route' => 'admin.formations.index', 'label' => 'Kelola Jabatan', 'icon' => 'office'],
+            ],
+        ],
+        [
             'label' => 'Sistem',
             'items' => [
                 ['route' => 'admin.settings.index', 'label' => 'Pengaturan', 'icon' => 'settings'],

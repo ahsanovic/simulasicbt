@@ -23,6 +23,8 @@ class User extends Authenticatable
         'username',
         'nip',
         'instansi_id',
+        'formation_id',
+        'formation_selected_at',
         'is_pegawai',
         'google_id',
         'password',
@@ -47,6 +49,8 @@ class User extends Authenticatable
             'is_pegawai' => 'boolean',
             'last_seen_at' => 'datetime',
             'instansi_id' => 'integer',
+            'formation_id' => 'integer',
+            'formation_selected_at' => 'datetime',
         ];
     }
 
@@ -77,6 +81,11 @@ class User extends Authenticatable
     public function instansi(): BelongsTo
     {
         return $this->belongsTo(Instansi::class);
+    }
+
+    public function formation(): BelongsTo
+    {
+        return $this->belongsTo(Formation::class);
     }
 
     public function examAttempts(): HasMany

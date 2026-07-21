@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             InstansiSeeder::class,
             SubjectSeeder::class,
             DemoExamSeeder::class,
+            FormationSeeder::class,
         ]);
 
         User::query()->updateOrCreate(

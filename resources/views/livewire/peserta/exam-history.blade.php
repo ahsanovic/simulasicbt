@@ -64,6 +64,22 @@
 
         <x-exam-passing-grades-banner :passing-grades="$passingGrades" class="mb-6" />
 
+        <div class="mb-6 flex flex-wrap gap-2">
+            @foreach ($typeFilters as $filter)
+                <button
+                    type="button"
+                    wire:click="$set('typeFilter', '{{ $filter->value }}')"
+                    @class([
+                        'rounded-full px-4 py-2 text-sm font-semibold transition',
+                        'bg-primary-600 text-white shadow-sm shadow-primary-500/20' => $activeFilter === $filter,
+                        'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50' => $activeFilter !== $filter,
+                    ])
+                >
+                    {{ $filter->label() }}
+                </button>
+            @endforeach
+        </div>
+
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,30%)] lg:items-start">
             <div class="min-w-0 space-y-4">
             @forelse ($attempts as $attempt)
@@ -75,17 +91,21 @@
                         $attempt->total_score,
                     );
                     $isRemedialAttempt = $attempt->isRemedial();
+                    $isDrillAttempt = $attempt->isDrill();
+                    $isDuelAttempt = $attempt->isDuelAttempt();
                 @endphp
                 <article wire:key="history-{{ $attempt->id }}" @class([
                     'ui-card group overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary-500/10',
-                    'border-l-4 border-l-emerald-500' => $passes && ! $isRemedialAttempt,
-                    'border-l-4 border-l-rose-400' => ! $passes && ! $isRemedialAttempt,
+                    'border-l-4 border-l-emerald-500' => $passes && ! $isRemedialAttempt && ! $isDrillAttempt && ! $isDuelAttempt,
+                    'border-l-4 border-l-rose-400' => ! $passes && ! $isRemedialAttempt && ! $isDrillAttempt && ! $isDuelAttempt,
                     'border-l-4 border-l-indigo-400' => $isRemedialAttempt,
+                    'border-l-4 border-l-teal-400' => $isDrillAttempt,
+                    'border-l-4 border-l-amber-400' => $isDuelAttempt,
                     'ring-2 ring-primary-400 ring-offset-2' => $resultAttempt && $attempt->id === $resultAttempt->id,
                 ])>
                     <div class="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
-                            <h2 class="truncate text-base font-bold text-slate-900">{{ $attempt->event?->name ?? $attempt->exam->title }}</h2>
+                            <h2 class="truncate text-base font-bold text-slate-900">{{ $attempt->displayTitle() }}</h2>
                             @if ($attempt->event)
                                 <p class="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                                     <span class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 font-semibold text-indigo-700">
@@ -99,9 +119,21 @@
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
-                            @if ($isRemedialAttempt)
+                            @if ($isDrillAttempt)
+                                <span class="ui-badge bg-teal-50 text-teal-700 ring-1 ring-teal-200/60">
+                                    Drill Soal
+                                </span>
+                            @elseif ($isRemedialAttempt)
                                 <span class="ui-badge bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/60">
                                     Ujian Remedial
+                                </span>
+                            @elseif ($isDuelAttempt)
+                                <span class="ui-badge bg-amber-50 text-amber-700 ring-1 ring-amber-200/60">
+                                    Duel
+                                </span>
+                            @elseif ($attempt->event)
+                                <span class="ui-badge bg-violet-50 text-violet-700 ring-1 ring-violet-200/60">
+                                    Event Offline
                                 </span>
                             @else
                             <span @class([
@@ -127,20 +159,34 @@
                     </div>
 
                     <div class="grid gap-3 bg-white p-5 sm:grid-cols-2 lg:grid-cols-4">
-                        @if ($isRemedialAttempt)
+                        @if ($isRemedialAttempt || $isDrillAttempt)
                             @php
                                 $totalQuestions = $attempt->answers->count();
                                 $correctCount = $attempt->correctAnswerCount();
-                                $remedialPerfect = $totalQuestions > 0 && $correctCount === $totalQuestions;
+                                $practicePerfect = $totalQuestions > 0 && $correctCount === $totalQuestions;
                             @endphp
-                            <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 sm:col-span-2">
-                                <p class="text-xs font-bold uppercase tracking-wider text-indigo-600">Hasil Remedial</p>
+                            <div @class([
+                                'rounded-2xl border p-4 sm:col-span-2',
+                                'border-indigo-100 bg-indigo-50/60' => $isRemedialAttempt,
+                                'border-teal-100 bg-teal-50/60' => $isDrillAttempt,
+                            ])>
+                                <p @class([
+                                    'text-xs font-bold uppercase tracking-wider',
+                                    'text-indigo-600' => $isRemedialAttempt,
+                                    'text-teal-600' => $isDrillAttempt,
+                                ])>
+                                    {{ $isDrillAttempt ? 'Hasil Drill' : 'Hasil Remedial' }}
+                                </p>
                                 <p class="mt-2 text-2xl font-bold tabular-nums text-slate-900">
                                     {{ $correctCount }} / {{ $totalQuestions }} benar
                                 </p>
-                                @if ($remedialPerfect)
+                                @if ($isRemedialAttempt && $practicePerfect)
                                     <p class="mt-1 text-xs font-semibold text-emerald-600">
                                         Sempurna! +{{ \App\Services\GamificationService::REMEDIAL_PERFECT_XP_REWARD }} XP
+                                    </p>
+                                @elseif ($isDrillAttempt)
+                                    <p class="mt-1 text-xs text-slate-500">
+                                        +{{ \App\Services\GamificationService::DRILL_XP_REWARD }} XP · Lihat pembahasan untuk evaluasi
                                     </p>
                                 @endif
                             </div>
@@ -195,6 +241,11 @@
                             :remedial-unlock="$remedialUnlock"
                             :total-xp="$totalXp"
                         />
+                        @if ($isDrillAttempt)
+                            <a href="{{ route('peserta.drill.index') }}" wire:navigate class="ui-btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
+                                Drill Lagi
+                            </a>
+                        @endif
                         </div>
                     </div>
                 </article>

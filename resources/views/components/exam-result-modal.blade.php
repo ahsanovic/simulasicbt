@@ -10,7 +10,8 @@
 
 @php
     $isRemedial = $attempt->isRemedial();
-    $passes = ! $isRemedial && exam_attempt_passes(
+    $isDrill = $attempt->isDrill();
+    $passes = ! $isRemedial && ! $isDrill && exam_attempt_passes(
         $attempt->score_twk,
         $attempt->score_tiu,
         $attempt->score_tkp,
@@ -24,6 +25,8 @@
         if ($totalQuestions > 0 && $correctCount === $totalQuestions) {
             $xpEarned = \App\Services\GamificationService::REMEDIAL_PERFECT_XP_REWARD;
         }
+    } elseif ($isDrill) {
+        $xpEarned = \App\Services\GamificationService::DRILL_XP_REWARD;
     } else {
         $xpEarned = $passes
             ? \App\Services\GamificationService::EXAM_PASS_XP_REWARD
@@ -57,8 +60,9 @@
         <div @class([
             'relative shrink-0 overflow-hidden px-6 pb-5 pt-4 text-white sm:px-8 sm:pb-6 sm:pt-6',
             'bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700' => $isRemedial,
-            'bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700' => ! $isRemedial && $passes,
-            'bg-gradient-to-br from-rose-500 via-orange-500 to-amber-600' => ! $isRemedial && ! $passes,
+            'bg-gradient-to-br from-teal-500 via-emerald-600 to-cyan-700' => $isDrill,
+            'bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700' => ! $isRemedial && ! $isDrill && $passes,
+            'bg-gradient-to-br from-rose-500 via-orange-500 to-amber-600' => ! $isRemedial && ! $isDrill && ! $passes,
         ])>
             <div class="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10"></div>
             <div class="pointer-events-none absolute -bottom-12 -left-6 h-32 w-32 rounded-full bg-white/10"></div>
@@ -76,6 +80,8 @@
                 <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg backdrop-blur-sm">
                     @if ($isRemedial)
                         <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    @elseif ($isDrill)
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                     @elseif ($passes)
                         <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     @else
@@ -84,9 +90,9 @@
                 </div>
 
                 <p class="text-sm font-medium uppercase tracking-widest text-white/80">
-                    {{ $isRemedial ? 'Remedial Selesai' : 'Simulasi Selesai' }}
+                    {{ $isDrill ? 'Drill Selesai' : ($isRemedial ? 'Remedial Selesai' : 'Simulasi Selesai') }}
                 </p>
-                <h2 id="exam-result-title" class="mt-1 text-xl font-bold sm:text-2xl">{{ $attempt->event?->name ?? $attempt->exam->title }}</h2>
+                <h2 id="exam-result-title" class="mt-1 text-xl font-bold sm:text-2xl">{{ $attempt->displayTitle() }}</h2>
                 @if ($attempt->event)
                     <p class="mt-1 text-xs font-medium text-white/70">Event Offline · {{ $attempt->exam->title }}</p>
                 @endif
@@ -95,7 +101,7 @@
                 </p>
 
                 <div class="mt-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
-                    @if ($isRemedial)
+                    @if ($isRemedial || $isDrill)
                         @php
                             $totalQuestions = $attempt->answers->count();
                             $correctCount = $attempt->correctAnswerCount();
@@ -116,7 +122,7 @@
                 </p>
                 @endif
 
-                @if (! $isRemedial)
+                @if (! $isRemedial && ! $isDrill)
                 <div class="mt-4 flex items-baseline gap-2">
                     <span class="text-4xl font-black tabular-nums tracking-tight sm:text-5xl">{{ format_exam_score($attempt->total_score) }}</span>
                     <span class="text-lg text-white/70">/ {{ $passingGrades['total'] }}</span>
@@ -128,15 +134,27 @@
 
         {{-- Score breakdown --}}
         <div class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-7">
-            @if ($isRemedial)
-                <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 text-center">
-                    <p class="text-sm font-semibold text-indigo-900">Drill Soal Salah</p>
+            @if ($isRemedial || $isDrill)
+                <div @class([
+                    'rounded-2xl border p-5 text-center',
+                    'border-indigo-100 bg-indigo-50/60' => $isRemedial,
+                    'border-teal-100 bg-teal-50/60' => $isDrill,
+                ])>
+                    <p @class([
+                        'text-sm font-semibold',
+                        'text-indigo-900' => $isRemedial,
+                        'text-teal-900' => $isDrill,
+                    ])>
+                        {{ $isDrill ? 'Hasil Drill Soal' : 'Drill Soal Salah' }}
+                    </p>
                     <p class="mt-2 text-3xl font-black tabular-nums text-slate-900">
                         {{ $attempt->correctAnswerCount() }} / {{ $attempt->answers->count() }}
                     </p>
                     <p class="mt-1 text-xs text-slate-500">soal dijawab dengan benar</p>
-                    @if ($xpEarned > 0)
+                    @if ($isRemedial && $xpEarned > 0)
                         <p class="mt-3 text-sm font-semibold text-emerald-600">Sempurna! Semua soal remedial benar.</p>
+                    @elseif ($isDrill)
+                        <p class="mt-3 text-sm text-slate-600">Buka pembahasan untuk evaluasi mendalam.</p>
                     @endif
                 </div>
             @else

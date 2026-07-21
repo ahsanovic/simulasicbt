@@ -39,6 +39,9 @@ class ExamRoom extends Component
     public bool $isRemedial = false;
 
     #[Locked]
+    public bool $isDrill = false;
+
+    #[Locked]
     public bool $isDuel = false;
 
     #[Locked]
@@ -109,11 +112,12 @@ class ExamRoom extends Component
         }
 
         $this->examId = $exam->id;
-        $this->examTitle = $exam->title;
+        $this->examTitle = $attempt->isDrill() ? $attempt->displayTitle() : $exam->title;
         $this->attemptId = $attempt->id;
         $this->isRemedial = $attempt->isRemedial();
+        $this->isDrill = $attempt->isDrill();
         $this->isDuel = $attempt->isDuelAttempt();
-        $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDuel;
+        $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel;
         $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;
         $this->examDurationMinutes = (int) $exam->duration_minutes;
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
@@ -461,13 +465,14 @@ class ExamRoom extends Component
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
         $this->persistHelpItemsState();
-        if (! $this->isRemedial) {
+        if (! $this->isRemedial && ! $this->isDrill) {
             $this->persistTelemetries();
             $this->persistStressTestAnalysis();
         }
         $attempt = $examService->submitAttempt($this->resolveAttempt(), auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
-        $this->redirect(route('peserta.history'), navigate: true);
+        $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
+        $this->redirect(route('peserta.history', $redirectParams), navigate: true);
     }
 
     public function checkExpiry(): void
@@ -476,14 +481,15 @@ class ExamRoom extends Component
             $this->accumulateCurrentQuestionDuration();
             $this->persistAttemptMetadata();
             $this->persistHelpItemsState();
-            if (! $this->isRemedial) {
+            if (! $this->isRemedial && ! $this->isDrill) {
                 $this->persistTelemetries();
                 $this->persistStressTestAnalysis();
             }
             $attempt = app(ExamService::class)->submitAttempt($this->resolveAttempt(), auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
-            $this->redirect(route('peserta.history'), navigate: true);
+            $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
+            $this->redirect(route('peserta.history', $redirectParams), navigate: true);
         }
     }
 

@@ -80,6 +80,11 @@ class Exam extends Model
         return (bool) ($this->settings['is_duel'] ?? false);
     }
 
+    public function isDrill(): bool
+    {
+        return (bool) ($this->settings['is_drill'] ?? false);
+    }
+
     public function requiresPin(): bool
     {
         return filled($this->pin);

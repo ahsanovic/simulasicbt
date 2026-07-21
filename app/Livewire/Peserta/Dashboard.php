@@ -110,7 +110,7 @@ class Dashboard extends Component
             ->withCount('questions')
             ->latest()
             ->get()
-            ->reject(fn (Exam $exam) => $exam->isDuel())
+            ->reject(fn (Exam $exam) => $exam->isDuel() || $exam->isDrill())
             ->values();
 
         $attemptStats = ExamAttempt::query()

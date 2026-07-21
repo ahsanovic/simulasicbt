@@ -46,6 +46,21 @@
                     </span>
                 </a>
 
+                <a href="{{ route('peserta.drill.index') }}"
+                   wire:navigate
+                   @class([
+                       'shrink-0 rounded-lg px-3 py-1.5 transition',
+                       'bg-white text-primary-700 shadow-sm' => $active === 'drill',
+                       'text-slate-600 hover:text-slate-900' => $active !== 'drill',
+                   ])>
+                    <span class="inline-flex items-center gap-1.5">
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                        Drill Soal
+                    </span>
+                </a>
+
                 <div
                     x-data="{ open: false }"
                     @click.away="open = false"
@@ -359,6 +374,20 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
                     </svg>
                     Dashboard
+                </a>
+
+                <a href="{{ route('peserta.drill.index') }}"
+                   wire:navigate
+                   @click="mobileOpen = false"
+                   @class([
+                       'flex items-center gap-3 rounded-xl px-3 py-2.5 transition',
+                       'bg-primary-50 text-primary-700' => $active === 'drill',
+                       'text-slate-700 hover:bg-slate-50' => $active !== 'drill',
+                   ])>
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    Drill Soal
                 </a>
 
                 <div class="overflow-hidden rounded-xl">

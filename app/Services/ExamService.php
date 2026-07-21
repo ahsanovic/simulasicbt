@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\DTOs\DrillConfig;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
+use App\Enums\ExamStatus;
 use App\Jobs\GenerateExamPsychologyReportJob;
 use App\Models\CoinTransaction;
 use App\Models\Exam;
@@ -300,6 +302,70 @@ class ExamService
         return max(self::REMEDIAL_MIN_TOTAL_MINUTES, (int) ceil($totalSeconds / 60));
     }
 
+    public function startDrillAttempt(DrillConfig $config, User $user): ExamAttempt
+    {
+        return DB::transaction(function () use ($config, $user) {
+            $existingAttempt = ExamAttempt::query()
+                ->where('user_id', $user->id)
+                ->where('status', ExamAttemptStatus::InProgress)
+                ->first();
+
+            if ($existingAttempt?->isActive()) {
+                throw ValidationException::withMessages([
+                    'drill' => 'Anda masih memiliki ujian yang berjalan. Selesaikan terlebih dahulu.',
+                ]);
+            }
+
+            $generator = app(DrillQuestionGeneratorService::class);
+
+            try {
+                $questionIds = $generator->generate($config, $user);
+            } catch (ValidationException $exception) {
+                throw $exception;
+            }
+
+            $exam = $this->drillExam();
+            $durationMinutes = max(
+                DrillQuestionGeneratorService::MIN_DURATION_MINUTES,
+                min(DrillQuestionGeneratorService::MAX_DURATION_MINUTES, $config->durationMinutes),
+            );
+
+            $attempt = ExamAttempt::query()->create([
+                'exam_id' => $exam->id,
+                'user_id' => $user->id,
+                'attempt_type' => ExamAttemptType::Drill,
+                'drill_config' => $config->toArray(),
+                'started_at' => now(),
+                'expires_at' => now()->addMinutes($durationMinutes),
+                'status' => ExamAttemptStatus::InProgress,
+            ]);
+
+            foreach ($questionIds as $index => $questionId) {
+                ExamAnswer::query()->create([
+                    'exam_attempt_id' => $attempt->id,
+                    'question_id' => $questionId,
+                    'sort_order' => $index + 1,
+                ]);
+            }
+
+            return $attempt->load(['answers.question.options', 'answers.question.subject', 'answers.question.material']);
+        });
+    }
+
+    public function drillExam(): Exam
+    {
+        return Exam::query()->firstOrCreate(
+            ['slug' => 'drill-soal'],
+            [
+                'title' => 'Drill Soal',
+                'description' => 'Latihan terarah per sub-materi dengan pembahasan.',
+                'duration_minutes' => DrillQuestionGeneratorService::MAX_DURATION_MINUTES,
+                'status' => ExamStatus::Published,
+                'settings' => ['difficulty' => 'all', 'is_drill' => true],
+            ],
+        );
+    }
+
     public function submitAttempt(ExamAttempt $attempt, ?User $user = null): ExamAttempt
     {
         return DB::transaction(function () use ($attempt, $user) {
@@ -341,6 +407,15 @@ class ExamService
 
                 if ($rewardUser !== null) {
                     $gamification->awardRemedialPerfectXp($attempt, $rewardUser);
+                }
+            } elseif ($attempt->isDrill()) {
+                $attempt->update([
+                    'psychology_report_status' => 'skipped',
+                    'psychology_report_generated_at' => now(),
+                ]);
+
+                if ($rewardUser !== null) {
+                    $gamification->awardDrillXp($attempt, $rewardUser);
                 }
             } else {
                 app(ExamWeaknessAnalysisService::class)->forget($attempt->user_id);

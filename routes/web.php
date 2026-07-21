@@ -35,6 +35,7 @@ use App\Livewire\Peserta\Dashboard as PesertaDashboard;
 use App\Livewire\Peserta\DuelLobby;
 use App\Livewire\Peserta\Events\Index as PesertaEventsIndex;
 use App\Livewire\Peserta\DuelRoom;
+use App\Livewire\Peserta\DrillSetup;
 use App\Livewire\Peserta\Evaluasi as PesertaEvaluasi;
 use App\Livewire\Peserta\ExamHistory;
 use App\Livewire\Peserta\ExamReview;
@@ -136,6 +137,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
 Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
     Route::get('/', PesertaDashboard::class)->name('dashboard');
+    Route::get('/drill', DrillSetup::class)->name('drill.index');
     Route::get('/riwayat', ExamHistory::class)->name('history');
     Route::get('/evaluasi', PesertaEvaluasi::class)->name('evaluasi');
     Route::get('/simulasi-formasi', SimulasiFormasi::class)->name('simulasi-formasi');

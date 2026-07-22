@@ -447,6 +447,10 @@ class ExamService
                 if ($gamification->crossedRemedialUnlockThreshold($xpBefore, $xpAfter)) {
                     session()->flash('show_remedial_unlock_modal', true);
                 }
+
+                if ($attempt->isDrill() || ($attempt->isFull() && ! $attempt->isDuelAttempt() && $attempt->event_id === null)) {
+                    app(GhostRaceService::class)->handleActivityCompleted($rewardUser->fresh());
+                }
             }
 
             return $attempt->fresh();

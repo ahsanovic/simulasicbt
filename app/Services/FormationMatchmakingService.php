@@ -79,12 +79,22 @@ class FormationMatchmakingService
     {
         Formation::query()->findOrFail($formationId);
 
+        $previousFormationId = $user->formation_id;
+
         $user->forceFill([
             'formation_id' => $formationId,
             'formation_selected_at' => now(),
         ])->save();
 
         $this->forgetFormationCache($formationId);
+
+        $ghostRace = app(GhostRaceService::class);
+
+        if ($previousFormationId !== null && (int) $previousFormationId !== $formationId) {
+            $ghostRace->clearRivalForUser($user->fresh(['formation']));
+        }
+
+        $ghostRace->forgetUserCache($user->fresh(['formation']));
     }
 
     public function clearFormation(User $user): void
@@ -99,6 +109,10 @@ class FormationMatchmakingService
         if ($previousFormationId !== null) {
             $this->forgetFormationCache((int) $previousFormationId);
         }
+
+        $ghostRace = app(GhostRaceService::class);
+        $ghostRace->clearRivalForUser($user->fresh(['formation']));
+        $ghostRace->forgetUserCache($user->fresh(['formation']));
     }
 
     /**
@@ -451,5 +465,6 @@ class FormationMatchmakingService
     private function forgetFormationCache(int $formationId): void
     {
         Cache::forget($this->cacheKey($formationId));
+        app(GhostRaceService::class)->forgetFormationCaches($formationId);
     }
 }

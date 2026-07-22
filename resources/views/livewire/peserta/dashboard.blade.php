@@ -70,6 +70,8 @@
             :planner-completed-today="$plannerCompletedToday"
         />
 
+        <livewire:peserta.ghost-race-track />
+
         <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <x-peserta.formation-matchmaking-summary-card variant="compact" :has-history="$hasHistory" :summary="$formationSummary" />
             <x-peserta.leaderboard-summary-card variant="compact" :ranks="$leaderboardRanks" />

@@ -84,6 +84,16 @@ class LearningPlanService
             ->count();
     }
 
+    public function completedTasksThisWeek(User $user): int
+    {
+        return LearningPlanTask::query()
+            ->whereHas('plan', fn ($q) => $q->where('user_id', $user->id))
+            ->whereNull('parent_id')
+            ->where('status', LearningPlanTaskStatus::Done)
+            ->where('completed_at', '>=', now()->startOfWeek())
+            ->count();
+    }
+
     /**
      * @param  array{title: string, description?: ?string, priority?: string, color?: string, starts_at?: ?string, ends_at?: ?string}  $data
      */

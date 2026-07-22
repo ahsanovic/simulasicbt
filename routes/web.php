@@ -42,6 +42,7 @@ use App\Livewire\Peserta\KartuSakti;
 use App\Livewire\Peserta\LeaderboardHub;
 use App\Livewire\Peserta\MateriBelajar;
 use App\Livewire\Peserta\MateriBelajarShow;
+use App\Livewire\Peserta\RencanaBelajar;
 use App\Livewire\Peserta\Shop;
 use App\Livewire\Peserta\SimulasiFormasi;
 use App\Livewire\Peserta\SimulasiIndex;
@@ -156,6 +157,7 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/materi', MateriBelajar::class)->name('materi.index');
     Route::get('/materi/{subjectCode}/{materialSlug}', MateriBelajarShow::class)->name('materi.show');
     Route::get('/audio', AudioMode::class)->name('audio.index');
+    Route::get('/rencana-belajar', RencanaBelajar::class)->name('rencana-belajar.index');
     Route::get('/kartu-sakti', KartuSakti::class)->name('kartu-sakti.index');
     Route::get('/toko', Shop::class)->name('shop.index');
 });

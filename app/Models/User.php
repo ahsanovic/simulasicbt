@@ -152,4 +152,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserHelpItem::class);
     }
+
+    public function learningPlans(): HasMany
+    {
+        return $this->hasMany(LearningPlan::class);
+    }
 }

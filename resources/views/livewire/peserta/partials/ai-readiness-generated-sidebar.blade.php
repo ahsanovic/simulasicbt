@@ -66,4 +66,5 @@
 @include('livewire.peserta.partials.ai-readiness-action-buttons', [
     'repeatExam' => $repeatExam,
     'needsRefresh' => $needsRefresh,
+    'aiGeneration' => $this->aiPlanGenerationState(),
 ])

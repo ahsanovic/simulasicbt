@@ -4,10 +4,12 @@ namespace App\Livewire\Peserta;
 
 use App\Enums\DailyActivityType;
 use App\Enums\FlashcardSourceType;
+use App\Enums\LearningPlanTaskCategory;
 use App\Enums\SubjectCode;
 use App\Models\Material;
 use App\Services\DailyStreakService;
 use App\Services\FlashcardService;
+use App\Services\LearningPlanService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -37,15 +39,27 @@ class MateriBelajarShow extends Component
         $this->material = $material;
     }
 
-    public function markCheatSheetComplete(DailyStreakService $dailyStreakService): void
-    {
+    public function markCheatSheetComplete(
+        DailyStreakService $dailyStreakService,
+        LearningPlanService $learningPlanService,
+    ): void {
         $dailyStreakService->logActivity(
             auth()->user(),
             DailyActivityType::CheatSheet,
             $this->material->id,
         );
 
-        session()->flash('success', 'Materi ditandai selesai! Streak harian Anda diperbarui.');
+        $completed = $learningPlanService->completeMatchingTasks(
+            auth()->user(),
+            LearningPlanTaskCategory::Materi,
+        );
+
+        session()->flash(
+            'success',
+            $completed > 0
+                ? 'Materi ditandai selesai! Tugas di Rencana Belajar ikut tercentang & streak diperbarui.'
+                : 'Materi ditandai selesai! Streak harian Anda diperbarui.',
+        );
     }
 
     public function getIsCheatSheetCompletedTodayProperty(): bool

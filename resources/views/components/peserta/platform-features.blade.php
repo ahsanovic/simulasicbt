@@ -17,7 +17,7 @@
     <div
         x-data="{
             activeIndex: 0,
-            cardCount: 9,
+            cardCount: 10,
             autoplayMs: 3000,
             autoplayTimer: null,
             isInteractionPaused: false,
@@ -454,6 +454,35 @@
                         </p>
                         <p class="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-teal-600 group-hover:gap-1.5 transition-all">
                             {{ $hasHistory ? 'Lihat simulasi' : 'Tersedia setelah simulasi' }}
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </p>
+                    </div>
+                </div>
+            </a>
+
+            {{-- 10. Rencana Belajar --}}
+            <a href="{{ route('peserta.rencana-belajar.index') }}"
+               wire:navigate
+               data-carousel-card="9"
+               class="group ui-card relative w-[88%] shrink-0 snap-start overflow-hidden p-4 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)]">
+                <div class="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-indigo-100/80 to-violet-100/40 opacity-0 transition group-hover:opacity-100"></div>
+
+                <div class="relative flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <h3 class="text-sm font-bold text-slate-900 group-hover:text-indigo-700">Rencana Belajar</h3>
+                            <span class="ui-badge bg-indigo-50 text-indigo-700 text-[10px]">Planner</span>
+                        </div>
+                        <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                            Jadwalkan tugas belajar, atur prioritas, dan pantau progres lewat Board, Tabel, atau Kalender.
+                        </p>
+                        <p class="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 group-hover:gap-1.5 transition-all">
+                            Buka planner
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                         </p>
                     </div>

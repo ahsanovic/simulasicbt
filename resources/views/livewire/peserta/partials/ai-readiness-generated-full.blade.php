@@ -113,6 +113,43 @@
                     </div>
                 </div>
             @endif
+
+            <div class="mt-6 rounded-2xl border border-dashed border-blue-200 bg-blue-50/50 p-5">
+                <p class="text-sm font-bold text-blue-900">Rencana Belajar Otomatis</p>
+                <p class="mt-1 text-xs text-blue-800/80">
+                    Susun rencana 7 hari dari hasil evaluasi kesiapan: materi lemah, Kartu Sakti, drill, audio, lalu try out untuk mengukur progres.
+                </p>
+                <div class="mt-4 flex flex-wrap gap-3">
+                    @php $aiGeneration = $this->aiPlanGenerationState(); @endphp
+
+                    @if ($aiGeneration['status'] === 'available')
+                        <button type="button"
+                                wire:click="generatePlanFromEvaluation"
+                                wire:loading.attr="disabled"
+                                wire:target="generatePlanFromEvaluation"
+                                class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60">
+                            <span wire:loading.remove wire:target="generatePlanFromEvaluation" class="inline-flex items-center gap-2">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                                Buat Rencana Otomatis dari Hasil Evaluasi
+                            </span>
+                            <span wire:loading wire:target="generatePlanFromEvaluation">Membuat rencana...</span>
+                        </button>
+                    @elseif ($aiGeneration['status'] === 'already_generated' && $aiGeneration['existing_plan'])
+                        <a href="{{ route('peserta.rencana-belajar.index', ['plan' => $aiGeneration['existing_plan']->id]) }}"
+                           wire:navigate
+                           class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                            Buka Rencana dari Hasil Evaluasi
+                        </a>
+                        <p class="w-full text-xs text-blue-700/80">{{ $aiGeneration['message'] }}</p>
+                    @endif
+                    <a href="{{ route('peserta.rencana-belajar.index') }}"
+                       wire:navigate
+                       class="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-800 transition hover:bg-blue-50">
+                        Buka Planner →
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -164,6 +201,7 @@
     @include('livewire.peserta.partials.ai-readiness-action-buttons', [
         'repeatExam' => $repeatExam,
         'needsRefresh' => $needsRefresh,
+        'aiGeneration' => $this->aiPlanGenerationState(),
         'inline' => true,
         'fullWidth' => false,
     ])

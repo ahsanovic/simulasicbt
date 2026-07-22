@@ -6,6 +6,7 @@ use App\Enums\DailyActivityType;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\FlashcardRating;
 use App\Enums\FlashcardSourceType;
+use App\Enums\LearningPlanTaskCategory;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\Flashcard;
@@ -263,13 +264,17 @@ class FlashcardService
         $dailyStreak->logActivity($user, DailyActivityType::Flashcard);
         $xpEarned = $dailyStreak->applyMultiplier($cardCount, $dailyStreak->dailyStreak($user));
 
-        return FlashcardReviewSession::query()->create([
+        $session = FlashcardReviewSession::query()->create([
             'user_id' => $user->id,
             'card_count' => $cardCount,
             'xp_earned' => $xpEarned,
             'duration_seconds' => max(0, $durationSeconds),
             'completed_at' => now(),
         ]);
+
+        app(LearningPlanService::class)->completeMatchingTasks($user, LearningPlanTaskCategory::KartuSakti);
+
+        return $session;
     }
 
     /** @return list<int> */

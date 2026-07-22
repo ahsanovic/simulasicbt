@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\DailyActivityType;
+use App\Enums\LearningPlanTaskCategory;
 use App\Enums\SubjectCode;
 use App\Models\AudioLearningSession;
 use App\Models\User;
@@ -19,7 +20,7 @@ class AudioLearningService
         $dailyStreak->logActivity($user, DailyActivityType::Audio);
         $xpEarned = $dailyStreak->applyMultiplier($questionCount, $dailyStreak->dailyStreak($user));
 
-        return AudioLearningSession::query()->create([
+        $session = AudioLearningSession::query()->create([
             'user_id' => $user->id,
             'subject_code' => $subjectCode,
             'question_count' => $questionCount,
@@ -27,6 +28,10 @@ class AudioLearningService
             'duration_seconds' => max(0, $durationSeconds),
             'completed_at' => now(),
         ]);
+
+        app(LearningPlanService::class)->completeMatchingTasks($user, LearningPlanTaskCategory::Audio);
+
+        return $session;
     }
 
     public function totalXp(User $user): int

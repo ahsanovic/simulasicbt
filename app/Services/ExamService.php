@@ -6,6 +6,7 @@ use App\DTOs\DrillConfig;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ExamStatus;
+use App\Enums\LearningPlanTaskCategory;
 use App\Jobs\GenerateExamPsychologyReportJob;
 use App\Models\CoinTransaction;
 use App\Models\Exam;
@@ -416,6 +417,10 @@ class ExamService
 
                 if ($rewardUser !== null) {
                     $gamification->awardDrillXp($attempt, $rewardUser);
+                    app(LearningPlanService::class)->completeMatchingTasks(
+                        $rewardUser,
+                        LearningPlanTaskCategory::Drill,
+                    );
                 }
             } else {
                 app(ExamWeaknessAnalysisService::class)->forget($attempt->user_id);
@@ -423,6 +428,13 @@ class ExamService
                 if ($rewardUser !== null) {
                     $gamification->awardExamAttemptXp($attempt, $rewardUser);
                     app(CoinService::class)->awardExamAttemptCoins($attempt, $rewardUser);
+
+                    if (! $attempt->isDuelAttempt() && $attempt->event_id === null) {
+                        app(LearningPlanService::class)->completeMatchingTasks(
+                            $rewardUser,
+                            LearningPlanTaskCategory::TryOut,
+                        );
+                    }
                 }
 
                 $attempt->update(['psychology_report_status' => 'pending']);

@@ -7,10 +7,13 @@ use App\Enums\ExamStatus;
 use App\Enums\SubjectCode;
 use App\Enums\UserRole;
 use App\Livewire\Peserta\AiReadinessReport;
+use App\Livewire\Peserta\Evaluasi;
 use App\Models\AiRecommendation;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
+use App\Models\LearningPlan;
+use App\Models\LearningPlanTask;
 use App\Models\Material;
 use App\Models\Question;
 use App\Models\QuestionOption;
@@ -181,6 +184,38 @@ class AiReadinessReportTest extends TestCase
             ->test(AiReadinessReport::class)
             ->assertSet('isGenerated', true)
             ->assertSee('Ulangi Simulasi');
+    }
+
+    public function test_can_generate_learning_plan_from_evaluation(): void
+    {
+        [$user] = $this->createSubmittedAttemptWithQuestions();
+        $stats = app(ExamWeaknessAnalysisService::class)->getStatsForUser($user->id);
+
+        AiRecommendation::query()->create([
+            'user_id' => $user->id,
+            'recommendation_text' => 'Fokus latihan materi lemah.',
+            'weakness_stats' => $stats,
+            'latest_attempt_at' => $stats['latest_attempt_at'],
+            'generated_at' => now(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Evaluasi::class)
+            ->assertSee('Buat Rencana Otomatis dari Hasil Evaluasi')
+            ->call('generatePlanFromEvaluation')
+            ->assertRedirect(route('peserta.rencana-belajar.index', [
+                'plan' => LearningPlan::query()->where('user_id', $user->id)->value('id'),
+            ]));
+
+        $this->assertDatabaseHas('learning_plans', [
+            'user_id' => $user->id,
+        ]);
+        $this->assertGreaterThan(
+            0,
+            LearningPlanTask::query()
+                ->whereHas('plan', fn ($q) => $q->where('user_id', $user->id))
+                ->count(),
+        );
     }
 
     /**

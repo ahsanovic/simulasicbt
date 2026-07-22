@@ -202,3 +202,32 @@
     font-weight: 600 !important;
     color: #0f172a !important;
 }
+
+/* Planner kanban drag states */
+.planner-card-ghost {
+    opacity: 0.45;
+    background: rgb(238 242 255) !important;
+    border-style: dashed !important;
+    box-shadow: none !important;
+}
+
+.planner-card-chosen {
+    box-shadow: 0 12px 28px -8px rgb(79 70 229 / 0.35) !important;
+    transform: scale(1.02);
+}
+
+.planner-card-drag {
+    opacity: 1 !important;
+    cursor: grabbing !important;
+}
+
+.planner-column-drop {
+    min-height: 280px;
+}
+
+.planner-column-drop .sortable-ghost,
+.planner-column-drop .sortable-chosen,
+.planner-column-drop .sortable-drag {
+    cursor: grabbing !important;
+}
+

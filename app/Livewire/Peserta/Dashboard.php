@@ -11,6 +11,7 @@ use App\Services\FlashcardService;
 use App\Services\FormationMatchmakingService;
 use App\Services\GamificationService;
 use App\Services\LeaderboardSummaryService;
+use App\Services\LearningPlanService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -28,6 +29,7 @@ class Dashboard extends Component
         LeaderboardSummaryService $leaderboardSummary,
         FormationMatchmakingService $formationMatchmaking,
         ExamCatalogService $examCatalog,
+        LearningPlanService $learningPlanService,
     ) {
         $user = auth()->user();
         $userId = (int) $user->id;
@@ -56,6 +58,8 @@ class Dashboard extends Component
             'devotionProgress' => $devotionProgress,
             'dailyStreakInfo' => $dailyStreakInfo,
             'flashcardDueCount' => $flashcardDueCount,
+            'plannerCompletedToday' => $learningPlanService->completedTasksToday($user),
+            'plannerActiveCount' => $learningPlanService->activeCount($user),
             'leaderboardRanks' => $leaderboardRanks,
             'formationSummary' => $formationSummary,
         ]);

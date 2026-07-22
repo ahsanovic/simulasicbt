@@ -13,6 +13,7 @@
         "katex": "^0.17.0",
         "laravel-vite-plugin": "^3.1",
         "quill": "^2.0.3",
+        "sortablejs": "^1.15.7",
         "sweetalert2": "^11.26.25",
         "tailwindcss": "^4.0.7",
         "vite": "^8.0.0"

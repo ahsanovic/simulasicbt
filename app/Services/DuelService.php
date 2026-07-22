@@ -6,6 +6,7 @@ use App\Enums\DuelMatchType;
 use App\Enums\DuelSessionStatus;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamStatus;
+use App\Enums\LearningPlanTaskCategory;
 use App\Enums\UserRole;
 use App\Models\DuelSession;
 use App\Models\Exam;
@@ -505,12 +506,15 @@ class DuelService
 
     private function awardDuelXp(DuelSession $session): void
     {
+        $planner = app(LearningPlanService::class);
+
         if ($session->hostAttempt && $session->host) {
             $this->gamificationService->awardDuelAttemptXp(
                 $session->hostAttempt,
                 $session->host,
                 $session->winner_user_id === $session->host_user_id,
             );
+            $planner->completeMatchingTasks($session->host, LearningPlanTaskCategory::Duel);
         }
 
         if ($session->opponentAttempt && $session->opponent && ! $session->is_bot_opponent) {
@@ -519,6 +523,7 @@ class DuelService
                 $session->opponent,
                 $session->winner_user_id === $session->opponent_user_id,
             );
+            $planner->completeMatchingTasks($session->opponent, LearningPlanTaskCategory::Duel);
         }
     }
 

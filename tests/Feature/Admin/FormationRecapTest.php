@@ -14,7 +14,7 @@ class FormationRecapTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_formation_recap_groups_selected_positions_by_rumpun(): void
+    public function test_formation_recap_summarizes_groups_and_top_positions(): void
     {
         $formationA = Formation::query()->create([
             'name' => 'Analis Kebijakan',
@@ -28,14 +28,25 @@ class FormationRecapTest extends TestCase
             'group' => 'Teknologi Informasi',
         ]);
 
-        User::factory()->count(2)->create([
+        $formationC = Formation::query()->create([
+            'name' => 'Auditor',
+            'slug' => 'auditor',
+            'group' => 'Keuangan & Pengawasan',
+        ]);
+
+        User::factory()->count(3)->create([
             'role' => UserRole::Peserta,
             'formation_id' => $formationA->id,
         ]);
 
-        User::factory()->create([
+        User::factory()->count(2)->create([
             'role' => UserRole::Peserta,
             'formation_id' => $formationB->id,
+        ]);
+
+        User::factory()->create([
+            'role' => UserRole::Peserta,
+            'formation_id' => $formationC->id,
         ]);
 
         User::factory()->create([
@@ -43,18 +54,28 @@ class FormationRecapTest extends TestCase
             'formation_id' => null,
         ]);
 
-        $recap = Formation::query()
+        $formationsWithCount = Formation::query()
             ->whereHas('users', fn ($query) => $query->where('role', UserRole::Peserta))
             ->withCount(['users as peserta_count' => fn ($query) => $query->where('role', UserRole::Peserta)])
-            ->orderBy('group')
+            ->orderByDesc('peserta_count')
             ->orderBy('name')
-            ->get()
-            ->groupBy('group');
+            ->get();
 
-        $this->assertSame(2, $recap->get('Hukum & Tata Kelola')->first()->peserta_count);
-        $this->assertSame(1, $recap->get('Teknologi Informasi')->first()->peserta_count);
-        $this->assertSame(3, User::query()->where('role', UserRole::Peserta)->whereNotNull('formation_id')->count());
-        $this->assertSame(1, User::query()->where('role', UserRole::Peserta)->whereNull('formation_id')->count());
+        $groupSummary = $formationsWithCount
+            ->groupBy('group')
+            ->map(fn ($formations, $group) => [
+                'group' => $group,
+                'peserta_count' => $formations->sum('peserta_count'),
+                'formation_count' => $formations->count(),
+            ])
+            ->sortByDesc('peserta_count')
+            ->values();
+
+        $this->assertSame(3, $groupSummary->first()['peserta_count']);
+        $this->assertSame('Hukum & Tata Kelola', $groupSummary->first()['group']);
+        $this->assertSame(3, $formationsWithCount->count());
+        $this->assertSame('Analis Kebijakan', $formationsWithCount->first()->name);
+        $this->assertCount(3, $formationsWithCount->take(5));
     }
 
     public function test_admin_users_index_filters_by_formation(): void

@@ -22,13 +22,22 @@ class Dashboard extends Component
     {
         $pesertaQuery = User::query()->where('role', UserRole::Peserta);
 
-        $formationRecap = Formation::query()
+        $formationsWithCount = Formation::query()
             ->whereHas('users', fn ($query) => $query->where('role', UserRole::Peserta))
             ->withCount(['users as peserta_count' => fn ($query) => $query->where('role', UserRole::Peserta)])
-            ->orderBy('group')
+            ->orderByDesc('peserta_count')
             ->orderBy('name')
-            ->get()
-            ->groupBy('group');
+            ->get();
+
+        $groupSummary = $formationsWithCount
+            ->groupBy('group')
+            ->map(fn ($formations, $group) => [
+                'group' => $group,
+                'peserta_count' => $formations->sum('peserta_count'),
+                'formation_count' => $formations->count(),
+            ])
+            ->sortByDesc('peserta_count')
+            ->values();
 
         return view('livewire.admin.dashboard', [
             'stats' => [
@@ -48,8 +57,10 @@ class Dashboard extends Component
                 'formation_recap' => [
                     'selected_count' => (clone $pesertaQuery)->whereNotNull('formation_id')->count(),
                     'unselected_count' => (clone $pesertaQuery)->whereNull('formation_id')->count(),
-                    'by_group' => $formationRecap,
-                    'max_count' => $formationRecap->flatten()->max('peserta_count') ?: 1,
+                    'total_formations' => $formationsWithCount->count(),
+                    'group_summary' => $groupSummary,
+                    'top_formations' => $formationsWithCount->take(5),
+                    'max_group_count' => $groupSummary->max('peserta_count') ?: 1,
                 ],
             ],
         ]);

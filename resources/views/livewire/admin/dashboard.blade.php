@@ -41,6 +41,69 @@
         />
     </div>
 
+    <div class="mt-8">
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Rekap Pilihan Jabatan Peserta</h2>
+                <p class="mt-0.5 text-sm text-slate-500">Distribusi target jabatan yang sudah dipilih peserta</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <span class="ui-badge bg-emerald-100 text-emerald-700">
+                    {{ number_format($stats['formation_recap']['selected_count']) }} sudah memilih
+                </span>
+                <span class="ui-badge bg-slate-100 text-slate-700">
+                    {{ number_format($stats['formation_recap']['unselected_count']) }} belum memilih
+                </span>
+            </div>
+        </div>
+
+        @if ($stats['formation_recap']['by_group']->isNotEmpty())
+            <div class="space-y-5">
+                @foreach ($stats['formation_recap']['by_group'] as $group => $formations)
+                    <div class="ui-card overflow-hidden" wire:key="formation-recap-{{ md5($group) }}">
+                        <div class="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
+                            <div class="flex items-center justify-between gap-3">
+                                <h3 class="font-bold text-slate-900">{{ $group }}</h3>
+                                <span class="ui-badge bg-teal-50 text-teal-700">
+                                    {{ $formations->sum('peserta_count') }} peserta
+                                </span>
+                            </div>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            @foreach ($formations as $formation)
+                                <div class="flex items-center gap-4 px-6 py-3.5" wire:key="formation-recap-item-{{ $formation->id }}">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-semibold text-slate-900">{{ $formation->name }}</p>
+                                        <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                                            <div
+                                                class="h-full rounded-full bg-teal-500"
+                                                style="width: {{ round(($formation->peserta_count / $stats['formation_recap']['max_count']) * 100) }}%"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex shrink-0 items-center gap-3">
+                                        <span class="w-8 text-right text-sm font-semibold text-slate-700">{{ $formation->peserta_count }}</span>
+                                        <a
+                                            href="{{ route('admin.users.index', ['formationFilter' => $formation->id]) }}"
+                                            wire:navigate
+                                            class="text-xs font-semibold text-primary-600 hover:text-primary-700"
+                                        >
+                                            Lihat →
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="ui-card px-6 py-12 text-center">
+                <p class="text-sm text-slate-500">Belum ada peserta yang memilih target jabatan.</p>
+            </div>
+        @endif
+    </div>
+
     <div class="mt-8 grid gap-5 lg:grid-cols-2">
         <div class="ui-card p-6">
             <h2 class="text-base font-bold text-slate-900">Selamat datang kembali</h2>

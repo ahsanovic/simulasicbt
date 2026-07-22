@@ -4,8 +4,10 @@ namespace App\Livewire\Admin\Users;
 
 use App\Enums\UserRole;
 use App\Livewire\Concerns\HandlesImportErrorModal;
+use App\Models\Formation;
 use App\Models\Instansi;
 use App\Models\User;
+use Livewire\Attributes\Url;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -22,6 +24,9 @@ class Index extends Component
     public string $search = '';
 
     public string $roleFilter = '';
+
+    #[Url(except: '')]
+    public string $formationFilter = '';
 
     public bool $showModal = false;
 
@@ -90,6 +95,11 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatedFormationFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatedIsPegawai(): void
     {
         if (! $this->is_pegawai) {
@@ -130,7 +140,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'roleFilter']);
+        $this->reset(['search', 'roleFilter', 'formationFilter']);
         $this->resetPage();
     }
 
@@ -217,7 +227,7 @@ class Index extends Component
     public function render()
     {
         $users = User::query()
-            ->with('instansi')
+            ->with(['instansi', 'formation'])
             ->withSum('audioLearningSessions as audio_xp', 'xp_earned')
             ->withSum('flashcardReviewSessions as flashcard_xp', 'xp_earned')
             ->withSum('xpRewards as reward_xp', 'amount')
@@ -228,8 +238,19 @@ class Index extends Component
                     ->orWhere('nip', 'like', "%{$this->search}%");
             }))
             ->when($this->roleFilter, fn ($q) => $q->where('role', $this->roleFilter))
+            ->when($this->formationFilter === 'none', fn ($q) => $q->whereNull('formation_id'))
+            ->when(
+                $this->formationFilter !== '' && $this->formationFilter !== 'none',
+                fn ($q) => $q->where('formation_id', $this->formationFilter),
+            )
             ->latest()
             ->paginate(10);
+
+        $formationGroups = Formation::query()
+            ->orderBy('group')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('group');
 
         $instansiSuggestions = collect();
 
@@ -241,6 +262,6 @@ class Index extends Component
                 ->get();
         }
 
-        return view('livewire.admin.users.index', compact('users', 'instansiSuggestions'));
+        return view('livewire.admin.users.index', compact('users', 'instansiSuggestions', 'formationGroups'));
     }
 }

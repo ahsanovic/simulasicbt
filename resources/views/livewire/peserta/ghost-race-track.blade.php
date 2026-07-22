@@ -78,7 +78,7 @@
 
                 <p class="mb-3 text-xs leading-relaxed text-slate-500">
                     <span class="font-semibold text-slate-700">Cara baca lintasan:</span>
-                    mobil biru (Anda) dan hantu rival bergerak dari kiri ke kanan menuju trofi target kelulusan.
+                    mobil merah (Anda) dan hantu rival bergerak dari kiri ke kanan menuju trofi target kelulusan.
                     Semakin rajin belajar dan skor SKD meningkat, semakin dekat Anda ke garis finish.
                 </p>
 

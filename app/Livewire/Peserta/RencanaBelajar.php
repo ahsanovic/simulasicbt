@@ -176,7 +176,18 @@ class RencanaBelajar extends Component
             'planColor' => ['required', Rule::in(array_keys(LearningPlan::COLORS))],
             'planStartsAt' => ['nullable', 'date'],
             'planEndsAt' => ['nullable', 'date', 'after_or_equal:planStartsAt'],
-        ], [], [
+        ], [
+            'planTitle.required' => 'Judul rencana wajib diisi.',
+            'planTitle.max' => 'Judul rencana maksimal 120 karakter.',
+            'planDescription.max' => 'Deskripsi maksimal 1000 karakter.',
+            'planPriority.required' => 'Prioritas wajib dipilih.',
+            'planPriority.enum' => 'Prioritas tidak valid.',
+            'planColor.required' => 'Warna wajib dipilih.',
+            'planColor.in' => 'Warna tidak valid.',
+            'planStartsAt.date' => 'Tanggal mulai tidak valid.',
+            'planEndsAt.date' => 'Tanggal selesai tidak valid.',
+            'planEndsAt.after_or_equal' => 'Tanggal selesai harus sama dengan atau setelah tanggal mulai.',
+        ], [
             'planTitle' => 'judul rencana',
             'planDescription' => 'deskripsi',
             'planPriority' => 'prioritas',
@@ -300,7 +311,18 @@ class RencanaBelajar extends Component
             'taskPriority' => ['required', Rule::enum(LearningPlanPriority::class)],
             'taskStatus' => ['required', Rule::enum(LearningPlanTaskStatus::class)],
             'taskScheduledAt' => ['nullable', 'date'],
-        ], [], [
+        ], [
+            'taskTitle.required' => 'Judul tugas wajib diisi.',
+            'taskTitle.max' => 'Judul tugas maksimal 160 karakter.',
+            'taskNotes.max' => 'Catatan maksimal 2000 karakter.',
+            'taskCategory.required' => 'Kategori wajib dipilih.',
+            'taskCategory.enum' => 'Kategori tidak valid.',
+            'taskPriority.required' => 'Prioritas wajib dipilih.',
+            'taskPriority.enum' => 'Prioritas tidak valid.',
+            'taskStatus.required' => 'Status wajib dipilih.',
+            'taskStatus.enum' => 'Status tidak valid.',
+            'taskScheduledAt.date' => 'Jadwal tidak valid.',
+        ], [
             'taskTitle' => 'judul tugas',
             'taskNotes' => 'catatan',
             'taskCategory' => 'kategori',

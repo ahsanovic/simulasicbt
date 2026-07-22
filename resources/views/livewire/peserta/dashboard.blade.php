@@ -64,7 +64,11 @@
             </div>
         </div>
 
-        <x-peserta.platform-features :has-history="$hasHistory" />
+        <x-peserta.platform-features
+            :has-history="$hasHistory"
+            :planner-active-count="$plannerActiveCount"
+            :planner-completed-today="$plannerCompletedToday"
+        />
 
         <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <x-peserta.formation-matchmaking-summary-card variant="compact" :has-history="$hasHistory" :summary="$formationSummary" />

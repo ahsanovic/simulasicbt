@@ -9,6 +9,7 @@ use App\Enums\LearningPlanStatus;
 use App\Enums\LearningPlanTaskCategory;
 use App\Enums\LearningPlanTaskStatus;
 use App\Enums\UserRole;
+use App\Livewire\Peserta\Dashboard;
 use App\Livewire\Peserta\RencanaBelajar;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
@@ -17,6 +18,7 @@ use App\Models\LearningPlanTask;
 use App\Models\User;
 use App\Services\ExamWeaknessAnalysisService;
 use App\Services\FlashcardService;
+use App\Services\LeaderboardSummaryService;
 use App\Services\LearningPlanService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,6 +28,47 @@ use Tests\TestCase;
 class RencanaBelajarTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->mock(LeaderboardSummaryService::class, function ($mock): void {
+            $mock->shouldReceive('getRanks')->andReturn([
+                'score' => null,
+                'duel' => null,
+                'xp' => null,
+            ]);
+        });
+    }
+
+    public function test_dashboard_carousel_shows_rencana_belajar_feature(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+
+        Livewire::actingAs($user)
+            ->test(Dashboard::class)
+            ->assertSee('Rencana Belajar')
+            ->assertSee('Buka planner');
+    }
+
+    public function test_dashboard_carousel_shows_planner_progress_when_active(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+
+        LearningPlan::query()->create([
+            'user_id' => $user->id,
+            'title' => 'Rencana CPNS',
+            'priority' => LearningPlanPriority::Medium,
+            'status' => LearningPlanStatus::Active,
+            'color' => 'indigo',
+            'sort_order' => 0,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Dashboard::class)
+            ->assertSee('1 rencana aktif');
+    }
 
     public function test_peserta_can_view_rencana_belajar_page(): void
     {

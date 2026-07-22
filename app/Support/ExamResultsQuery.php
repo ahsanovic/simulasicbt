@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Data\ExamResultsExportFilters;
 use App\Enums\ExamAttemptStatus;
+use App\Enums\ExamAttemptType;
 use App\Models\ExamAttempt;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -36,8 +37,19 @@ final class ExamResultsQuery
         }
 
         if ($filters->examTypeFilter === 'simulasi') {
-            $query->whereNull('duel_session_id')
+            $query
+                ->where('attempt_type', ExamAttemptType::Full)
+                ->whereNull('duel_session_id')
+                ->whereNull('event_id')
                 ->whereDoesntHave('exam', fn (Builder $examQuery) => $examQuery->where('settings->is_duel', true));
+        }
+
+        if ($filters->examTypeFilter === 'drill') {
+            $query->where('attempt_type', ExamAttemptType::Drill);
+        }
+
+        if ($filters->examTypeFilter === 'remedial') {
+            $query->where('attempt_type', ExamAttemptType::Remedial);
         }
 
         if ($filters->dateFrom !== '') {

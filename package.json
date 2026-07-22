@@ -3,7 +3,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "npm install --no-audit --no-fund && vite build",
+        "build:vite": "vite build",
         "dev": "vite"
     },
     "dependencies": {

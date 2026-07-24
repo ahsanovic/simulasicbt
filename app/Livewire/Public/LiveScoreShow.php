@@ -91,7 +91,7 @@ class LiveScoreShow extends Component
                 }
 
                 return [
-                    'name' => $attempt->user?->name ?? 'Peserta',
+                    'name' => $attempt->resolvedDisplayName(),
                     'instansi' => $attempt->user?->instansi?->nama,
                     'session' => $attempt->eventSession?->name,
                     'answered' => $answered,

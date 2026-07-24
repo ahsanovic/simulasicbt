@@ -1,8 +1,11 @@
+{{-- Single, unconditional root element so Livewire always binds wire:id here
+     and every wire:click inside (option selection, navigation, submit) works.
+     The name-confirmation screen and the exam are swapped INSIDE this root. --}}
+<div wire:key="exam-room-{{ $attemptId }}">
 @if ($needsNameConfirmation)
     @include('livewire.peserta.exam-room.confirm-name')
 @else
 <div class="min-h-screen bg-slate-100"
-     wire:key="exam-room-{{ $attemptId }}"
      wire:poll.30s="checkExpiry"
      @if ($stressTestEnabled)
          x-data="examStressTest({
@@ -40,3 +43,4 @@
     @include('livewire.peserta.exam-room.last-question-modal')
 </div>
 @endif
+</div>

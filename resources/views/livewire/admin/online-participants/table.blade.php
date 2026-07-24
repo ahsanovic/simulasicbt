@@ -36,7 +36,7 @@
                                     {{ $attempt->user->initials() }}
                                 </div>
                                 <div>
-                                    <p class="font-semibold text-slate-900">{{ $attempt->user->name }}</p>
+                                    <p class="font-semibold text-slate-900">{{ $attempt->resolvedDisplayName() }}</p>
                                     <p class="text-xs text-slate-500">{{ $attempt->user->email }}</p>
                                 </div>
                             </div>

@@ -53,4 +53,13 @@ return [
         'timeout' => env('DEEPSEEK_TIMEOUT', 120),
     ],
 
+    'gotenberg' => [
+        // Container "gotenberg-signer" publishes 3000 to the host, so from the
+        // app (running on the host) it's reachable via localhost. If the app
+        // itself ever moves into the same Docker network, switch this to the
+        // container name, e.g. http://gotenberg-signer:3000.
+        'url' => env('GOTENBERG_URL', 'http://localhost:3000'),
+        'timeout' => env('GOTENBERG_TIMEOUT', 30),
+    ],
+
 ];

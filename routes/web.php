@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ParticipantImportController;
 use App\Http\Controllers\Admin\QuestionContentImageController;
 use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Peserta\CertificateController;
 use App\Http\Controllers\PublicStorageController;
 use App\Http\Middleware\TrackPesertaPresence;
 use App\Livewire\Admin\CoinPurchases\Index as CoinPurchasesIndex;
@@ -148,6 +149,7 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/simulasi-formasi', SimulasiFormasi::class)->name('simulasi-formasi');
     Route::redirect('/rapor', '/peserta/evaluasi');
     Route::get('/riwayat/{attempt}/review', ExamReview::class)->name('exam.review');
+    Route::get('/riwayat/{attempt}/sertifikat', [CertificateController::class, 'download'])->name('certificate.download');
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
     Route::get('/event', PesertaEventsIndex::class)->name('events.index');
     Route::get('/duel', DuelLobby::class)->name('duel.index');

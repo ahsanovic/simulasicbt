@@ -375,11 +375,11 @@ class ExamRoom extends Component
             return;
         }
 
+        // Selecting only updates the on-screen highlight. The answer is NOT
+        // persisted until the peserta explicitly clicks "Simpan & Lanjutkan"
+        // (next). Navigating away via the navigator / "Sebelumnya" discards an
+        // unsaved pick — loadCurrentAnswer() restores the last saved value.
         $this->selectedOptionId = $optionId;
-
-        // Persist immediately so a sudden disconnect/power loss never drops the
-        // current pick — the answer is written to the DB the moment it is chosen.
-        $this->saveAnswer();
     }
 
     public function saveAnswer(): void
@@ -435,8 +435,10 @@ class ExamRoom extends Component
             return;
         }
 
+        // No saveAnswer() here: jumping to another question (navigator or
+        // "Sebelumnya") does not commit the current pick. loadCurrentAnswer()
+        // resets selectedOptionId to the last saved value, discarding it.
         $this->showLastQuestionModal = false;
-        $this->saveAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
         $this->currentIndex = $index;
@@ -535,6 +537,10 @@ class ExamRoom extends Component
     public function checkExpiry(): void
     {
         if ($this->remainingSeconds <= 0) {
+            // Terminal auto-submit: capture the current on-screen pick, same as
+            // a manual submit, so a selected-but-not-yet-saved answer on the
+            // active question isn't lost when time runs out.
+            $this->saveAnswer();
             $this->accumulateCurrentQuestionDuration();
             $this->persistAttemptMetadata();
             $this->persistHelpItemsState();

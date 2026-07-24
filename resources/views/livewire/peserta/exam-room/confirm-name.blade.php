@@ -2,6 +2,9 @@
     <div class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">Konfirmasi Sebelum Ujian</p>
         <h1 class="mt-1 text-xl font-bold text-slate-900">{{ $examTitle }}</h1>
+        @if ($eventName)
+            <p class="mt-1 text-sm text-slate-600">{{ $eventName }}</p>
+        @endif
 
         <dl class="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50 text-sm">
             @if ($eventName)

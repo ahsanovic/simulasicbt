@@ -42,6 +42,19 @@
         </div>
     </div>
 
+    {{-- Search bar --}}
+    <div class="mb-5 flex gap-3">
+        <div class="flex-1">
+            <input type="text"
+                   wire:model.live="search"
+                   placeholder="Cari nama peserta atau instansi..."
+                   class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500/20">
+        </div>
+        @if($search)
+            <button wire:click="$set('search', '')" class="ui-btn-secondary px-3">Hapus</button>
+        @endif
+    </div>
+
     {{-- Toolbar: aksi massal untuk peserta terpilih --}}
     <div class="ui-card mb-5 flex flex-wrap items-center gap-3 p-4">
         <button wire:click="openAddTimeForSelected"
@@ -146,12 +159,51 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="11" class="px-5 py-12 text-center text-slate-500">Belum ada peserta yang bergabung ke event ini.</td></tr>
+                        <tr><td colspan="11" class="px-5 py-12 text-center text-slate-500">
+                            @if($search)
+                                Tidak ada peserta yang cocok dengan pencarian "{{ $search }}".
+                            @else
+                                Belum ada peserta yang bergabung ke event ini.
+                            @endif
+                        </td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+
+    {{-- Pagination --}}
+    @if($this->totalPages > 1)
+        <div class="mt-4 flex items-center justify-between gap-4 rounded-lg bg-slate-50 px-4 py-3">
+            <div class="text-xs text-slate-600">
+                Menampilkan {{ $this->perPage * ($this->currentPage - 1) + 1 }} - {{ min($this->perPage * $this->currentPage, count($this->filteredRows)) }} dari {{ count($this->filteredRows) }} peserta
+            </div>
+            <div class="flex gap-2">
+                <button wire:click="goToPage({{ $this->currentPage - 1 }})"
+                        @disabled($this->currentPage === 1)
+                        @class(['ui-btn-secondary px-3 py-1.5 text-sm', 'opacity-50 cursor-not-allowed' => $this->currentPage === 1])>
+                    ← Sebelumnya
+                </button>
+                <div class="flex items-center gap-1">
+                    @for($i = 1; $i <= $this->totalPages; $i++)
+                        <button wire:click="goToPage({{ $i }})"
+                                @class([
+                                    'px-2.5 py-1.5 text-sm font-medium rounded-md transition',
+                                    'bg-primary-600 text-white' => $this->currentPage === $i,
+                                    'text-slate-600 hover:bg-slate-200' => $this->currentPage !== $i,
+                                ])>
+                            {{ $i }}
+                        </button>
+                    @endfor
+                </div>
+                <button wire:click="goToPage({{ $this->currentPage + 1 }})"
+                        @disabled($this->currentPage === $this->totalPages)
+                        @class(['ui-btn-secondary px-3 py-1.5 text-sm', 'opacity-50 cursor-not-allowed' => $this->currentPage === $this->totalPages])>
+                    Selanjutnya →
+                </button>
+            </div>
+        </div>
+    @endif
 
     {{-- Popup tambah waktu: menampilkan batas maksimal yang boleh ditambahkan --}}
     @if ($showAddTimeModal)

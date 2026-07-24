@@ -34,6 +34,12 @@ class LiveScore extends Component
     /** Attempt id being extended, or null when extending everyone selected. */
     public ?int $addTimeTargetId = null;
 
+    public string $search = '';
+
+    public int $currentPage = 1;
+
+    public int $perPage = 25;
+
     public function mount(Event $event, EventSession $session): void
     {
         abort_unless($session->event_id === $event->id, 404);
@@ -62,7 +68,7 @@ class LiveScore extends Component
     }
 
     #[Computed]
-    public function rows(): array
+    public function allRows(): array
     {
         $this->closeExpiredAttempts();
 
@@ -100,7 +106,7 @@ class LiveScore extends Component
 
                 return [
                     'attempt_id' => $attempt->id,
-                    'name' => $attempt->user?->name ?? 'Peserta',
+                    'name' => $attempt->resolvedDisplayName(),
                     'instansi' => $attempt->user?->instansi?->nama,
                     'answered' => $answered,
                     'total' => $total,
@@ -120,9 +126,39 @@ class LiveScore extends Component
     }
 
     #[Computed]
+    public function filteredRows(): array
+    {
+        if (blank($this->search)) {
+            return $this->allRows();
+        }
+
+        $search = strtolower(trim($this->search));
+
+        return collect($this->allRows())
+            ->filter(fn ($row) => str_contains(strtolower($row['name']), $search) || str_contains(strtolower($row['instansi'] ?? ''), $search))
+            ->values()
+            ->all();
+    }
+
+    #[Computed]
+    public function rows(): array
+    {
+        $all = $this->filteredRows();
+        $start = ($this->currentPage - 1) * $this->perPage;
+
+        return array_slice($all, $start, $this->perPage);
+    }
+
+    #[Computed]
+    public function totalPages(): int
+    {
+        return (int) ceil(count($this->filteredRows()) / $this->perPage);
+    }
+
+    #[Computed]
     public function summary(): array
     {
-        $rows = $this->rows();
+        $rows = $this->filteredRows();
 
         return [
             'total' => count($rows),
@@ -138,6 +174,17 @@ class LiveScore extends Component
             ->pluck('id')
             ->map(fn ($id) => (string) $id)
             ->all();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->currentPage = 1;
+        unset($this->filteredRows, $this->rows, $this->totalPages, $this->summary);
+    }
+
+    public function goToPage(int $page): void
+    {
+        $this->currentPage = max(1, min($page, $this->totalPages()));
     }
 
     public function updatedSelectAll(bool $value): void
@@ -167,7 +214,7 @@ class LiveScore extends Component
         }
 
         unset($this->rows, $this->summary);
-        session()->flash('success', "Ujian {$attempt->user?->name} direset — dimulai dari awal.");
+        session()->flash('success', "Ujian {$attempt->resolvedDisplayName()} direset — dimulai dari awal.");
     }
 
     public function resetSelected(ExamService $examService): void
@@ -250,7 +297,7 @@ class LiveScore extends Component
         return [
             'count' => $attempts->count(),
             'label' => $this->addTimeTargetId !== null
-                ? ($attempts->first()?->user?->name ?? 'Peserta')
+                ? ($attempts->first()?->resolvedDisplayName() ?? 'Peserta')
                 : $attempts->count().' peserta terpilih',
             'is_bulk' => $this->addTimeTargetId === null,
             'duration' => $this->examDurationMinutes(),
@@ -343,7 +390,7 @@ class LiveScore extends Component
         $this->extendAttempt($attempt, $minutes);
         unset($this->rows, $this->summary);
 
-        $message = "Waktu +{$minutes} menit untuk {$attempt->user?->name}.";
+        $message = "Waktu +{$minutes} menit untuk {$attempt->resolvedDisplayName()}.";
 
         if ($minutes < $requested) {
             $message .= ' Dipotong agar sisa waktu tidak melebihi durasi ujian.';

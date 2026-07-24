@@ -26,5 +26,16 @@
             <option value="admin">Admin</option>
             <option value="peserta">Peserta</option>
         </select>
+        <select wire:model.live="formationFilter" class="ui-select w-full sm:min-w-56 sm:max-w-xs sm:shrink-0">
+            <option value="">Semua Jabatan</option>
+            <option value="none">Belum Memilih Jabatan</option>
+            @foreach ($formationGroups as $group => $formations)
+                <optgroup label="{{ $group }}">
+                    @foreach ($formations as $formation)
+                        <option value="{{ $formation->id }}">{{ $formation->name }}</option>
+                    @endforeach
+                </optgroup>
+            @endforeach
+        </select>
     </x-ui.filter-toolbar>
 </div>

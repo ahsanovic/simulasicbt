@@ -6,6 +6,7 @@
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Pengguna</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Kontak</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Role</th>
+                    <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Jabatan</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                     <th class="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Total XP</th>
                     <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Waktu Daftar</th>
@@ -46,6 +47,14 @@
                             ])>{{ $user->role->label() }}</span>
                         </td>
                         <td class="px-5 py-4">
+                            @if ($user->formation)
+                                <p class="text-sm font-medium text-slate-900">{{ $user->formation->name }}</p>
+                                <p class="mt-0.5 text-xs text-slate-500">{{ $user->formation->group }}</p>
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
+                        <td class="px-5 py-4">
                             <span @class([
                                 'ui-badge',
                                 'bg-emerald-100 text-emerald-700' => $user->is_active,
@@ -80,7 +89,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-5 py-12 text-center text-slate-500">Belum ada data pengguna.</td>
+                        <td colspan="9" class="px-5 py-12 text-center text-slate-500">Belum ada data pengguna.</td>
                     </tr>
                 @endforelse
             </tbody>

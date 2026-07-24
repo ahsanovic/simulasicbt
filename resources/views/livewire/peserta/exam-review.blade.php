@@ -10,11 +10,16 @@
     ])
 
     <main class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <div class="mb-6">
+        <div class="mb-6 space-y-6">
             <x-exam-psychology-report-card
                 :attempt="$attempt"
                 :analysis="$this->psychologyAnalysis"
                 :pending="$this->psychologyReportPending"
+            />
+
+            <x-exam-stress-resilience-card
+                :attempt="$attempt"
+                :analysis="$this->stressResilienceAnalysis"
             />
         </div>
 

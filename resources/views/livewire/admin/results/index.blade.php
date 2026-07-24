@@ -125,6 +125,8 @@
                 <option value="">Semua Jenis Ujian</option>
                 <option value="simulasi">Simulasi</option>
                 <option value="duel">Duel Mini-Tryout</option>
+                <option value="drill">Drill Soal</option>
+                <option value="remedial">Ujian Remedial</option>
             </select>
             <input type="date" wire:model.live="dateFrom" class="ui-input w-full sm:w-40 sm:shrink-0" title="Dari tanggal selesai">
             <input type="date" wire:model.live="dateTo" class="ui-input w-full sm:w-40 sm:shrink-0" title="Sampai tanggal selesai">

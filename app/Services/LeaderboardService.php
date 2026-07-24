@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\ExamAttemptType;
 use App\Enums\UserRole;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,8 @@ class LeaderboardService
         $bestScore = DB::table('exam_attempts')
             ->where('user_id', $userId)
             ->where('status', ExamAttemptStatus::Submitted->value)
+            ->where('attempt_type', ExamAttemptType::Full->value)
+            ->whereNull('duel_session_id')
             ->whereNotNull('total_score')
             ->max('total_score');
 
@@ -91,6 +94,8 @@ class LeaderboardService
             )
             ->where('users.role', UserRole::Peserta->value)
             ->where('exam_attempts.status', ExamAttemptStatus::Submitted->value)
+            ->where('exam_attempts.attempt_type', ExamAttemptType::Full->value)
+            ->whereNull('exam_attempts.duel_session_id')
             ->whereNotNull('exam_attempts.total_score')
             ->groupBy('users.id', 'users.name', 'audio_xp_totals.audio_xp', 'reward_xp_totals.reward_xp')
             ->orderByDesc('best_score')

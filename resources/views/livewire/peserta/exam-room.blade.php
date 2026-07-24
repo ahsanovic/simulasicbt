@@ -1,6 +1,21 @@
+@if ($needsNameConfirmation)
+    @include('livewire.peserta.exam-room.confirm-name')
+@else
 <div class="min-h-screen bg-slate-100"
      wire:key="exam-room-{{ $attemptId }}"
-     wire:poll.30s="checkExpiry">
+     wire:poll.30s="checkExpiry"
+     @if ($stressTestEnabled)
+         x-data="examStressTest({
+             enabled: true,
+             redZoneSeconds: 600,
+             questionThreshold: 60,
+             currentQuestionNumber: {{ $currentIndex + 1 }},
+             remainingSeconds: {{ max(0, $this->remainingSeconds) }},
+         })"
+         x-on:exam-timer-tick.window="handleTimerTick($event)"
+         x-on:question-changed.window="handleQuestionChanged($event)"
+         :class="{ 'ring-4 ring-inset ring-rose-500/40 transition-shadow duration-150': showRedZoneFlash }"
+     @endif>
 
     <x-ui.flash-toast />
 
@@ -24,4 +39,4 @@
     @endif
     @include('livewire.peserta.exam-room.last-question-modal')
 </div>
-
+@endif

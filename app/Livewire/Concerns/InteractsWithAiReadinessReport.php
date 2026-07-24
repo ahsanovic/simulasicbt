@@ -4,17 +4,22 @@ namespace App\Livewire\Concerns;
 
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamStatus;
+use App\Enums\LearningPlanTaskCategory;
 use App\Models\AiRecommendation;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\LearningPlan;
 use App\Services\DeepSeekRecommendationService;
-use App\Services\ExamService;
 use App\Services\ExamWeaknessAnalysisService;
 use App\Services\FlashcardService;
+use App\Services\LearningPlanService;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 trait InteractsWithAiReadinessReport
 {
+    use InteractsWithStressTestModal;
+
     public string $variant = 'sidebar';
 
     public ?string $focusHighlight = null;
@@ -53,24 +58,25 @@ trait InteractsWithAiReadinessReport
 
             if (($this->weaknessStats['total_simulations'] ?? 0) === 0) {
                 $this->error = 'Selesaikan simulasi pertama untuk membuka analisis.';
-
-                return;
-            }
-
-            if ($recommendationService->hasValidRecommendation($userId) && ! $this->needsRefresh) {
+            } elseif ($recommendationService->hasValidRecommendation($userId) && ! $this->needsRefresh) {
                 $stored = $recommendationService->getStoredRecommendation($userId);
                 $this->applyRecommendation($stored?->recommendation_text, $stored?->weakness_stats ?? $this->weaknessStats);
-
-                return;
+            } else {
+                $result = $recommendationService->generateForUser(auth()->user());
+                $this->applyRecommendation($result->recommendation_text, $result->weakness_stats ?? $this->weaknessStats);
             }
-
-            $result = $recommendationService->generateForUser(auth()->user());
-            $this->applyRecommendation($result->recommendation_text, $result->weakness_stats ?? $this->weaknessStats);
         } catch (Throwable $exception) {
             $this->error = $exception->getMessage();
             $this->isGenerated = false;
         } finally {
             $this->isLoading = false;
+        }
+
+        if ($this->isGenerated) {
+            app(LearningPlanService::class)->completeMatchingTasks(
+                auth()->user(),
+                LearningPlanTaskCategory::Evaluasi,
+            );
         }
     }
 
@@ -140,9 +146,7 @@ trait InteractsWithAiReadinessReport
             return;
         }
 
-        app(ExamService::class)->startAttempt($exam, auth()->user());
-
-        $this->redirect(route('peserta.exam.room', $exam), navigate: true);
+        $this->promptStressTestOrBeginExam($exam);
     }
 
     public function seedWeakMaterialsToFlashcard(FlashcardService $flashcardService): void
@@ -158,6 +162,57 @@ trait InteractsWithAiReadinessReport
         }
 
         session()->flash('success', "{$result['saved']} kartu dari materi lemah disimpan ke Kartu Sakti.");
+    }
+
+    public function generatePlanFromEvaluation(LearningPlanService $learningPlanService): void
+    {
+        $stats = $this->weaknessStats;
+        $availability = $learningPlanService->aiGenerationAvailability(auth()->user(), $stats);
+
+        if ($availability['status'] === 'already_generated' && $availability['existing_plan']) {
+            session()->flash('info', $availability['message']);
+            $this->redirect(
+                route('peserta.rencana-belajar.index', ['plan' => $availability['existing_plan']->id]),
+                navigate: true,
+            );
+
+            return;
+        }
+
+        if ($availability['status'] === 'no_simulation') {
+            session()->flash('error', $availability['message']);
+
+            return;
+        }
+
+        try {
+            $plan = $learningPlanService->generateFromWeaknessStats(auth()->user(), $stats);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'Tidak bisa membuat rencana belajar.';
+            session()->flash('error', $message);
+
+            return;
+        }
+
+        session()->flash('success', "Rencana \"{$plan->title}\" berhasil dibuat otomatis dari hasil evaluasi.");
+        $this->redirect(route('peserta.rencana-belajar.index', ['plan' => $plan->id]), navigate: true);
+    }
+
+    /**
+     * @return array{
+     *     status: 'no_simulation'|'max_plans'|'already_generated'|'available',
+     *     message: string,
+     *     existing_plan: ?LearningPlan,
+     *     snapshot_hash: ?string,
+     * }
+     */
+    protected function aiPlanGenerationState(): array
+    {
+        return app(LearningPlanService::class)->aiGenerationAvailability(
+            auth()->user(),
+            $this->weaknessStats,
+        );
     }
 
     /** @return array{preview: int, available: int, skipped: int} */

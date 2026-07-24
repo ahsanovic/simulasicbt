@@ -10,6 +10,7 @@ use App\Models\ExamAttempt;
 use App\Models\QuestionOption;
 use App\Services\ExamPsychologyTelemetryService;
 use App\Services\ExamService;
+use App\Services\ExamStressResilienceService;
 use App\Services\HelpItemService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -38,10 +39,39 @@ class ExamRoom extends Component
     public bool $isRemedial = false;
 
     #[Locked]
+    public bool $isDrill = false;
+
+    #[Locked]
     public bool $isDuel = false;
 
     #[Locked]
     public bool $helpItemsEnabled = false;
+
+    #[Locked]
+    public bool $stressTestEnabled = false;
+
+    #[Locked]
+    public int $examDurationMinutes = 0;
+
+    /** @var array{red_zone_triggers: int, red_zone_questions: list<int>} */
+    public array $stressTestTelemetry = [
+        'red_zone_triggers' => 0,
+        'red_zone_questions' => [],
+    ];
+
+    #[Locked]
+    public bool $needsNameConfirmation = false;
+
+    #[Locked]
+    public ?string $eventName = null;
+
+    #[Locked]
+    public ?string $eventSessionName = null;
+
+    #[Locked]
+    public int $questionCount = 0;
+
+    public string $displayNameInput = '';
 
     #[Locked]
     public int $currentIndex = 0;
@@ -78,14 +108,18 @@ class ExamRoom extends Component
             ->where('exam_id', $exam->id)
             ->where('user_id', auth()->id())
             ->where('status', ExamAttemptStatus::InProgress)
-            ->with(['answers' => fn ($query) => $query->select(
-                'id',
-                'exam_attempt_id',
-                'question_id',
-                'sort_order',
-                'selected_option_id',
-                'is_marked',
-            )])
+            ->with([
+                'event:id,name',
+                'eventSession:id,name',
+                'answers' => fn ($query) => $query->select(
+                    'id',
+                    'exam_attempt_id',
+                    'question_id',
+                    'sort_order',
+                    'selected_option_id',
+                    'is_marked',
+                ),
+            ])
             ->firstOrFail();
 
         if (! $attempt->isActive()) {
@@ -96,12 +130,30 @@ class ExamRoom extends Component
         }
 
         $this->examId = $exam->id;
-        $this->examTitle = $exam->title;
+        $this->examTitle = $attempt->isDrill() ? $attempt->displayTitle() : $exam->title;
         $this->attemptId = $attempt->id;
-        $this->isRemedial = $attempt->isRemedial();
-        $this->isDuel = $attempt->isDuelAttempt();
-        $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDuel;
+        $this->examDurationMinutes = (int) $exam->duration_minutes;
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
+
+        // Peserta confirms/edits their name (Google login names are often
+        // inconsistent) before the questions and timer are shown to them.
+        // Only asked for event/offline attempts, since that's where the name
+        // is later printed on the certificate and shown on the live display.
+        // Only asked once per attempt — skipped entirely on resume/refresh.
+        if ($attempt->event_id !== null && $attempt->needsNameConfirmation()) {
+            $this->needsNameConfirmation = true;
+            $this->displayNameInput = (string) auth()->user()->name;
+            $this->eventName = $attempt->event?->name;
+            $this->eventSessionName = $attempt->eventSession?->name;
+            $this->questionCount = $attempt->answers->count();
+
+            return;
+        }
+        $this->isRemedial = $attempt->isRemedial();
+        $this->isDrill = $attempt->isDrill();
+        $this->isDuel = $attempt->isDuelAttempt();
+        $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel;
+        $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;
         $this->answerStates = $attempt->answers
             ->sortBy(fn (ExamAnswer $answer) => $answer->sort_order ?: 999)
             ->values()
@@ -120,6 +172,7 @@ class ExamRoom extends Component
             ->all();
 
         $this->loadAnswerBehavior($attempt);
+        $this->loadStressTestTelemetry($attempt);
 
         $helpState = $attempt->help_items_state ?? $helpItemService->defaultHelpItemsState();
         $this->skipTrackerActive = (bool) ($helpState['skip_tracker_active'] ?? false);
@@ -131,7 +184,7 @@ class ExamRoom extends Component
 
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
-        $this->dispatch('question-changed');
+        $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
     }
 
     public function getAnswersProperty()
@@ -151,7 +204,7 @@ class ExamRoom extends Component
         return ExamAnswer::query()
             ->whereKey($state['id'])
             ->where('exam_attempt_id', $this->attemptId)
-            ->with(['question.options', 'question.subject'])
+            ->with(['question.options', 'question.subject', 'question.material.materialGroup'])
             ->first();
     }
 
@@ -299,7 +352,7 @@ class ExamRoom extends Component
         $this->currentIndex = $nextIndex;
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
-        $this->dispatch('question-changed');
+        $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
     }
 
     public function goToShop(): void
@@ -389,7 +442,7 @@ class ExamRoom extends Component
         $this->currentIndex = $index;
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
-        $this->dispatch('question-changed');
+        $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
     }
 
     public function previous(): void
@@ -409,7 +462,7 @@ class ExamRoom extends Component
             $this->currentIndex++;
             $this->loadCurrentAnswer();
             $this->startQuestionTimer();
-            $this->dispatch('question-changed');
+            $this->dispatch('question-changed', questionNumber: $this->currentIndex + 1);
         } else {
             $this->showLastQuestionModal = true;
         }
@@ -438,6 +491,30 @@ class ExamRoom extends Component
         }
     }
 
+    /**
+     * Save the peserta-confirmed name onto this attempt only (does not touch
+     * users.name) and reload the component so the exam questions/timer view
+     * mounts fresh.
+     */
+    public function confirmDisplayName(): void
+    {
+        $name = trim($this->displayNameInput);
+
+        $this->validate([
+            'displayNameInput' => ['required', 'string', 'min:3', 'max:191'],
+        ], [], ['displayNameInput' => 'Nama']);
+
+        $attempt = ExamAttempt::query()
+            ->where('id', $this->attemptId)
+            ->where('user_id', auth()->id())
+            ->where('status', ExamAttemptStatus::InProgress)
+            ->firstOrFail();
+
+        $attempt->update(['display_name' => $name]);
+
+        $this->redirect(route('peserta.exam.room', $this->examId), navigate: true);
+    }
+
     public function submitExam(ExamService $examService): void
     {
         $this->showLastQuestionModal = false;
@@ -445,12 +522,14 @@ class ExamRoom extends Component
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
         $this->persistHelpItemsState();
-        if (! $this->isRemedial) {
+        if (! $this->isRemedial && ! $this->isDrill) {
             $this->persistTelemetries();
+            $this->persistStressTestAnalysis();
         }
         $attempt = $examService->submitAttempt($this->resolveAttempt(), auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
-        $this->redirect(route('peserta.history'), navigate: true);
+        $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
+        $this->redirect(route('peserta.history', $redirectParams), navigate: true);
     }
 
     public function checkExpiry(): void
@@ -459,13 +538,15 @@ class ExamRoom extends Component
             $this->accumulateCurrentQuestionDuration();
             $this->persistAttemptMetadata();
             $this->persistHelpItemsState();
-            if (! $this->isRemedial) {
+            if (! $this->isRemedial && ! $this->isDrill) {
                 $this->persistTelemetries();
+                $this->persistStressTestAnalysis();
             }
             $attempt = app(ExamService::class)->submitAttempt($this->resolveAttempt(), auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
-            $this->redirect(route('peserta.history'), navigate: true);
+            $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
+            $this->redirect(route('peserta.history', $redirectParams), navigate: true);
         }
     }
 
@@ -630,6 +711,54 @@ class ExamRoom extends Component
             $this->answerBehavior,
             $this->remainingSeconds,
         );
+    }
+
+    public function syncStressTestTelemetry(int $redZoneTriggers, array $redZoneQuestions): void
+    {
+        if (! $this->stressTestEnabled) {
+            return;
+        }
+
+        $this->stressTestTelemetry = [
+            'red_zone_triggers' => max(0, $redZoneTriggers),
+            'red_zone_questions' => array_values(array_unique(array_map('intval', $redZoneQuestions))),
+        ];
+    }
+
+    private function persistStressTestAnalysis(): void
+    {
+        if (! $this->stressTestEnabled) {
+            return;
+        }
+
+        $attempt = ExamAttempt::query()
+            ->whereKey($this->attemptId)
+            ->where('user_id', auth()->id())
+            ->with(['answers.question', 'answers.selectedOption', 'exam'])
+            ->firstOrFail();
+
+        $analysis = app(ExamStressResilienceService::class)->analyzeAttempt(
+            $attempt,
+            $this->stressTestTelemetry,
+        );
+
+        ExamAttempt::query()
+            ->whereKey($this->attemptId)
+            ->where('user_id', auth()->id())
+            ->update([
+                'stress_test_telemetry' => $this->stressTestTelemetry,
+                'stress_test_analysis' => $analysis,
+            ]);
+    }
+
+    private function loadStressTestTelemetry(ExamAttempt $attempt): void
+    {
+        $stored = $attempt->stress_test_telemetry ?? [];
+
+        $this->stressTestTelemetry = [
+            'red_zone_triggers' => max(0, (int) ($stored['red_zone_triggers'] ?? 0)),
+            'red_zone_questions' => array_values(array_map('intval', $stored['red_zone_questions'] ?? [])),
+        ];
     }
 
     private function loadAnswerBehavior(ExamAttempt $attempt): void

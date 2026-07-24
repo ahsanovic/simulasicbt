@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\DTOs\DrillConfig;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
+use App\Enums\ExamStatus;
+use App\Enums\LearningPlanTaskCategory;
 use App\Jobs\GenerateExamPsychologyReportJob;
 use App\Models\CoinTransaction;
 use App\Models\Exam;
@@ -36,9 +39,14 @@ class ExamService
             ->first(fn (ExamAttempt $attempt) => $attempt->isActive() && ! $attempt->isDuelAttempt());
     }
 
-    public function startAttempt(Exam $exam, User $user, ?int $eventId = null, ?int $eventSessionId = null): ExamAttempt
-    {
-        return DB::transaction(function () use ($exam, $user, $eventId, $eventSessionId) {
+    public function startAttempt(
+        Exam $exam,
+        User $user,
+        ?int $eventId = null,
+        ?int $eventSessionId = null,
+        bool $stressTestEnabled = false,
+    ): ExamAttempt {
+        return DB::transaction(function () use ($exam, $user, $eventId, $eventSessionId, $stressTestEnabled) {
             $generator = app(ExamQuestionGeneratorService::class);
             $difficulty = $exam->settings['difficulty'] ?? 'all';
 
@@ -58,6 +66,7 @@ class ExamService
                 'started_at' => now(),
                 'expires_at' => now()->addMinutes($exam->duration_minutes),
                 'status' => ExamAttemptStatus::InProgress,
+                'stress_test_enabled' => $stressTestEnabled && $eventId === null,
             ]);
 
             foreach ($generator->generate($difficulty) as $item) {
@@ -167,6 +176,9 @@ class ExamService
                 'question_duration' => null,
                 'answer_behavior' => null,
                 'help_items_state' => null,
+                'stress_test_enabled' => false,
+                'stress_test_telemetry' => null,
+                'stress_test_analysis' => null,
                 'psychology_report' => null,
                 'psychology_report_status' => 'skipped', // column default — not nullable
                 'psychology_report_generated_at' => null,
@@ -291,6 +303,70 @@ class ExamService
         return max(self::REMEDIAL_MIN_TOTAL_MINUTES, (int) ceil($totalSeconds / 60));
     }
 
+    public function startDrillAttempt(DrillConfig $config, User $user): ExamAttempt
+    {
+        return DB::transaction(function () use ($config, $user) {
+            $existingAttempt = ExamAttempt::query()
+                ->where('user_id', $user->id)
+                ->where('status', ExamAttemptStatus::InProgress)
+                ->first();
+
+            if ($existingAttempt?->isActive()) {
+                throw ValidationException::withMessages([
+                    'drill' => 'Anda masih memiliki ujian yang berjalan. Selesaikan terlebih dahulu.',
+                ]);
+            }
+
+            $generator = app(DrillQuestionGeneratorService::class);
+
+            try {
+                $questionIds = $generator->generate($config, $user);
+            } catch (ValidationException $exception) {
+                throw $exception;
+            }
+
+            $exam = $this->drillExam();
+            $durationMinutes = max(
+                DrillQuestionGeneratorService::MIN_DURATION_MINUTES,
+                min(DrillQuestionGeneratorService::MAX_DURATION_MINUTES, $config->durationMinutes),
+            );
+
+            $attempt = ExamAttempt::query()->create([
+                'exam_id' => $exam->id,
+                'user_id' => $user->id,
+                'attempt_type' => ExamAttemptType::Drill,
+                'drill_config' => $config->toArray(),
+                'started_at' => now(),
+                'expires_at' => now()->addMinutes($durationMinutes),
+                'status' => ExamAttemptStatus::InProgress,
+            ]);
+
+            foreach ($questionIds as $index => $questionId) {
+                ExamAnswer::query()->create([
+                    'exam_attempt_id' => $attempt->id,
+                    'question_id' => $questionId,
+                    'sort_order' => $index + 1,
+                ]);
+            }
+
+            return $attempt->load(['answers.question.options', 'answers.question.subject', 'answers.question.material']);
+        });
+    }
+
+    public function drillExam(): Exam
+    {
+        return Exam::query()->firstOrCreate(
+            ['slug' => 'drill-soal'],
+            [
+                'title' => 'Drill Soal',
+                'description' => 'Latihan terarah per sub-materi dengan pembahasan.',
+                'duration_minutes' => DrillQuestionGeneratorService::MAX_DURATION_MINUTES,
+                'status' => ExamStatus::Published,
+                'settings' => ['difficulty' => 'all', 'is_drill' => true],
+            ],
+        );
+    }
+
     public function submitAttempt(ExamAttempt $attempt, ?User $user = null): ExamAttempt
     {
         return DB::transaction(function () use ($attempt, $user) {
@@ -333,12 +409,32 @@ class ExamService
                 if ($rewardUser !== null) {
                     $gamification->awardRemedialPerfectXp($attempt, $rewardUser);
                 }
+            } elseif ($attempt->isDrill()) {
+                $attempt->update([
+                    'psychology_report_status' => 'skipped',
+                    'psychology_report_generated_at' => now(),
+                ]);
+
+                if ($rewardUser !== null) {
+                    $gamification->awardDrillXp($attempt, $rewardUser);
+                    app(LearningPlanService::class)->completeMatchingTasks(
+                        $rewardUser,
+                        LearningPlanTaskCategory::Drill,
+                    );
+                }
             } else {
                 app(ExamWeaknessAnalysisService::class)->forget($attempt->user_id);
 
                 if ($rewardUser !== null) {
                     $gamification->awardExamAttemptXp($attempt, $rewardUser);
                     app(CoinService::class)->awardExamAttemptCoins($attempt, $rewardUser);
+
+                    if (! $attempt->isDuelAttempt() && $attempt->event_id === null) {
+                        app(LearningPlanService::class)->completeMatchingTasks(
+                            $rewardUser,
+                            LearningPlanTaskCategory::TryOut,
+                        );
+                    }
                 }
 
                 $attempt->update(['psychology_report_status' => 'pending']);
@@ -350,6 +446,10 @@ class ExamService
 
                 if ($gamification->crossedRemedialUnlockThreshold($xpBefore, $xpAfter)) {
                     session()->flash('show_remedial_unlock_modal', true);
+                }
+
+                if ($attempt->isDrill() || ($attempt->isFull() && ! $attempt->isDuelAttempt() && $attempt->event_id === null)) {
+                    app(GhostRaceService::class)->handleActivityCompleted($rewardUser->fresh());
                 }
             }
 

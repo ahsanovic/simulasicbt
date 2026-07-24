@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\DTOs\DrillConfig;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
+use App\Enums\ExamHistoryFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +20,9 @@ class ExamAttempt extends Model
         'duel_session_id',
         'attempt_type',
         'parent_attempt_id',
+        'drill_config',
         'user_id',
+        'display_name',
         'started_at',
         'submitted_at',
         'expires_at',
@@ -30,6 +34,9 @@ class ExamAttempt extends Model
         'question_duration',
         'answer_behavior',
         'help_items_state',
+        'stress_test_enabled',
+        'stress_test_telemetry',
+        'stress_test_analysis',
         'psychology_report',
         'psychology_report_status',
         'psychology_report_generated_at',
@@ -50,6 +57,10 @@ class ExamAttempt extends Model
             'question_duration' => 'array',
             'answer_behavior' => 'array',
             'help_items_state' => 'array',
+            'drill_config' => 'array',
+            'stress_test_enabled' => 'boolean',
+            'stress_test_telemetry' => 'array',
+            'stress_test_analysis' => 'array',
             'psychology_report_generated_at' => 'datetime',
         ];
     }
@@ -97,6 +108,112 @@ class ExamAttempt extends Model
     public function isFull(): bool
     {
         return $this->attempt_type === ExamAttemptType::Full;
+    }
+
+    public function isDrill(): bool
+    {
+        return $this->attempt_type === ExamAttemptType::Drill;
+    }
+
+    public function drillConfig(): ?DrillConfig
+    {
+        if (! $this->isDrill() || ! is_array($this->drill_config)) {
+            return null;
+        }
+
+        return DrillConfig::fromArray($this->drill_config);
+    }
+
+    public function historyCategory(): ExamHistoryFilter
+    {
+        if ($this->isDrill()) {
+            return ExamHistoryFilter::Drill;
+        }
+
+        if ($this->isRemedial()) {
+            return ExamHistoryFilter::Remedial;
+        }
+
+        if ($this->isDuelAttempt()) {
+            return ExamHistoryFilter::Duel;
+        }
+
+        if ($this->event_id !== null) {
+            return ExamHistoryFilter::Event;
+        }
+
+        return ExamHistoryFilter::Full;
+    }
+
+    /**
+     * Name to show/print for this attempt: the name the participant confirmed
+     * (or edited) before starting, falling back to their account name (e.g.
+     * from Google login) if they haven't confirmed yet.
+     */
+    public function resolvedDisplayName(): string
+    {
+        return trim((string) ($this->display_name ?: $this->user?->name)) ?: 'Peserta';
+    }
+
+    /**
+     * Whether the participant still needs to confirm/edit their name before
+     * the exam questions are shown (only relevant for full/event attempts).
+     */
+    public function needsNameConfirmation(): bool
+    {
+        return blank($this->display_name);
+    }
+
+    public function displayTitle(): string
+    {
+        if ($this->event) {
+            return $this->event->name;
+        }
+
+        if ($this->isDrill()) {
+            $config = $this->drillConfig();
+
+            if ($config !== null) {
+                return 'Drill '.$config->subjectCode->label();
+            }
+
+            return 'Drill Soal';
+        }
+
+        return $this->exam?->title ?? 'Ujian';
+    }
+
+    public function scopeDrill(Builder $query): Builder
+    {
+        return $query->where('attempt_type', ExamAttemptType::Drill);
+    }
+
+    public function scopeRemedial(Builder $query): Builder
+    {
+        return $query->where('attempt_type', ExamAttemptType::Remedial);
+    }
+
+    public function scopeOfficial(Builder $query): Builder
+    {
+        return $query->where('attempt_type', ExamAttemptType::Full);
+    }
+
+    public function scopeForHistoryFilter(Builder $query, ExamHistoryFilter $filter): Builder
+    {
+        return match ($filter) {
+            ExamHistoryFilter::All => $query,
+            ExamHistoryFilter::Full => $query
+                ->where('attempt_type', ExamAttemptType::Full)
+                ->whereNull('duel_session_id')
+                ->whereNull('event_id'),
+            ExamHistoryFilter::Duel => $query->where(function (Builder $builder) {
+                $builder->whereNotNull('duel_session_id')
+                    ->orWhereHas('exam', fn (Builder $examQuery) => $examQuery->where('settings->is_duel', true));
+            }),
+            ExamHistoryFilter::Drill => $query->where('attempt_type', ExamAttemptType::Drill),
+            ExamHistoryFilter::Remedial => $query->where('attempt_type', ExamAttemptType::Remedial),
+            ExamHistoryFilter::Event => $query->whereNotNull('event_id'),
+        };
     }
 
     public function isDuelAttempt(): bool

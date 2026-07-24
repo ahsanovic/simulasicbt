@@ -23,6 +23,11 @@ class User extends Authenticatable
         'username',
         'nip',
         'instansi_id',
+        'formation_id',
+        'formation_selected_at',
+        'ghost_race_rival_user_id',
+        'ghost_race_notifications_muted',
+        'ghost_race_last_seen_gap',
         'is_pegawai',
         'google_id',
         'password',
@@ -47,6 +52,11 @@ class User extends Authenticatable
             'is_pegawai' => 'boolean',
             'last_seen_at' => 'datetime',
             'instansi_id' => 'integer',
+            'formation_id' => 'integer',
+            'formation_selected_at' => 'datetime',
+            'ghost_race_rival_user_id' => 'integer',
+            'ghost_race_notifications_muted' => 'boolean',
+            'ghost_race_last_seen_gap' => 'integer',
         ];
     }
 
@@ -77,6 +87,11 @@ class User extends Authenticatable
     public function instansi(): BelongsTo
     {
         return $this->belongsTo(Instansi::class);
+    }
+
+    public function formation(): BelongsTo
+    {
+        return $this->belongsTo(Formation::class);
     }
 
     public function examAttempts(): HasMany
@@ -142,5 +157,10 @@ class User extends Authenticatable
     public function helpItems(): HasMany
     {
         return $this->hasMany(UserHelpItem::class);
+    }
+
+    public function learningPlans(): HasMany
+    {
+        return $this->hasMany(LearningPlan::class);
     }
 }

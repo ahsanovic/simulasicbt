@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\UserRole;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\Formation;
 use App\Models\Question;
 use App\Models\Testimonial;
 use App\Models\User;
@@ -18,6 +20,25 @@ class Dashboard extends Component
 {
     public function render(TestimonialService $testimonialService)
     {
+        $pesertaQuery = User::query()->where('role', UserRole::Peserta);
+
+        $formationsWithCount = Formation::query()
+            ->whereHas('users', fn ($query) => $query->where('role', UserRole::Peserta))
+            ->withCount(['users as peserta_count' => fn ($query) => $query->where('role', UserRole::Peserta)])
+            ->orderByDesc('peserta_count')
+            ->orderBy('name')
+            ->get();
+
+        $groupSummary = $formationsWithCount
+            ->groupBy('group')
+            ->map(fn ($formations, $group) => [
+                'group' => $group,
+                'peserta_count' => $formations->sum('peserta_count'),
+                'formation_count' => $formations->count(),
+            ])
+            ->sortByDesc('peserta_count')
+            ->values();
+
         return view('livewire.admin.dashboard', [
             'stats' => [
                 'users' => User::query()->count(),
@@ -33,6 +54,14 @@ class Dashboard extends Component
                     ->latest()
                     ->limit(5)
                     ->get(),
+                'formation_recap' => [
+                    'selected_count' => (clone $pesertaQuery)->whereNotNull('formation_id')->count(),
+                    'unselected_count' => (clone $pesertaQuery)->whereNull('formation_id')->count(),
+                    'total_formations' => $formationsWithCount->count(),
+                    'group_summary' => $groupSummary,
+                    'top_formations' => $formationsWithCount->take(5),
+                    'max_group_count' => $groupSummary->max('peserta_count') ?: 1,
+                ],
             ],
         ]);
     }

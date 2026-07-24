@@ -23,4 +23,6 @@
     </main>
 
     <x-peserta.feature-tour-init :focus="$focusHighlight" />
+
+    <x-exam-stress-test-modal :stress-test-exam-id="$stressTestExamId" />
 </div>

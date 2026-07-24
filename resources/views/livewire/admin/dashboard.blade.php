@@ -141,4 +141,97 @@
             <livewire:peserta.xp-leaderboard />
         </div>
     </div>
+
+    <div class="mt-8">
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Rekap Pilihan Jabatan Peserta</h2>
+                <p class="mt-0.5 text-sm text-slate-500">Ringkasan distribusi target jabatan yang sudah dipilih peserta</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <span class="ui-badge bg-emerald-100 text-emerald-700">
+                    {{ number_format($stats['formation_recap']['selected_count']) }} sudah memilih
+                </span>
+                <span class="ui-badge bg-slate-100 text-slate-700">
+                    {{ number_format($stats['formation_recap']['unselected_count']) }} belum memilih
+                </span>
+            </div>
+        </div>
+
+        @if ($stats['formation_recap']['group_summary']->isNotEmpty())
+            <div class="ui-card overflow-hidden">
+                <div class="grid divide-y divide-slate-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+                    <div class="p-6">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Distribusi per Rumpun</h3>
+                        <div class="mt-4 space-y-3">
+                            @foreach ($stats['formation_recap']['group_summary'] as $groupSummary)
+                                <a
+                                    href="{{ route('admin.formations.index', ['groupFilter' => $groupSummary['group']]) }}"
+                                    wire:navigate
+                                    class="group block rounded-lg p-2 transition hover:bg-slate-50"
+                                    wire:key="formation-group-{{ md5($groupSummary['group']) }}"
+                                >
+                                    <div class="flex items-center justify-between gap-3 text-sm">
+                                        <span class="min-w-0 truncate font-medium text-slate-700 group-hover:text-primary-700">{{ $groupSummary['group'] }}</span>
+                                        <span class="shrink-0 font-semibold text-slate-900">{{ $groupSummary['peserta_count'] }}</span>
+                                    </div>
+                                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                                        <div
+                                            class="h-full rounded-full bg-teal-500 transition group-hover:bg-teal-600"
+                                            style="width: {{ round(($groupSummary['peserta_count'] / $stats['formation_recap']['max_group_count']) * 100) }}%"
+                                        ></div>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Top Jabatan Terpilih</h3>
+                        <div class="mt-4 divide-y divide-slate-100">
+                            @foreach ($stats['formation_recap']['top_formations'] as $index => $formation)
+                                <div class="flex items-center gap-3 py-3 first:pt-0" wire:key="formation-top-{{ $formation->id }}">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">
+                                        {{ $index + 1 }}
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-semibold text-slate-900">{{ $formation->name }}</p>
+                                        <p class="truncate text-xs text-slate-500">{{ $formation->group }}</p>
+                                    </div>
+                                    <div class="flex shrink-0 items-center gap-3">
+                                        <span class="text-sm font-semibold text-slate-700">{{ $formation->peserta_count }}</span>
+                                        <a
+                                            href="{{ route('admin.users.index', ['formationFilter' => $formation->id]) }}"
+                                            wire:navigate
+                                            class="text-xs font-semibold text-primary-600 hover:text-primary-700"
+                                        >
+                                            Lihat →
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-3">
+                    <p class="text-sm text-slate-500">
+                        {{ number_format($stats['formation_recap']['total_formations']) }} jabatan sudah dipilih peserta
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="{{ route('admin.formations.index') }}" wire:navigate class="text-sm font-semibold text-primary-600 hover:text-primary-700">
+                            Kelola jabatan →
+                        </a>
+                        <a href="{{ route('admin.users.index') }}" wire:navigate class="text-sm font-semibold text-primary-600 hover:text-primary-700">
+                            Filter peserta →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        @else
+            <div class="ui-card px-6 py-12 text-center">
+                <p class="text-sm text-slate-500">Belum ada peserta yang memilih target jabatan.</p>
+            </div>
+        @endif
+    </div>
 </div>

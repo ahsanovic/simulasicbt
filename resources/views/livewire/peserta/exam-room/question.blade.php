@@ -2,12 +2,7 @@
     <div class="ui-card p-6 sm:p-8">
         <div class="mb-5 flex flex-wrap items-center gap-2">
             @php $code = $this->currentAnswer->question->subject->code->value; @endphp
-            <span @class([
-                'ui-badge',
-                'bg-blue-100 text-blue-700' => $code === 'twk',
-                'bg-amber-100 text-amber-700' => $code === 'tiu',
-                'bg-violet-100 text-violet-700' => $code === 'tkp',
-            ])>{{ $this->currentAnswer->question->subject->code->label() }}</span>
+            <x-peserta.exam-question-badges :question="$this->currentAnswer->question" />
             @if ($code === 'tiu')
                 <button type="button"
                         x-data
@@ -32,7 +27,7 @@
             @foreach ($this->currentAnswer->question->options as $option)
                 @php $isEliminated = in_array($option->id, $this->currentEliminatedOptionIds, true); @endphp
                 <label @class([
-                    'flex items-start gap-4 rounded-2xl border-2 p-4 transition',
+                    'flex cursor-pointer items-start gap-4 rounded-2xl border-2 p-4 transition',
                     'border-primary-500 bg-primary-50/50 ring-4 ring-primary-500/10' => $selectedOptionId === $option->id && ! $isEliminated,
                     'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50' => $selectedOptionId !== $option->id && ! $isEliminated,
                     'border-slate-200 bg-slate-100 opacity-40 pointer-events-none' => $isEliminated,

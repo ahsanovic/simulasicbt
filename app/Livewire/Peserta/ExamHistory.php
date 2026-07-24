@@ -4,6 +4,7 @@ namespace App\Livewire\Peserta;
 
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
+use App\Enums\ExamHistoryFilter;
 use App\Livewire\Concerns\InteractsWithAiReadinessReport;
 use App\Models\ExamAttempt;
 use App\Services\DeepSeekRecommendationService;
@@ -30,11 +31,19 @@ class ExamHistory extends Component
 
     public ?ExamAttempt $resultAttempt = null;
 
+    public string $typeFilter = 'all';
+
     public function mount(
         ExamWeaknessAnalysisService $weaknessAnalysis,
         DeepSeekRecommendationService $recommendationService,
     ): void {
         $this->initializeAiReadinessReport($weaknessAnalysis, $recommendationService);
+
+        $filter = request()->query('filter');
+
+        if (is_string($filter) && ExamHistoryFilter::tryFrom($filter) !== null) {
+            $this->typeFilter = $filter;
+        }
 
         $focus = request()->query('focus');
 
@@ -120,6 +129,11 @@ class ExamHistory extends Component
         $this->redirect(route('peserta.exam.room', $parent->exam), navigate: true);
     }
 
+    public function updatedTypeFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function closeRemedialUnlockModal(): void
     {
         $this->showRemedialUnlockModal = false;
@@ -162,21 +176,27 @@ class ExamHistory extends Component
 
     public function render(GamificationService $gamificationService)
     {
+        $filter = ExamHistoryFilter::from($this->typeFilter);
+
         $attempts = ExamAttempt::query()
             ->with(['exam', 'event:id,name', 'answers.question', 'answers.selectedOption'])
             ->where('user_id', auth()->id())
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
+            ->forHistoryFilter($filter)
             ->latest('submitted_at')
             ->latest('created_at')
             ->paginate(5);
 
         $submittedAttempts = ExamAttempt::query()
-            ->full()
+            ->official()
             ->where('user_id', auth()->id())
+            ->whereNull('duel_session_id')
+            ->whereNull('event_id')
             ->where('status', ExamAttemptStatus::Submitted)
             ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score']);
 
         $totalXp = $gamificationService->totalXp(auth()->user());
+        $formationName = auth()->user()->formation?->name;
 
         $stats = [
             'total' => $submittedAttempts->count(),
@@ -199,6 +219,9 @@ class ExamHistory extends Component
             'repeatExam' => $this->resolveRepeatExam(),
             'totalXp' => $totalXp,
             'remedialUnlock' => $gamificationService->remedialUnlockProgress($totalXp),
+            'formationName' => $formationName,
+            'typeFilters' => ExamHistoryFilter::options(),
+            'activeFilter' => $filter,
         ]);
     }
 }

@@ -66,6 +66,10 @@
             </li>
             <li class="flex items-start gap-1.5">
                 <span class="shrink-0 text-indigo-400">•</span>
+                <span>Selesaikan <a href="{{ route('peserta.drill.index') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">Drill Soal</a> (+{{ GamificationService::DRILL_XP_REWARD }} XP)</span>
+            </li>
+            <li class="flex items-start gap-1.5">
+                <span class="shrink-0 text-indigo-400">•</span>
                 <span>Kirim <a href="{{ route('peserta.testimonials.index') }}" wire:navigate class="font-semibold text-indigo-700 underline-offset-2 hover:underline">testimoni pertama</a> (+{{ GamificationService::TESTIMONIAL_XP_REWARD }} XP)</span>
             </li>
             <li class="flex items-start gap-1.5">

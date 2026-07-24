@@ -10,7 +10,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
-#[Layout('layouts.peserta', ['activeNav' => 'dashboard', 'showNav' => true])]
+#[Layout('layouts.peserta', ['activeNav' => 'leaderboard', 'showNav' => true])]
 #[Title('Papan Peringkat')]
 class LeaderboardHub extends Component
 {

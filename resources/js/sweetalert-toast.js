@@ -101,6 +101,10 @@ document.addEventListener('livewire:init', () => {
         showToast('info', message);
     });
 
+    Livewire.on('ghost-rival-pulled-ahead', ({ message }) => {
+        showToast('warning', message);
+    });
+
     Livewire.on('mark-challenge-handled', ({ notificationId }) => {
         if (notificationId) {
             Livewire.dispatch('mark-challenge-notification-read', { notificationId });

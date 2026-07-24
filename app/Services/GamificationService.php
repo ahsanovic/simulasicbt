@@ -29,6 +29,8 @@ class GamificationService
 
     public const REMEDIAL_PERFECT_XP_REWARD = 25;
 
+    public const DRILL_XP_REWARD = 25;
+
     public function totalXpExpression(): string
     {
         return 'COALESCE(audio_xp_totals.audio_xp, 0) + COALESCE(flashcard_xp_totals.flashcard_xp, 0) + COALESCE(reward_xp_totals.reward_xp, 0)';
@@ -239,6 +241,15 @@ class GamificationService
             $attempt->id,
             self::REMEDIAL_PERFECT_XP_REWARD,
         );
+    }
+
+    public function awardDrillXp(ExamAttempt $attempt, User $user): ?XpReward
+    {
+        if (! $attempt->isDrill()) {
+            return null;
+        }
+
+        return $this->awardXp($user, ExamAttempt::class, $attempt->id, self::DRILL_XP_REWARD);
     }
 
     public function crossedRemedialUnlockThreshold(int $xpBefore, int $xpAfter): bool

@@ -112,7 +112,14 @@
                     <div class="absolute bottom-1 flex -translate-x-1/2 flex-col items-center transition-all duration-700 ease-out"
                          style="left: calc({{ max(8, min(92, $state->userPosition)) }}% * 0.84 + 8%)">
                         <span class="text-[9px] font-bold tabular-nums text-sky-600">{{ $state->userPosition }}%</span>
-                        <span class="inline-block -scale-x-100 text-xl drop-shadow-sm" title="Anda">🚗</span>
+                        <svg class="h-4 w-7 shrink-0 drop-shadow-sm" viewBox="0 0 28 14" aria-hidden="true" role="img">
+                            <title>Anda</title>
+                            <rect x="4" y="5" width="20" height="6" rx="1" fill="#ef4444"/>
+                            <path d="M20 5h4l-1 6h-3V5z" fill="#ef4444"/>
+                            <rect x="6" y="2" width="10" height="4.5" rx="1.5" fill="#f87171"/>
+                            <circle cx="9" cy="11.5" r="2.5" fill="#1e293b"/>
+                            <circle cx="21" cy="11.5" r="2.5" fill="#1e293b"/>
+                        </svg>
                         <span class="mt-0.5 text-[9px] font-bold text-sky-700">Anda</span>
                     </div>
                 </div>

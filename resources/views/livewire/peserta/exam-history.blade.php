@@ -241,6 +241,14 @@
                             :remedial-unlock="$remedialUnlock"
                             :total-xp="$totalXp"
                         />
+                        @if ($attempt->event && $attempt->status->value === 'submitted')
+                            <a href="{{ route('peserta.certificate.download', $attempt) }}"
+                               target="_blank"
+                               class="ui-btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M7 10l5 5 5-5M12 15V3"/></svg>
+                                Unduh Sertifikat
+                            </a>
+                        @endif
                         @if ($isDrillAttempt)
                             <a href="{{ route('peserta.drill.index') }}" wire:navigate class="ui-btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                                 Drill Lagi

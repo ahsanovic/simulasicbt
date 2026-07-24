@@ -1,3 +1,6 @@
+@if ($needsNameConfirmation)
+    @include('livewire.peserta.exam-room.confirm-name')
+@else
 <div class="min-h-screen bg-slate-100"
      wire:key="exam-room-{{ $attemptId }}"
      wire:poll.30s="checkExpiry"
@@ -36,3 +39,4 @@
     @endif
     @include('livewire.peserta.exam-room.last-question-modal')
 </div>
+@endif

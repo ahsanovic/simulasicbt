@@ -60,6 +60,20 @@ class ExamRoom extends Component
     ];
 
     #[Locked]
+    public bool $needsNameConfirmation = false;
+
+    #[Locked]
+    public ?string $eventName = null;
+
+    #[Locked]
+    public ?string $eventSessionName = null;
+
+    #[Locked]
+    public int $questionCount = 0;
+
+    public string $displayNameInput = '';
+
+    #[Locked]
     public int $currentIndex = 0;
 
     /** @var list<array{id: int, sort_order: int, question_id: int, selected_option_id: ?int, is_marked: bool}> */
@@ -94,14 +108,18 @@ class ExamRoom extends Component
             ->where('exam_id', $exam->id)
             ->where('user_id', auth()->id())
             ->where('status', ExamAttemptStatus::InProgress)
-            ->with(['answers' => fn ($query) => $query->select(
-                'id',
-                'exam_attempt_id',
-                'question_id',
-                'sort_order',
-                'selected_option_id',
-                'is_marked',
-            )])
+            ->with([
+                'event:id,name',
+                'eventSession:id,name',
+                'answers' => fn ($query) => $query->select(
+                    'id',
+                    'exam_attempt_id',
+                    'question_id',
+                    'sort_order',
+                    'selected_option_id',
+                    'is_marked',
+                ),
+            ])
             ->firstOrFail();
 
         if (! $attempt->isActive()) {
@@ -114,13 +132,28 @@ class ExamRoom extends Component
         $this->examId = $exam->id;
         $this->examTitle = $attempt->isDrill() ? $attempt->displayTitle() : $exam->title;
         $this->attemptId = $attempt->id;
+        $this->examDurationMinutes = (int) $exam->duration_minutes;
+        $this->attemptExpiresAt = $attempt->expires_at->timestamp;
+
+        // Peserta confirms/edits their name (Google login names are often
+        // inconsistent) before the questions and timer are shown to them.
+        // Only asked for event/offline attempts, since that's where the name
+        // is later printed on the certificate and shown on the live display.
+        // Only asked once per attempt — skipped entirely on resume/refresh.
+        if ($attempt->event_id !== null && $attempt->needsNameConfirmation()) {
+            $this->needsNameConfirmation = true;
+            $this->displayNameInput = (string) auth()->user()->name;
+            $this->eventName = $attempt->event?->name;
+            $this->eventSessionName = $attempt->eventSession?->name;
+            $this->questionCount = $attempt->answers->count();
+
+            return;
+        }
         $this->isRemedial = $attempt->isRemedial();
         $this->isDrill = $attempt->isDrill();
         $this->isDuel = $attempt->isDuelAttempt();
         $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel;
         $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;
-        $this->examDurationMinutes = (int) $exam->duration_minutes;
-        $this->attemptExpiresAt = $attempt->expires_at->timestamp;
         $this->answerStates = $attempt->answers
             ->sortBy(fn (ExamAnswer $answer) => $answer->sort_order ?: 999)
             ->values()
@@ -456,6 +489,30 @@ class ExamRoom extends Component
         if ($this->currentIndex > 0) {
             $this->goToQuestion(0);
         }
+    }
+
+    /**
+     * Save the peserta-confirmed name onto this attempt only (does not touch
+     * users.name) and reload the component so the exam questions/timer view
+     * mounts fresh.
+     */
+    public function confirmDisplayName(): void
+    {
+        $name = trim($this->displayNameInput);
+
+        $this->validate([
+            'displayNameInput' => ['required', 'string', 'min:3', 'max:191'],
+        ], [], ['displayNameInput' => 'Nama']);
+
+        $attempt = ExamAttempt::query()
+            ->where('id', $this->attemptId)
+            ->where('user_id', auth()->id())
+            ->where('status', ExamAttemptStatus::InProgress)
+            ->firstOrFail();
+
+        $attempt->update(['display_name' => $name]);
+
+        $this->redirect(route('peserta.exam.room', $this->examId), navigate: true);
     }
 
     public function submitExam(ExamService $examService): void

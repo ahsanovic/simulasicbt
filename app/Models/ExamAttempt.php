@@ -22,6 +22,7 @@ class ExamAttempt extends Model
         'parent_attempt_id',
         'drill_config',
         'user_id',
+        'display_name',
         'started_at',
         'submitted_at',
         'expires_at',
@@ -142,6 +143,25 @@ class ExamAttempt extends Model
         }
 
         return ExamHistoryFilter::Full;
+    }
+
+    /**
+     * Name to show/print for this attempt: the name the participant confirmed
+     * (or edited) before starting, falling back to their account name (e.g.
+     * from Google login) if they haven't confirmed yet.
+     */
+    public function resolvedDisplayName(): string
+    {
+        return trim((string) ($this->display_name ?: $this->user?->name)) ?: 'Peserta';
+    }
+
+    /**
+     * Whether the participant still needs to confirm/edit their name before
+     * the exam questions are shown (only relevant for full/event attempts).
+     */
+    public function needsNameConfirmation(): bool
+    {
+        return blank($this->display_name);
     }
 
     public function displayTitle(): string

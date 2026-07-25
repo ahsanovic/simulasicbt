@@ -18,7 +18,7 @@ use Livewire\Component;
 #[Title('Livescore Sesi')]
 class LiveScore extends Component
 {
-    public Event $event;
+    public int $eventId;
 
     public EventSession $session;
 
@@ -44,8 +44,23 @@ class LiveScore extends Component
     {
         abort_unless($session->event_id === $event->id, 404);
 
-        $this->event = $event->load('exam:id,title,duration_minutes');
+        $this->eventId = $event->id;
         $this->session = $session;
+    }
+
+    /**
+     * Resolved fresh each request (the board polls). Returns null once the event
+     * is deleted while this screen stays open. Kept out of a hydrated model
+     * property so Livewire doesn't 404 the poll trying to re-fetch a soft-deleted
+     * event — which would freeze the deleted event's participants on screen.
+     */
+    #[Computed]
+    public function event(): ?Event
+    {
+        return Event::query()
+            ->whereKey($this->eventId)
+            ->with('exam:id,title,duration_minutes')
+            ->first();
     }
 
     /**
@@ -250,7 +265,7 @@ class LiveScore extends Component
 
     private function examDurationMinutes(): int
     {
-        return (int) ($this->event->exam?->duration_minutes ?? 0);
+        return (int) ($this->event?->exam?->duration_minutes ?? 0);
     }
 
     /**
@@ -478,8 +493,19 @@ class LiveScore extends Component
         return max(1, min(180, (int) $this->addMinutes));
     }
 
+    /**
+     * Called by wire:poll. Leaves the screen if the event was deleted while it
+     * stayed open, so a deleted event's board stops showing participants.
+     */
+    public function pollBoard(): void
+    {
+        if ($this->event === null) {
+            $this->redirect(route('admin.events.index'), navigate: true);
+        }
+    }
+
     public function render()
     {
-        return view('livewire.admin.events.live-score');
+        return view('livewire.admin.events.live-score', ['event' => $this->event]);
     }
 }

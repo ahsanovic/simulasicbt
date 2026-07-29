@@ -16,6 +16,10 @@
 
     <x-peserta.testimonial-prompt />
 
+    @auth
+        <livewire:peserta.profile-modal />
+    @endauth
+
     @livewireScripts
     @stack('scripts')
 </body>

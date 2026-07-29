@@ -4,6 +4,23 @@ use App\Enums\DevotionBadge;
 use App\Services\HtmlSanitizer;
 use Illuminate\Support\Str;
 
+if (! function_exists('sanitize_display_name')) {
+    function sanitize_display_name(?string $name): string
+    {
+        if ($name === null || $name === '') {
+            return '';
+        }
+
+        $name = html_entity_decode($name, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $name = strip_tags($name);
+        $name = str_replace("\0", '', $name);
+        $name = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x{200B}-\x{200D}\x{FEFF}\x{202A}-\x{202E}]/u', '', $name) ?? $name;
+        $name = preg_replace('/\s+/u', ' ', $name) ?? $name;
+
+        return trim($name);
+    }
+}
+
 if (! function_exists('sanitize_testimonial_text')) {
     function sanitize_testimonial_text(?string $text, bool $multiline = false): string
     {

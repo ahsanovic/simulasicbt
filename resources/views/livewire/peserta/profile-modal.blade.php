@@ -90,17 +90,20 @@
                                         id="profile-name-input"
                                         type="text"
                                         wire:model="name"
+                                        maxlength="100"
                                         class="ui-input w-full"
                                         placeholder="Masukkan nama tampilan"
                                         autocomplete="name"
+                                        spellcheck="false"
                                     >
                                     @error('name')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
 
-                                <button type="submit" class="ui-btn-primary shrink-0 px-5 py-2.5">
-                                    Simpan
+                                <button type="submit" class="ui-btn-primary shrink-0 px-5 py-2.5" wire:loading.attr="disabled" wire:target="updateName">
+                                    <span wire:loading.remove wire:target="updateName">Simpan</span>
+                                    <span wire:loading wire:target="updateName">Menyimpan...</span>
                                 </button>
                             </form>
                         </div>

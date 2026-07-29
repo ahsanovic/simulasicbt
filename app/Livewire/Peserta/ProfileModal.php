@@ -3,13 +3,18 @@
 namespace App\Livewire\Peserta;
 
 use App\Enums\DevotionBadge;
+use App\Rules\ValidDisplayName;
 use App\Services\CoinService;
 use App\Services\GamificationService;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class ProfileModal extends Component
 {
+    private const NAME_UPDATE_RATE_LIMIT = 5;
+
     public bool $showModal = false;
 
     public string $name = '';
@@ -35,19 +40,31 @@ class ProfileModal extends Component
 
     public function updateName(): void
     {
-        $user = auth()->user();
+        $this->ensureWithinRateLimit();
+
+        $this->name = sanitize_display_name($this->name);
+
+        $user = auth()->user()?->fresh();
 
         if (! $user?->usesGoogleAuth()) {
             return;
         }
 
         $validated = $this->validate([
-            'name' => ['required', 'string', 'min:2', 'max:100'],
+            'name' => ['required', 'string', new ValidDisplayName],
+        ], [], [
+            'name' => 'Nama',
         ]);
 
-        $trimmedName = trim($validated['name']);
+        $trimmedName = sanitize_display_name($validated['name']);
+
+        if ($trimmedName === $user->name) {
+            return;
+        }
 
         $user->update(['name' => $trimmedName]);
+
+        $this->name = $trimmedName;
 
         $this->dispatch('profile-name-updated', name: $trimmedName);
 
@@ -77,5 +94,26 @@ class ProfileModal extends Component
             'currentBadge' => DevotionBadge::fromXp($totalXp)->toArray(),
             'canEditName' => $user->usesGoogleAuth(),
         ]);
+    }
+
+    private function ensureWithinRateLimit(): void
+    {
+        $userId = auth()->id();
+
+        if ($userId === null) {
+            return;
+        }
+
+        $key = 'profile-name-update:'.$userId;
+
+        if (RateLimiter::tooManyAttempts($key, self::NAME_UPDATE_RATE_LIMIT)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'name' => 'Terlalu banyak percobaan. Coba lagi dalam '.$seconds.' detik.',
+            ]);
+        }
+
+        RateLimiter::hit($key, 60);
     }
 }

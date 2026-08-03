@@ -56,23 +56,16 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
+Route::prefix(config('app.base_path'))->group(function () {
 Route::get('storage/{path}', [PublicStorageController::class, 'show'])
     ->where('path', '.*')
     ->name('storage.public');
-
-$appBasePath = trim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
-
-if ($appBasePath !== '') {
-    Route::get($appBasePath.'/storage/{path}', [PublicStorageController::class, 'show'])
-        ->where('path', '.*')
-        ->name('storage.public.prefixed');
-}
 
 // Public livescore — accessible without login (for venue display screens).
 Route::get('livescore', PublicLiveScoreIndex::class)->name('public.livescore.index');
 Route::get('livescore/{event:public_code}', PublicLiveScoreShow::class)->name('public.livescore.show');
 
-Route::redirect('/', '/login');
+Route::get('/', fn () => redirect()->route('login'));
 
 Route::middleware('guest')->group(function () {
     Route::get('login', Login::class)->name('login');
@@ -147,7 +140,7 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/riwayat', ExamHistory::class)->name('history');
     Route::get('/evaluasi', PesertaEvaluasi::class)->name('evaluasi');
     Route::get('/simulasi-formasi', SimulasiFormasi::class)->name('simulasi-formasi');
-    Route::redirect('/rapor', '/peserta/evaluasi');
+    Route::get('/rapor', fn () => redirect()->route('peserta.evaluasi'));
     Route::get('/riwayat/{attempt}/review', ExamReview::class)->name('exam.review');
     Route::get('/riwayat/{attempt}/sertifikat', [CertificateController::class, 'download'])->name('certificate.download');
     Route::get('/ujian/{exam}', ExamRoom::class)->name('exam.room');
@@ -162,4 +155,5 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/rencana-belajar', RencanaBelajar::class)->name('rencana-belajar.index');
     Route::get('/kartu-sakti', KartuSakti::class)->name('kartu-sakti.index');
     Route::get('/toko', Shop::class)->name('shop.index');
+});
 });

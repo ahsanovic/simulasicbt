@@ -12,6 +12,7 @@
             :remedial-unlock="$remedialUnlock"
             :total-xp="$totalXp"
             :formation-name="$formationName"
+            :can-give-testimonial="$userHasTestimonial"
         />
     @endif
 

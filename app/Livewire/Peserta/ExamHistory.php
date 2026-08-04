@@ -35,6 +35,9 @@ class ExamHistory extends Component
 
     public bool $showTestimonialGate = false;
 
+    /** True = blocking gate (must submit once); false = optional "beri testimoni lagi". */
+    public bool $testimonialRequired = false;
+
     /** Remedial-unlock modal deferred until the testimonial gate is satisfied. */
     public bool $pendingRemedialUnlock = false;
 
@@ -104,6 +107,7 @@ class ExamHistory extends Component
         if ($testimonialService->shouldPromptUser(auth()->user())) {
             $this->prefillTestimonialGate();
             $this->showTestimonialGate = true;
+            $this->testimonialRequired = true;
             // Hold these back until the testimonial is submitted.
             $this->pendingRemedialUnlock = (bool) session()->pull('show_remedial_unlock_modal');
 
@@ -176,6 +180,48 @@ class ExamHistory extends Component
         $this->showRemedialUnlockModal = false;
     }
 
+    /**
+     * Optional "beri testimoni lagi": opens the testimonial form (dismissible),
+     * pre-filled with the peserta's existing testimonial so they update it rather
+     * than creating a duplicate. Never blocks — the score stays accessible.
+     */
+    public function openTestimonialForm(TestimonialService $testimonialService): void
+    {
+        $existing = $testimonialService->userTestimonial(auth()->user());
+
+        if ($existing) {
+            $this->targetInstansi = $existing->target_instansi;
+            $this->story = $existing->story;
+            $this->turningPoint = $existing->turning_point ?? '';
+            $this->selectedTags = $existing->feature_tags ?? [];
+            $this->isAnonymous = (bool) $existing->is_anonymous;
+            $this->rating = (int) ($existing->rating ?? 0);
+        } else {
+            $this->prefillTestimonialGate();
+        }
+
+        $this->resetValidation();
+        $this->testimonialRequired = false;
+        $this->showResultModal = false;
+        $this->showTestimonialGate = true;
+    }
+
+    public function closeTestimonialGate(): void
+    {
+        // The mandatory gate can't be dismissed — a testimonial must be given once.
+        if ($this->testimonialRequired) {
+            return;
+        }
+
+        $this->showTestimonialGate = false;
+        $this->resetValidation();
+
+        // Return to the result popup if it was open behind the optional form.
+        if ($this->resultAttempt !== null) {
+            $this->showResultModal = true;
+        }
+    }
+
     public function toggleTestimonialTag(string $tag): void
     {
         if (TestimonialFeatureTag::tryFrom($tag) === null) {
@@ -234,17 +280,30 @@ class ExamHistory extends Component
 
         RateLimiter::clear($this->testimonialSubmitThrottleKey());
 
+        $wasRequired = $this->testimonialRequired;
         $this->showTestimonialGate = false;
+        $this->testimonialRequired = false;
 
-        // Reveal whatever was held back behind the gate.
-        if ($this->resultAttempt !== null) {
-            $this->showResultModal = true;
-        } elseif ($this->pendingRemedialUnlock) {
-            $this->pendingRemedialUnlock = false;
-            $this->showRemedialUnlockModal = true;
+        if ($wasRequired) {
+            // First-time mandatory gate: reveal whatever was held back behind it.
+            if ($this->resultAttempt !== null) {
+                $this->showResultModal = true;
+            } elseif ($this->pendingRemedialUnlock) {
+                $this->pendingRemedialUnlock = false;
+                $this->showRemedialUnlockModal = true;
+            }
+
+            session()->flash('success', 'Testimoni berhasil dikirim! Nilai Anda sudah bisa dilihat.');
+
+            return;
         }
 
-        session()->flash('success', 'Testimoni berhasil dikirim! Nilai Anda sudah bisa dilihat.');
+        // Optional "beri testimoni lagi": just return to the result if it was open.
+        if ($this->resultAttempt !== null) {
+            $this->showResultModal = true;
+        }
+
+        session()->flash('success', 'Terima kasih! Testimoni Anda berhasil diperbarui.');
     }
 
     public function saveResultWrongToFlashcard(FlashcardService $flashcardService): void
@@ -282,7 +341,7 @@ class ExamHistory extends Component
             ->count();
     }
 
-    public function render(GamificationService $gamificationService)
+    public function render(GamificationService $gamificationService, TestimonialService $testimonialService)
     {
         $filter = ExamHistoryFilter::from($this->typeFilter);
 
@@ -331,6 +390,7 @@ class ExamHistory extends Component
             'typeFilters' => ExamHistoryFilter::options(),
             'activeFilter' => $filter,
             'featureTagOptions' => TestimonialFeatureTag::cases(),
+            'userHasTestimonial' => $testimonialService->userTestimonial(auth()->user()) !== null,
         ]);
     }
 

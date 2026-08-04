@@ -4,12 +4,25 @@
     aria-modal="true"
     aria-labelledby="required-testimonial-title"
 >
-    <div class="mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
+    @unless ($testimonialRequired)
+        <div class="absolute inset-0" wire:click="closeTestimonialGate"></div>
+    @endunless
+
+    <div class="relative mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
         <div class="w-full overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/30">
-            <div class="bg-gradient-to-r from-rose-500 via-pink-600 to-rose-600 px-6 py-5 text-white sm:px-8">
-                <p class="text-xs font-bold uppercase tracking-widest text-rose-100">Satu Langkah Lagi</p>
+            <div class="relative bg-gradient-to-r from-rose-500 via-pink-600 to-rose-600 px-6 py-5 text-white sm:px-8">
+                @unless ($testimonialRequired)
+                    <button type="button" wire:click="closeTestimonialGate"
+                            class="absolute right-4 top-4 rounded-xl p-2 text-white/80 transition hover:bg-white/15 hover:text-white"
+                            aria-label="Tutup">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                @endunless
+                <p class="text-xs font-bold uppercase tracking-widest text-rose-100">
+                    {{ $testimonialRequired ? 'Satu Langkah Lagi' : 'Testimoni' }}
+                </p>
                 <h2 id="required-testimonial-title" class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
-                    Bagikan testimoni dulu untuk melihat nilai
+                    {{ $testimonialRequired ? 'Bagikan testimoni dulu untuk melihat nilai' : 'Perbarui testimoni Anda' }}
                 </h2>
                 <p class="mt-2 max-w-2xl text-sm leading-relaxed text-rose-50">
                     Cerita Anda membantu kami memahami pengalaman peserta setelah mengerjakan simulasi.
@@ -131,16 +144,26 @@
 
                 <div class="sticky bottom-0 -mx-6 flex flex-col gap-3 border-t border-slate-200 bg-white/95 px-6 py-4 sm:-mx-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                     <p class="text-xs text-slate-500">
-                        Setelah testimoni terkirim, nilai simulasi Anda akan langsung tampil.
+                        {{ $testimonialRequired
+                            ? 'Setelah testimoni terkirim, nilai simulasi Anda akan langsung tampil.'
+                            : 'Perbarui cerita Anda kapan saja — ini opsional.' }}
                     </p>
-                    <button
-                        type="submit"
-                        class="inline-flex items-center justify-center rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-60"
-                        wire:loading.attr="disabled"
-                    >
-                        <span wire:loading.remove wire:target="submitTestimonialGate">Kirim Testimoni & Lihat Nilai</span>
-                        <span wire:loading wire:target="submitTestimonialGate">Mengirim...</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        @unless ($testimonialRequired)
+                            <button type="button" wire:click="closeTestimonialGate"
+                                    class="rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100">
+                                Batal
+                            </button>
+                        @endunless
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-60"
+                            wire:loading.attr="disabled"
+                        >
+                            <span wire:loading.remove wire:target="submitTestimonialGate">{{ $testimonialRequired ? 'Kirim Testimoni & Lihat Nilai' : 'Simpan Testimoni' }}</span>
+                            <span wire:loading wire:target="submitTestimonialGate">Menyimpan...</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

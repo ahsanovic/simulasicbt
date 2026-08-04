@@ -56,6 +56,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Base Path
+    |--------------------------------------------------------------------------
+    |
+    | When this application is hosted alongside other applications on the same
+    | domain, every route must stay under this path. If APP_BASE_PATH is not
+    | provided, the path portion of APP_URL is used.
+    |
+    */
+
+    'base_path' => trim((string) env(
+        'APP_BASE_PATH',
+        parse_url((string) env('APP_URL', ''), PHP_URL_PATH) ?: '',
+    ), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

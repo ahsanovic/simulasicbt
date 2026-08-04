@@ -15,7 +15,7 @@ use Livewire\Component;
 #[Title('Livescore')]
 class LiveScoreShow extends Component
 {
-    public Event $event;
+    public int $eventId;
 
     public ?int $sessionId = null;
 
@@ -23,13 +23,33 @@ class LiveScoreShow extends Component
     {
         abort_unless($event->public_livescore, 404);
 
-        $this->event = $event->load('exam:id,title,duration_minutes');
+        $this->eventId = $event->id;
+    }
+
+    /**
+     * Resolved fresh on every request (the board is polled and venue screens
+     * stay open for hours). Returns null once the event is deleted or its public
+     * livescore is switched off. The event is intentionally NOT held as a
+     * hydrated Livewire model property: Livewire re-fetches model properties by
+     * key each request, and a soft-deleted model resolves to null and 404s the
+     * poll — freezing the stale board (with participant names) on screen.
+     */
+    #[Computed]
+    public function event(): ?Event
+    {
+        return Event::query()
+            ->whereKey($this->eventId)
+            ->where('public_livescore', true)
+            ->with('exam:id,title,duration_minutes')
+            ->first();
     }
 
     #[Computed]
     public function sessions()
     {
-        return $this->event->sessions()->orderBy('name')->get(['id', 'name']);
+        return $this->event
+            ? $this->event->sessions()->orderBy('name')->get(['id', 'name'])
+            : collect();
     }
 
     /**
@@ -42,7 +62,7 @@ class LiveScoreShow extends Component
     private function closeExpiredAttempts(): void
     {
         $expired = ExamAttempt::query()
-            ->where('event_id', $this->event->id)
+            ->where('event_id', $this->eventId)
             ->expiredButOpen()
             ->get();
 
@@ -57,7 +77,7 @@ class LiveScoreShow extends Component
         $this->closeExpiredAttempts();
 
         $attempts = ExamAttempt::query()
-            ->where('event_id', $this->event->id)
+            ->where('event_id', $this->eventId)
             ->when($this->sessionId, fn ($query) => $query->where('event_session_id', $this->sessionId))
             ->with([
                 'user:id,name,instansi_id',
@@ -113,8 +133,21 @@ class LiveScoreShow extends Component
             ->all();
     }
 
+    /**
+     * Called by wire:poll. Refreshes the board and — if the event was deleted or
+     * its public livescore switched off while this screen stayed open — leaves
+     * the board so a deleted event's participants stop showing. A fresh visit
+     * already 404s via route binding.
+     */
+    public function refreshBoard(): void
+    {
+        if ($this->event === null) {
+            $this->redirect(route('public.livescore.index'), navigate: true);
+        }
+    }
+
     public function render()
     {
-        return view('livewire.public.live-score-show');
+        return view('livewire.public.live-score-show', ['event' => $this->event]);
     }
 }

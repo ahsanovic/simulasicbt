@@ -1,4 +1,8 @@
 <div class="min-h-screen bg-gradient-to-b from-slate-50 to-primary-50/20">
+    @if ($showTestimonialGate)
+        @include('livewire.peserta.partials.required-testimonial-modal')
+    @endif
+
     @if ($showResultModal && $resultAttempt)
         <x-exam-result-modal
             :attempt="$resultAttempt"
@@ -8,6 +12,7 @@
             :remedial-unlock="$remedialUnlock"
             :total-xp="$totalXp"
             :formation-name="$formationName"
+            :can-give-testimonial="$userHasTestimonial"
         />
     @endif
 
@@ -15,7 +20,7 @@
         <x-peserta.remedial-unlock-modal />
     @endif
 
-    <main @class(['mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8', 'overflow-hidden' => $showResultModal])>
+    <main @class(['mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8', 'overflow-hidden' => $showResultModal || $showTestimonialGate])>
         <x-ui.flash-toast />
 
         <div class="mb-8 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 p-6 text-white shadow-xl shadow-primary-500/20 sm:p-8">

@@ -143,7 +143,13 @@ return [
     |
     */
 
-    'path' => env('SESSION_PATH', '/'),
+    'path' => env(
+        'SESSION_PATH',
+        '/'.trim((string) env(
+            'APP_BASE_PATH',
+            parse_url((string) env('APP_URL', ''), PHP_URL_PATH) ?: '',
+        ), '/'),
+    ),
 
     /*
     |--------------------------------------------------------------------------

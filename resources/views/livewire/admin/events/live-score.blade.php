@@ -1,13 +1,13 @@
-<div @if (! $showAddTimeModal) wire:poll.5s @endif>
+<div @if (! $showAddTimeModal) wire:poll.5s="pollBoard" @endif>
     <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-            <a href="{{ route('admin.events.sessions', $event) }}" wire:navigate class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">
+            <a href="{{ route('admin.events.sessions', $eventId) }}" wire:navigate class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">
                 <x-ui.icon name="arrow-left" class="h-4 w-4" /> Kembali ke daftar sesi
             </a>
-            <h1 class="text-2xl font-bold text-slate-900">{{ $event->name }} — {{ $session->name }}</h1>
+            <h1 class="text-2xl font-bold text-slate-900">{{ $event?->name }} — {{ $session->name }}</h1>
             <p class="mt-1 text-sm text-slate-500">
-                {{ $event->exam?->title }}
-                @if($event->exam) &middot; {{ $event->exam->duration_minutes }} menit @endif
+                {{ $event?->exam?->title }}
+                @if($event?->exam) &middot; {{ $event->exam->duration_minutes }} menit @endif
             </p>
         </div>
         <div class="flex items-center gap-3">

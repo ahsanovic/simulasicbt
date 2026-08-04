@@ -1,10 +1,10 @@
-<div wire:poll.30s class="min-h-screen">
+<div wire:poll.30s="refreshBoard" class="min-h-screen">
     <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 pr-16 sm:px-6 sm:pr-20">
             <div class="min-w-0">
                 <a href="{{ route('public.livescore.index') }}" class="text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300">← Semua Event</a>
-                <h1 class="truncate text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ $event->name }}</h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400">{{ $event->exam?->title }}</p>
+                <h1 class="truncate text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ $event?->name }}</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400">{{ $event?->exam?->title }}</p>
             </div>
             <div class="flex items-center gap-3">
                 @if ($this->sessions->count() > 1)

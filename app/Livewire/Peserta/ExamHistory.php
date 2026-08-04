@@ -5,6 +5,7 @@ namespace App\Livewire\Peserta;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ExamHistoryFilter;
+use App\Enums\TestimonialFeatureTag;
 use App\Livewire\Concerns\InteractsWithAiReadinessReport;
 use App\Models\ExamAttempt;
 use App\Services\DeepSeekRecommendationService;
@@ -12,6 +13,9 @@ use App\Services\ExamService;
 use App\Services\ExamWeaknessAnalysisService;
 use App\Services\FlashcardService;
 use App\Services\GamificationService;
+use App\Services\TestimonialService;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -29,13 +33,32 @@ class ExamHistory extends Component
 
     public bool $showRemedialUnlockModal = false;
 
+    public bool $showTestimonialGate = false;
+
+    /** Remedial-unlock modal deferred until the testimonial gate is satisfied. */
+    public bool $pendingRemedialUnlock = false;
+
     public ?ExamAttempt $resultAttempt = null;
 
     public string $typeFilter = 'all';
 
+    public string $targetInstansi = '';
+
+    public string $story = '';
+
+    public string $turningPoint = '';
+
+    /** @var list<string> */
+    public array $selectedTags = [];
+
+    public bool $isAnonymous = false;
+
+    public int $rating = 0;
+
     public function mount(
         ExamWeaknessAnalysisService $weaknessAnalysis,
         DeepSeekRecommendationService $recommendationService,
+        TestimonialService $testimonialService,
     ): void {
         $this->initializeAiReadinessReport($weaknessAnalysis, $recommendationService);
 
@@ -72,10 +95,23 @@ class ExamHistory extends Component
                 ->where('user_id', auth()->id())
                 ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
                 ->first();
+        }
 
-            if ($this->resultAttempt) {
-                $this->showResultModal = true;
-            }
+        // Required testimonial gate: as long as the peserta has finished at least
+        // one exam but hasn't left a testimonial yet, block the history page (and
+        // its scores) behind the testimonial popup on every visit. shouldPromptUser
+        // returns false the moment a testimonial exists, so it only ever asks once.
+        if ($testimonialService->shouldPromptUser(auth()->user())) {
+            $this->prefillTestimonialGate();
+            $this->showTestimonialGate = true;
+            // Hold these back until the testimonial is submitted.
+            $this->pendingRemedialUnlock = (bool) session()->pull('show_remedial_unlock_modal');
+
+            return;
+        }
+
+        if ($this->resultAttempt) {
+            $this->showResultModal = true;
         }
 
         if (session()->pull('show_remedial_unlock_modal') && ! $this->showResultModal) {
@@ -88,7 +124,8 @@ class ExamHistory extends Component
         $this->showResultModal = false;
         $this->resultAttempt = null;
 
-        if (session()->pull('show_remedial_unlock_modal')) {
+        if (session()->pull('show_remedial_unlock_modal') || $this->pendingRemedialUnlock) {
+            $this->pendingRemedialUnlock = false;
             $this->showRemedialUnlockModal = true;
         }
     }
@@ -137,6 +174,77 @@ class ExamHistory extends Component
     public function closeRemedialUnlockModal(): void
     {
         $this->showRemedialUnlockModal = false;
+    }
+
+    public function toggleTestimonialTag(string $tag): void
+    {
+        if (TestimonialFeatureTag::tryFrom($tag) === null) {
+            return;
+        }
+
+        if (in_array($tag, $this->selectedTags, true)) {
+            $this->selectedTags = array_values(array_filter(
+                $this->selectedTags,
+                fn (string $value) => $value !== $tag,
+            ));
+
+            return;
+        }
+
+        $this->selectedTags[] = $tag;
+    }
+
+    public function submitTestimonialGate(TestimonialService $testimonialService): void
+    {
+        $this->ensureTestimonialSubmitIsNotRateLimited();
+
+        $this->targetInstansi = sanitize_testimonial_text($this->targetInstansi);
+        $this->story = sanitize_testimonial_text($this->story, multiline: true);
+        $this->turningPoint = sanitize_testimonial_text($this->turningPoint, multiline: true);
+        $this->selectedTags = array_values(array_filter(
+            $this->selectedTags,
+            fn (string $tag) => TestimonialFeatureTag::tryFrom($tag) !== null,
+        ));
+
+        $this->validate([
+            'targetInstansi' => ['required', 'string', 'min:3', 'max:120'],
+            'story' => ['required', 'string', 'min:20', 'max:2000'],
+            'rating' => ['required', 'integer', Rule::in([1, 2, 3, 4, 5])],
+            'turningPoint' => ['nullable', 'string', 'max:1000'],
+            'selectedTags' => ['required', 'array', 'min:1', 'max:8'],
+            'selectedTags.*' => ['string', Rule::enum(TestimonialFeatureTag::class)],
+            'isAnonymous' => ['boolean'],
+        ], [
+            'targetInstansi.required' => 'Ceritakan formasi dan instansi target Anda.',
+            'story.required' => 'Cerita pengalaman belajar wajib diisi.',
+            'story.min' => 'Cerita minimal 20 karakter agar lebih bermakna.',
+            'rating.required' => 'Berikan rating 1-5 bintang untuk pengalaman Anda.',
+            'rating.in' => 'Berikan rating 1-5 bintang untuk pengalaman Anda.',
+            'selectedTags.required' => 'Pilih minimal satu fitur andalan.',
+        ]);
+
+        $testimonialService->submit(auth()->user(), [
+            'target_instansi' => $this->targetInstansi,
+            'story' => $this->story,
+            'rating' => $this->rating,
+            'turning_point' => $this->turningPoint,
+            'feature_tags' => $this->selectedTags,
+            'is_anonymous' => $this->isAnonymous,
+        ]);
+
+        RateLimiter::clear($this->testimonialSubmitThrottleKey());
+
+        $this->showTestimonialGate = false;
+
+        // Reveal whatever was held back behind the gate.
+        if ($this->resultAttempt !== null) {
+            $this->showResultModal = true;
+        } elseif ($this->pendingRemedialUnlock) {
+            $this->pendingRemedialUnlock = false;
+            $this->showRemedialUnlockModal = true;
+        }
+
+        session()->flash('success', 'Testimoni berhasil dikirim! Nilai Anda sudah bisa dilihat.');
     }
 
     public function saveResultWrongToFlashcard(FlashcardService $flashcardService): void
@@ -222,6 +330,38 @@ class ExamHistory extends Component
             'formationName' => $formationName,
             'typeFilters' => ExamHistoryFilter::options(),
             'activeFilter' => $filter,
+            'featureTagOptions' => TestimonialFeatureTag::cases(),
         ]);
+    }
+
+    private function prefillTestimonialGate(): void
+    {
+        $user = auth()->user();
+
+        $this->targetInstansi = $user->formation?->name
+            ?: $user->instansi?->nama
+            ?: '';
+        $this->selectedTags = [TestimonialFeatureTag::SimulasiCBT->value];
+        $this->rating = 0;
+    }
+
+    private function ensureTestimonialSubmitIsNotRateLimited(): void
+    {
+        $key = $this->testimonialSubmitThrottleKey();
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'story' => 'Terlalu banyak percobaan. Coba lagi dalam '.$seconds.' detik.',
+            ]);
+        }
+
+        RateLimiter::hit($key, 60);
+    }
+
+    private function testimonialSubmitThrottleKey(): string
+    {
+        return 'testimonial-submit:'.auth()->id();
     }
 }

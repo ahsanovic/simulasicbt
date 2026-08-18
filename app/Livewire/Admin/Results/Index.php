@@ -25,6 +25,8 @@ class Index extends Component
 
     public string $examTypeFilter = '';
 
+    public string $skdTargetFilter = '';
+
     public string $dateFrom = '';
 
     public string $dateTo = '';
@@ -44,6 +46,11 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatingSkdTargetFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatingDateFrom(): void
     {
         $this->resetPage();
@@ -56,7 +63,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'examTypeFilter', 'dateFrom', 'dateTo']);
+        $this->reset(['search', 'examTypeFilter', 'skdTargetFilter', 'dateFrom', 'dateTo']);
         $this->resetPage();
     }
 
@@ -118,9 +125,9 @@ class Index extends Component
         return view('livewire.admin.results.index', [
             'attempts' => $attempts,
             'stats' => $stats,
-            'passingGrades' => exam_passing_grades(),
             'activeExport' => $activeExport,
             'exportRowCount' => ExamResultsQuery::filtered($filters)->count(),
+            'skdTargetOptions' => \App\Enums\SkdTarget::filterOptions(),
         ]);
     }
 
@@ -129,6 +136,7 @@ class Index extends Component
         return new ExamResultsExportFilters(
             search: $this->search,
             examTypeFilter: $this->examTypeFilter,
+            skdTargetFilter: $this->skdTargetFilter,
             dateFrom: $this->dateFrom,
             dateTo: $this->dateTo,
         );

@@ -2,7 +2,6 @@
     @if ($showResultModal && $resultAttempt)
         <x-exam-result-modal
             :attempt="$resultAttempt"
-            :passing-grades="$passingGrades"
             :score-max="$scoreMax"
             :wrong-count="$this->resultAttemptWrongCount"
             :remedial-unlock="$remedialUnlock"
@@ -62,7 +61,37 @@
             </div>
         </div>
 
-        <x-exam-passing-grades-banner :passing-grades="$passingGrades" class="mb-6" />
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-sm font-semibold text-slate-900">Jenis Simulasi SKD</p>
+                <p class="mt-0.5 text-xs text-slate-500">Filter riwayat berdasarkan target ujian CPNS atau Sekolah Kedinasan.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @foreach ($skdTargetOptions as $option)
+                    <button
+                        type="button"
+                        wire:click="setSkdTargetFilter('{{ $option['value'] }}')"
+                        @class([
+                            'rounded-full px-4 py-2 text-sm font-semibold transition',
+                            'bg-primary-600 text-white shadow-sm shadow-primary-500/20' => $skdTargetFilter === $option['value'],
+                            'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50' => $skdTargetFilter !== $option['value'],
+                        ])
+                    >
+                        {{ $option['label'] }}
+                    </button>
+                @endforeach
+            </div>
+        </div>
+
+        @if ($showAllPassingProfiles)
+            <x-exam-passing-grades-banner show-all-profiles class="mb-6" />
+        @else
+            <x-exam-passing-grades-banner
+                :passing-grades="$passingGrades"
+                :skd-target="$skdTargetFilter"
+                class="mb-6"
+            />
+        @endif
 
         <div class="mb-6 flex flex-wrap gap-2">
             @foreach ($typeFilters as $filter)
@@ -84,12 +113,8 @@
             <div class="min-w-0 space-y-4">
             @forelse ($attempts as $attempt)
                 @php
-                    $passes = exam_attempt_passes(
-                        $attempt->score_twk,
-                        $attempt->score_tiu,
-                        $attempt->score_tkp,
-                        $attempt->total_score,
-                    );
+                    $attemptGrades = $attempt->passingGrades();
+                    $passes = $attempt->passes();
                     $isRemedialAttempt = $attempt->isRemedial();
                     $isDrillAttempt = $attempt->isDrill();
                     $isDuelAttempt = $attempt->isDuelAttempt();
@@ -136,6 +161,9 @@
                                     Event Offline
                                 </span>
                             @else
+                            <span class="ui-badge bg-slate-100 text-slate-700 ring-1 ring-slate-200/60">
+                                {{ $attempt->skdTarget()->shortLabel() }}
+                            </span>
                             <span @class([
                                 'ui-badge inline-flex items-center gap-1',
                                 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60' => $passes,
@@ -194,28 +222,28 @@
                         <x-exam-score-threshold
                             label="TWK"
                             :value="$attempt->score_twk"
-                            :threshold="$passingGrades['twk']"
+                            :threshold="$attemptGrades['twk']"
                             :max="$scoreMax['twk']"
                             color="blue"
                         />
                         <x-exam-score-threshold
                             label="TIU"
                             :value="$attempt->score_tiu"
-                            :threshold="$passingGrades['tiu']"
+                            :threshold="$attemptGrades['tiu']"
                             :max="$scoreMax['tiu']"
                             color="amber"
                         />
                         <x-exam-score-threshold
                             label="TKP"
                             :value="$attempt->score_tkp"
-                            :threshold="$passingGrades['tkp']"
+                            :threshold="$attemptGrades['tkp']"
                             :max="$scoreMax['tkp']"
                             color="violet"
                         />
                         <x-exam-score-threshold
                             label="Total"
                             :value="$attempt->total_score"
-                            :threshold="$passingGrades['total']"
+                            :threshold="$attemptGrades['total']"
                             :max="$scoreMax['total']"
                             color="primary"
                         />
@@ -264,7 +292,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                     </div>
-                    @if ($activeFilter->value === 'all')
+                    @if ($activeFilter->value === 'all' && $skdTargetFilter === 'all')
                         <p class="mt-4 font-semibold text-slate-700">Belum ada riwayat tes</p>
                         <p class="mt-1 max-w-sm text-sm text-slate-500">
                             Selesaikan simulasi pertama Anda untuk melihat riwayat di sini.
@@ -273,17 +301,36 @@
                             Mulai Simulasi →
                         </a>
                     @else
-                        <p class="mt-4 font-semibold text-slate-700">Tidak ada riwayat {{ $activeFilter->label() }}</p>
-                        <p class="mt-1 max-w-sm text-sm text-slate-500">
-                            Belum ada hasil tes dengan kategori ini. Coba filter lain atau tampilkan semua riwayat.
+                        <p class="mt-4 font-semibold text-slate-700">
+                            @if ($skdTargetFilter !== 'all' && $activeFilter->value === 'all')
+                                Tidak ada riwayat {{ $activeSkdTargetLabel }}
+                            @else
+                                Tidak ada riwayat {{ $activeFilter->label() }}
+                            @endif
                         </p>
-                        <button
-                            type="button"
-                            wire:click="$set('typeFilter', 'all')"
-                            class="ui-btn-secondary mt-6"
-                        >
-                            Tampilkan Semua Riwayat
-                        </button>
+                        <p class="mt-1 max-w-sm text-sm text-slate-500">
+                            Belum ada hasil tes dengan filter ini. Coba filter lain atau tampilkan semua riwayat.
+                        </p>
+                        <div class="mt-6 flex flex-wrap justify-center gap-2">
+                            @if ($skdTargetFilter !== 'all')
+                                <button
+                                    type="button"
+                                    wire:click="setSkdTargetFilter('all')"
+                                    class="ui-btn-secondary"
+                                >
+                                    Semua Jenis SKD
+                                </button>
+                            @endif
+                            @if ($activeFilter->value !== 'all')
+                                <button
+                                    type="button"
+                                    wire:click="$set('typeFilter', 'all')"
+                                    class="ui-btn-secondary"
+                                >
+                                    Semua Kategori
+                                </button>
+                            @endif
+                        </div>
                     @endif
                 </div>
             @endforelse

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\SkdTarget;
 use App\Enums\UserRole;
 use App\Models\Formation;
 use App\Models\User;
@@ -57,6 +58,7 @@ class FormationMatchmakingService
         $row = DB::table('exam_attempts')
             ->select('score_twk', 'score_tiu', 'score_tkp', 'total_score')
             ->where('user_id', $userId)
+            ->where('skd_target', SkdTarget::Cpns->value)
             ->where('status', ExamAttemptStatus::Submitted->value)
             ->whereNotNull('total_score')
             ->orderByDesc('total_score')
@@ -165,6 +167,7 @@ class FormationMatchmakingService
             $userScores['tiu'],
             $userScores['tkp'],
             $userScores['total'],
+            SkdTarget::Cpns,
         );
 
         if ($user->formation === null) {

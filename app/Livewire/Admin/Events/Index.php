@@ -137,13 +137,13 @@ class Index extends Component
     public function render()
     {
         $events = Event::query()
-            ->with('exam:id,title,duration_minutes')
+            ->with('exam:id,title,duration_minutes,settings')
             ->withCount(['sessions', 'attempts'])
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->latest()
             ->paginate(10);
 
-        $exams = Exam::query()->orderBy('title')->get(['id', 'title']);
+        $exams = Exam::query()->orderBy('title')->get(['id', 'title', 'settings']);
 
         return view('livewire.admin.events.index', compact('events', 'exams'));
     }

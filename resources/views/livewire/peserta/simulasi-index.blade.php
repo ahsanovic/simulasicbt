@@ -21,10 +21,34 @@
             </div>
         </div>
 
+        <div class="mb-6 flex flex-wrap gap-2">
+            @foreach ($skdTargetOptions as $option)
+                <button
+                    type="button"
+                    wire:click="$set('skdTarget', '{{ $option['value'] }}')"
+                    @class([
+                        'rounded-full px-4 py-2 text-sm font-semibold transition',
+                        'bg-primary-600 text-white shadow-sm shadow-primary-500/20' => $selectedSkdTarget->value === $option['value'],
+                        'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50' => $selectedSkdTarget->value !== $option['value'],
+                    ])
+                >
+                    {{ $option['label'] }}
+                </button>
+            @endforeach
+        </div>
+
+        <x-exam-passing-grades-banner
+            :passing-grades="$passingGrades"
+            :skd-target="$selectedSkdTarget"
+            class="mb-6"
+        />
+
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="text-lg font-bold text-slate-900">Ujian Tersedia</h2>
-                <p class="mt-0.5 text-sm text-slate-500">Pilih simulasi untuk mulai atau lanjutkan ujian yang sedang berjalan.</p>
+                <p class="mt-0.5 text-sm text-slate-500">
+                    Pilih simulasi {{ $selectedSkdTarget->label() }} untuk mulai atau lanjutkan ujian yang sedang berjalan.
+                </p>
             </div>
             <span class="ui-badge bg-primary-100 text-primary-700">{{ $exams->count() }} ujian</span>
         </div>

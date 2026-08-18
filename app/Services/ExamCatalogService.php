@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\SkdTarget;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use Illuminate\Support\Collection;
@@ -12,7 +13,7 @@ class ExamCatalogService
     /**
      * @return Collection<int, Exam>
      */
-    public function availableFullSimulationsFor(int $userId): Collection
+    public function availableFullSimulationsFor(int $userId, ?SkdTarget $skdTarget = null): Collection
     {
         $exams = Exam::query()
             ->where('status', 'published')
@@ -21,6 +22,12 @@ class ExamCatalogService
             ->latest()
             ->get()
             ->reject(fn (Exam $exam) => $exam->isDuel() || $exam->isDrill())
+            ->when(
+                $skdTarget !== null,
+                fn (Collection $collection) => $collection->filter(
+                    fn (Exam $exam) => $exam->skdTarget() === $skdTarget,
+                ),
+            )
             ->values();
 
         $attemptStats = ExamAttempt::query()

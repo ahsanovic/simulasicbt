@@ -22,11 +22,13 @@
                 @forelse ($this->activeAttempts as $attempt)
                     @php
                         $scores = $attempt->calculateScores();
+                        $attemptGrades = $attempt->passingGrades();
                         $passes = exam_attempt_passes(
                             $scores['twk'],
                             $scores['tiu'],
                             $scores['tkp'],
                             $scores['total'],
+                            $attempt->skdTarget(),
                         );
                     @endphp
                     <tr wire:key="active-attempt-{{ $attempt->id }}" class="transition hover:bg-slate-50/50">
@@ -43,16 +45,16 @@
                         </td>
                         <td class="px-5 py-4 font-medium text-slate-700">{{ $attempt->exam->title }}</td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['twk']" :threshold="$this->passingGrades['twk']" color="blue" />
+                            <x-exam-score-cell :value="$scores['twk']" :threshold="$attemptGrades['twk']" color="blue" />
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['tiu']" :threshold="$this->passingGrades['tiu']" color="amber" />
+                            <x-exam-score-cell :value="$scores['tiu']" :threshold="$attemptGrades['tiu']" color="amber" />
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['tkp']" :threshold="$this->passingGrades['tkp']" color="violet" />
+                            <x-exam-score-cell :value="$scores['tkp']" :threshold="$attemptGrades['tkp']" color="violet" />
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <x-exam-score-cell :value="$scores['total']" :threshold="$this->passingGrades['total']" color="primary" />
+                            <x-exam-score-cell :value="$scores['total']" :threshold="$attemptGrades['total']" color="primary" />
                         </td>
                         <td class="px-5 py-4 text-center">
                             <span @class([

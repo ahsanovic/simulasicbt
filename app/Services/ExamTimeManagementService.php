@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\SkdTarget;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 
@@ -145,11 +146,12 @@ class ExamTimeManagementService
      *     summary_lines: array<int, string>
      * }
      */
-    public function analyzeUserTimePatterns(int $userId): array
+    public function analyzeUserTimePatterns(int $userId, ?SkdTarget $skdTarget = null): array
     {
         $attempts = ExamAttempt::query()
             ->with(['exam', 'answers.question.subject'])
             ->where('user_id', $userId)
+            ->when($skdTarget !== null, fn ($query) => $query->where('skd_target', $skdTarget->value))
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
             ->whereNotNull('question_duration')
             ->latest('submitted_at')

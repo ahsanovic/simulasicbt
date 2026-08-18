@@ -24,7 +24,7 @@
             description="Rekap peserta yang memenuhi nilai ambang batas SKD pada seluruh simulasi yang diselesaikan."
         />
 
-        <x-exam-passing-grades-banner :passing-grades="$passingGrades" class="mb-5" />
+        <x-exam-passing-grades-banner show-all-profiles class="mb-5" />
 
         <div class="grid gap-5 sm:grid-cols-3">
             <x-ui.stat-card
@@ -57,17 +57,17 @@
             </div>
             <div class="grid gap-px bg-slate-100 sm:grid-cols-2 lg:grid-cols-4">
                 @foreach([
-                    ['key' => 'twk', 'label' => 'TWK', 'passed' => $passingStats['twk_passed'], 'threshold' => $passingGrades['twk'], 'badge' => 'bg-blue-50 text-blue-700', 'bar' => 'bg-blue-500'],
-                    ['key' => 'tiu', 'label' => 'TIU', 'passed' => $passingStats['tiu_passed'], 'threshold' => $passingGrades['tiu'], 'badge' => 'bg-amber-50 text-amber-700', 'bar' => 'bg-amber-500'],
-                    ['key' => 'tkp', 'label' => 'TKP', 'passed' => $passingStats['tkp_passed'], 'threshold' => $passingGrades['tkp'], 'badge' => 'bg-violet-50 text-violet-700', 'bar' => 'bg-violet-500'],
-                    ['key' => 'total', 'label' => 'Total', 'passed' => $passingStats['total_score_passed'], 'threshold' => $passingGrades['total'], 'badge' => 'bg-primary-50 text-primary-700', 'bar' => 'bg-primary-600'],
+                    ['key' => 'twk', 'label' => 'TWK', 'passed' => $passingStats['twk_passed'], 'badge' => 'bg-blue-50 text-blue-700', 'bar' => 'bg-blue-500'],
+                    ['key' => 'tiu', 'label' => 'TIU', 'passed' => $passingStats['tiu_passed'], 'badge' => 'bg-amber-50 text-amber-700', 'bar' => 'bg-amber-500'],
+                    ['key' => 'tkp', 'label' => 'TKP', 'passed' => $passingStats['tkp_passed'], 'badge' => 'bg-violet-50 text-violet-700', 'bar' => 'bg-violet-500'],
+                    ['key' => 'total', 'label' => 'Total', 'passed' => $passingStats['total_score_passed'], 'badge' => 'bg-primary-50 text-primary-700', 'bar' => 'bg-primary-600'],
                 ] as $component)
                     @php
                         $rate = $passingStats['total'] > 0 ? round(($component['passed'] / $passingStats['total']) * 100) : 0;
                     @endphp
                     <div class="bg-white p-5">
                         <div class="flex items-center justify-between gap-2">
-                            <span @class(['ui-badge', $component['badge']])>{{ $component['label'] }} ≥ {{ $component['threshold'] }}</span>
+                            <span @class(['ui-badge', $component['badge']])>{{ $component['label'] }}</span>
                             <span class="text-xs font-semibold text-slate-500">{{ $rate }}%</span>
                         </div>
                         <p class="mt-3 text-2xl font-bold text-slate-900">

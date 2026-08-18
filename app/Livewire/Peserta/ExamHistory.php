@@ -5,6 +5,7 @@ namespace App\Livewire\Peserta;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ExamHistoryFilter;
+use App\Enums\SkdTarget;
 use App\Livewire\Concerns\InteractsWithAiReadinessReport;
 use App\Models\ExamAttempt;
 use App\Services\DeepSeekRecommendationService;
@@ -32,6 +33,8 @@ class ExamHistory extends Component
     public ?ExamAttempt $resultAttempt = null;
 
     public string $typeFilter = 'all';
+
+    public string $skdTargetFilter = 'all';
 
     public function mount(
         ExamWeaknessAnalysisService $weaknessAnalysis,
@@ -134,6 +137,19 @@ class ExamHistory extends Component
         $this->resetPage();
     }
 
+    public function updatedSkdTargetFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function setSkdTargetFilter(string $value): void
+    {
+        if ($value === 'all' || SkdTarget::tryFrom($value) !== null) {
+            $this->skdTargetFilter = $value;
+            $this->resetPage();
+        }
+    }
+
     public function closeRemedialUnlockModal(): void
     {
         $this->showRemedialUnlockModal = false;
@@ -177,15 +193,20 @@ class ExamHistory extends Component
     public function render(GamificationService $gamificationService)
     {
         $filter = ExamHistoryFilter::from($this->typeFilter);
+        $skdTarget = $this->skdTargetFilter === 'all'
+            ? null
+            : SkdTarget::from($this->skdTargetFilter);
 
-        $attempts = ExamAttempt::query()
+        $attemptsQuery = ExamAttempt::query()
             ->with(['exam', 'event:id,name', 'answers.question', 'answers.selectedOption'])
             ->where('user_id', auth()->id())
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
             ->forHistoryFilter($filter)
+            ->when($skdTarget !== null, fn ($query) => $query->where('skd_target', $skdTarget->value))
             ->latest('submitted_at')
-            ->latest('created_at')
-            ->paginate(5);
+            ->latest('created_at');
+
+        $attempts = $attemptsQuery->paginate(5);
 
         $submittedAttempts = ExamAttempt::query()
             ->official()
@@ -193,7 +214,8 @@ class ExamHistory extends Component
             ->whereNull('duel_session_id')
             ->whereNull('event_id')
             ->where('status', ExamAttemptStatus::Submitted)
-            ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score']);
+            ->when($skdTarget !== null, fn ($query) => $query->where('skd_target', $skdTarget->value))
+            ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score', 'skd_target', 'attempt_type']);
 
         $totalXp = $gamificationService->totalXp(auth()->user());
         $formationName = auth()->user()->formation?->name;
@@ -202,19 +224,13 @@ class ExamHistory extends Component
             'total' => $submittedAttempts->count(),
             'average' => (int) round((float) ($submittedAttempts->avg('total_score') ?? 0)),
             'passed' => $submittedAttempts
-                ->filter(fn (ExamAttempt $attempt) => exam_attempt_passes(
-                    $attempt->score_twk,
-                    $attempt->score_tiu,
-                    $attempt->score_tkp,
-                    $attempt->total_score,
-                ))
+                ->filter(fn (ExamAttempt $attempt) => $attempt->passes())
                 ->count(),
         ];
 
         return view('livewire.peserta.exam-history', [
             'attempts' => $attempts,
             'stats' => $stats,
-            'passingGrades' => exam_passing_grades(),
             'scoreMax' => exam_score_max(),
             'repeatExam' => $this->resolveRepeatExam(),
             'totalXp' => $totalXp,
@@ -222,6 +238,11 @@ class ExamHistory extends Component
             'formationName' => $formationName,
             'typeFilters' => ExamHistoryFilter::options(),
             'activeFilter' => $filter,
+            'skdTargetFilter' => $this->skdTargetFilter,
+            'skdTargetOptions' => SkdTarget::filterOptions(),
+            'showAllPassingProfiles' => $skdTarget === null,
+            'passingGrades' => $skdTarget !== null ? exam_passing_grades($skdTarget) : null,
+            'activeSkdTargetLabel' => $skdTarget?->label(),
         ]);
     }
 }

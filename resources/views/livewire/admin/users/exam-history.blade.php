@@ -42,7 +42,7 @@
         </div>
     </div>
 
-    <x-exam-passing-grades-banner :passing-grades="$passingGrades" class="mb-5" />
+    <x-exam-passing-grades-banner show-all-profiles class="mb-5" />
 
     <div class="ui-table-wrap">
         <div class="overflow-x-auto">
@@ -64,26 +64,22 @@
                             $isDuel = (bool) ($attempt->exam?->isDuel() ?? false);
                             $isDuelWinner = $isDuel && $attempt->duelSession?->winner_user_id === $attempt->user_id;
                             $isDuelDraw = $isDuel && $attempt->duelSession?->winner_user_id === null;
-                            $passes = exam_attempt_passes(
-                                $attempt->score_twk,
-                                $attempt->score_tiu,
-                                $attempt->score_tkp,
-                                $attempt->total_score,
-                            );
+                            $attemptGrades = $attempt->passingGrades();
+                            $passes = $attempt->passes();
                         @endphp
                         <tr wire:key="attempt-{{ $attempt->id }}" class="transition hover:bg-slate-50/50">
                             <td class="px-5 py-4 font-medium text-slate-900">{{ $attempt->exam->title }}</td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->score_twk" :threshold="$passingGrades['twk']" color="blue" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->score_twk" :threshold="$attemptGrades['twk']" color="blue" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->score_tiu" :threshold="$passingGrades['tiu']" color="amber" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->score_tiu" :threshold="$attemptGrades['tiu']" color="amber" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->score_tkp" :threshold="$passingGrades['tkp']" color="violet" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->score_tkp" :threshold="$attemptGrades['tkp']" color="violet" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->total_score" :threshold="$passingGrades['total']" color="primary" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->total_score" :threshold="$attemptGrades['total']" color="primary" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
                                 @if ($isDuel)

@@ -39,6 +39,21 @@
                     </select>
                 </div>
 
+                <div>
+                    <label class="ui-label">Jenis Simulasi SKD</label>
+                    <select wire:model="skd_target" class="ui-select" @disabled($editingExamHasAttempts)>
+                        @foreach ($skdTargetOptions as $option)
+                            <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('skd_target') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    @if ($editingExamHasAttempts)
+                        <p class="mt-1.5 text-xs text-amber-700">Ujian sudah dimulai peserta — jenis simulasi tidak dapat diubah.</p>
+                    @else
+                        <p class="mt-1.5 text-xs text-slate-500">Menentukan ambang batas kelulusan yang dipakai saat peserta mengerjakan ujian ini.</p>
+                    @endif
+                </div>
+
                 <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" wire:model.live="use_pin" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500/20">

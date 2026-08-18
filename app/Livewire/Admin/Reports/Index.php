@@ -42,32 +42,26 @@ class Index extends Component
 
         $submittedAttempts = ExamAttempt::query()
             ->where('status', ExamAttemptStatus::Submitted)
-            ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score']);
+            ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score', 'skd_target', 'attempt_type']);
 
-        $passingGrades = exam_passing_grades();
         $submittedTotal = $submittedAttempts->count();
 
         $passingStats = [
             'total' => $submittedTotal,
             'passed' => $submittedAttempts
-                ->filter(fn (ExamAttempt $attempt) => exam_attempt_passes(
-                    $attempt->score_twk,
-                    $attempt->score_tiu,
-                    $attempt->score_tkp,
-                    $attempt->total_score,
-                ))
+                ->filter(fn (ExamAttempt $attempt) => $attempt->passes())
                 ->count(),
             'twk_passed' => $submittedAttempts
-                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->score_twk, $passingGrades['twk']))
+                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->score_twk, $attempt->passingGrades()['twk']))
                 ->count(),
             'tiu_passed' => $submittedAttempts
-                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->score_tiu, $passingGrades['tiu']))
+                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->score_tiu, $attempt->passingGrades()['tiu']))
                 ->count(),
             'tkp_passed' => $submittedAttempts
-                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->score_tkp, $passingGrades['tkp']))
+                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->score_tkp, $attempt->passingGrades()['tkp']))
                 ->count(),
             'total_score_passed' => $submittedAttempts
-                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->total_score, $passingGrades['total']))
+                ->filter(fn (ExamAttempt $attempt) => exam_score_passes($attempt->total_score, $attempt->passingGrades()['total']))
                 ->count(),
         ];
 
@@ -114,7 +108,6 @@ class Index extends Component
             'instansiStats',
             'pesertaUmumCount',
             'participants',
-            'passingGrades',
             'passingStats',
         ));
     }

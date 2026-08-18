@@ -112,7 +112,7 @@
     </div>
 
     @if ($examTypeFilter !== 'duel')
-        <x-exam-passing-grades-banner :passing-grades="$passingGrades" class="mb-5" />
+        <x-exam-passing-grades-banner show-all-profiles class="mb-5" />
     @endif
 
     <div class="ui-card mb-5 p-4 sm:p-5">
@@ -127,6 +127,11 @@
                 <option value="duel">Duel Mini-Tryout</option>
                 <option value="drill">Drill Soal</option>
                 <option value="remedial">Ujian Remedial</option>
+            </select>
+            <select wire:model.live="skdTargetFilter" class="ui-select w-full sm:w-52 sm:shrink-0">
+                @foreach ($skdTargetOptions as $option)
+                    <option value="{{ $option['value'] === 'all' ? '' : $option['value'] }}">{{ $option['label'] }}</option>
+                @endforeach
             </select>
             <input type="date" wire:model.live="dateFrom" class="ui-input w-full sm:w-40 sm:shrink-0" title="Dari tanggal selesai">
             <input type="date" wire:model.live="dateTo" class="ui-input w-full sm:w-40 sm:shrink-0" title="Sampai tanggal selesai">
@@ -162,12 +167,8 @@
                             $isDuel = (bool) ($attempt->exam?->isDuel() ?? false);
                             $isDuelWinner = $isDuel && $attempt->duelSession?->winner_user_id === $attempt->user_id;
                             $isDuelDraw = $isDuel && $attempt->duelSession?->winner_user_id === null;
-                            $passes = exam_attempt_passes(
-                                $attempt->score_twk,
-                                $attempt->score_tiu,
-                                $attempt->score_tkp,
-                                $attempt->total_score,
-                            );
+                            $attemptGrades = $attempt->passingGrades();
+                            $passes = $attempt->passes();
                         @endphp
                         <tr wire:key="attempt-{{ $attempt->id }}" class="transition hover:bg-slate-50/50">
                             <td class="px-5 py-4">
@@ -178,16 +179,16 @@
                             </td>
                             <td class="px-5 py-4 text-slate-600">{{ $attempt->exam->title }}</td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->score_twk" :threshold="$passingGrades['twk']" color="blue" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->score_twk" :threshold="$attemptGrades['twk']" color="blue" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->score_tiu" :threshold="$passingGrades['tiu']" color="amber" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->score_tiu" :threshold="$attemptGrades['tiu']" color="amber" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->score_tkp" :threshold="$passingGrades['tkp']" color="violet" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->score_tkp" :threshold="$attemptGrades['tkp']" color="violet" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
-                                <x-exam-score-cell :value="$attempt->total_score" :threshold="$passingGrades['total']" color="primary" :show-threshold="! $isDuel" />
+                                <x-exam-score-cell :value="$attempt->total_score" :threshold="$attemptGrades['total']" color="primary" :show-threshold="! $isDuel" />
                             </td>
                             <td class="px-5 py-4 text-center">
                                 @if ($isDuel)

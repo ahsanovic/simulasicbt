@@ -8,6 +8,7 @@ use App\Enums\DuelSessionStatus;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ExamStatus;
+use App\Enums\SkdTarget;
 use App\Enums\UserRole;
 use App\Models\DuelSession;
 use App\Models\Exam;
@@ -94,10 +95,25 @@ class ExamResultsQueryTest extends TestCase
             ->values()
             ->all();
 
-        $this->assertSame(
-            collect([$duelBySession->id, $duelByExam->id])->sort()->values()->all(),
-            $ids,
-        );
+        $this->assertSame([$duelBySession->id, $duelByExam->id], $ids);
+    }
+
+    public function test_skd_target_filter_only_returns_matching_attempts(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $peserta = User::factory()->create(['role' => UserRole::Peserta]);
+
+        $cpnsExam = $this->createExam($admin, 'Simulasi CPNS', ['difficulty' => 'all', 'skd_target' => 'cpns']);
+        $kedinasanExam = $this->createExam($admin, 'Simulasi Kedinasan', ['difficulty' => 'all', 'skd_target' => 'sekolah_kedinasan']);
+
+        $this->createSubmittedAttempt($peserta, $cpnsExam, ExamAttemptType::Full, SkdTarget::Cpns);
+        $kedinasanAttempt = $this->createSubmittedAttempt($peserta, $kedinasanExam, ExamAttemptType::Full, SkdTarget::SekolahKedinasan);
+
+        $ids = ExamResultsQuery::filtered(new ExamResultsExportFilters(skdTargetFilter: SkdTarget::SekolahKedinasan->value))
+            ->pluck('id')
+            ->all();
+
+        $this->assertSame([$kedinasanAttempt->id], $ids);
     }
 
     /** @param array<string, mixed> $settings */
@@ -129,12 +145,14 @@ class ExamResultsQueryTest extends TestCase
         User $peserta,
         Exam $exam,
         ExamAttemptType $attemptType,
+        ?SkdTarget $skdTarget = null,
         ?DuelSession $duelSession = null,
     ): ExamAttempt {
         return ExamAttempt::query()->create([
             'exam_id' => $exam->id,
             'user_id' => $peserta->id,
             'attempt_type' => $attemptType,
+            'skd_target' => $skdTarget ?? SkdTarget::Cpns,
             'duel_session_id' => $duelSession?->id,
             'started_at' => now()->subHour(),
             'submitted_at' => now(),

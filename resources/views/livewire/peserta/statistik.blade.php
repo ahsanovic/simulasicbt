@@ -142,6 +142,61 @@
                 @endforeach
             </div>
 
+            {{-- Filter jenis simulasi --}}
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p class="text-sm font-semibold text-slate-900">Jenis Simulasi SKD</p>
+                    <p class="mt-0.5 text-xs text-slate-500">Filter statistik berdasarkan target ujian CPNS atau Sekolah Kedinasan.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($skdTargetOptions as $option)
+                        <button
+                            type="button"
+                            wire:click="setSkdTargetFilter('{{ $option['value'] }}')"
+                            wire:loading.attr="disabled"
+                            wire:target="setSkdTargetFilter"
+                            @class([
+                                'rounded-full px-4 py-2 text-sm font-semibold transition',
+                                'bg-primary-600 text-white shadow-sm shadow-primary-500/20' => $skdTargetFilter === $option['value'],
+                                'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50' => $skdTargetFilter !== $option['value'],
+                            ])
+                        >
+                            {{ $option['label'] }}
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            @if ($stats['show_all_passing_profiles'])
+                <x-exam-passing-grades-banner show-all-profiles class="mb-6" />
+            @else
+                <x-exam-passing-grades-banner
+                    :passing-grades="$stats['passing_grades']"
+                    :skd-target="$stats['skd_target_filter']"
+                    class="mb-6"
+                />
+            @endif
+
+            @if (! $stats['has_filtered_history'])
+                <div class="ui-card flex flex-col items-center px-6 py-14 text-center">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                        <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                        </svg>
+                    </div>
+                    <h2 class="mt-4 text-lg font-bold text-slate-900">Belum Ada Simulasi untuk Filter Ini</h2>
+                    <p class="mt-2 max-w-md text-sm text-slate-500">
+                        @if ($stats['skd_target_label'])
+                            Anda belum menyelesaikan simulasi {{ $stats['skd_target_label'] }}.
+                        @else
+                            Tidak ada data simulasi yang cocok dengan filter saat ini.
+                        @endif
+                    </p>
+                    <a href="{{ route('peserta.simulasi.index') }}" wire:navigate class="ui-btn-primary mt-6 px-6">
+                        Mulai Simulasi →
+                    </a>
+                </div>
+            @else
             {{-- Overview KPIs --}}
             <section id="stat-section-overview" class="scroll-mt-28 mb-8">
                 <h2 class="mb-4 text-lg font-bold text-slate-900">Ringkasan Performa</h2>
@@ -237,7 +292,7 @@
 
                     @if (count($scoreTrendChart['labels']) >= 1)
                         <div
-                            wire:key="score-trend-{{ $activeScoreTrendPeriod->value }}"
+                            wire:key="score-trend-{{ $skdTargetFilter }}-{{ $activeScoreTrendPeriod->value }}"
                             data-score-trend-chart
                             class="bg-white p-4 sm:p-6"
                             x-init="$nextTick(() => window.initStatisticsCharts?.($el))"
@@ -275,7 +330,13 @@
                 <div class="grid gap-6 lg:grid-cols-2">
                     <div class="ui-card p-6">
                         <h2 class="text-lg font-bold text-slate-900">Skor Terbaik per Pilar</h2>
-                        <p class="mt-1 text-sm text-slate-500">Dibandingkan ambang kelulusan SKD</p>
+                        <p class="mt-1 text-sm text-slate-500">
+                            @if ($stats['show_all_passing_profiles'])
+                                Dibandingkan ambang terendah antar jenis simulasi (Kedinasan)
+                            @else
+                                Dibandingkan ambang kelulusan {{ $stats['skd_target_label'] }}
+                            @endif
+                        </p>
                         <div class="mt-6 space-y-5">
                             @foreach ($stats['pillar_comparison'] as $pillar)
                                 <div wire:key="pillar-{{ $pillar['code'] }}">
@@ -547,6 +608,7 @@
                         @endforeach
                     </div>
                 </section>
+            @endif
             @endif
         @endif
     </main>

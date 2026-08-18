@@ -25,14 +25,34 @@ class DemoExamSeeder extends Seeder
         $exam = Exam::query()->updateOrCreate(
             ['slug' => 'simulasi-cbt-demo'],
             [
-                'title' => 'Simulasi CBT Demo',
-                'description' => 'Ujian demo untuk menguji fitur ruang ujian peserta.',
+                'title' => 'Simulasi CBT Demo (CPNS)',
+                'description' => 'Ujian demo CPNS untuk menguji fitur ruang ujian peserta.',
                 'duration_minutes' => 100,
                 'starts_at' => now()->subHour(),
                 'ends_at' => now()->addWeek(),
                 'status' => ExamStatus::Published,
                 'settings' => [
                     'difficulty' => 'all',
+                    'skd_target' => 'cpns',
+                    'question_counts' => ExamQuestionGeneratorService::COUNTS_BY_SUBJECT,
+                    'total_questions' => ExamQuestionGeneratorService::TOTAL_QUESTIONS,
+                ],
+                'created_by' => $admin?->id,
+            ],
+        );
+
+        $kedinasanExam = Exam::query()->updateOrCreate(
+            ['slug' => 'simulasi-kedinasan-demo'],
+            [
+                'title' => 'Simulasi SKD Sekolah Kedinasan Demo',
+                'description' => 'Ujian demo sekolah kedinasan dengan ambang batas TKP 156.',
+                'duration_minutes' => 100,
+                'starts_at' => now()->subHour(),
+                'ends_at' => now()->addWeek(),
+                'status' => ExamStatus::Published,
+                'settings' => [
+                    'difficulty' => 'all',
+                    'skd_target' => 'sekolah_kedinasan',
                     'question_counts' => ExamQuestionGeneratorService::COUNTS_BY_SUBJECT,
                     'total_questions' => ExamQuestionGeneratorService::TOTAL_QUESTIONS,
                 ],
@@ -48,6 +68,13 @@ class DemoExamSeeder extends Seeder
         }
 
         $exam->questions()->sync($syncData);
+
+        $kedinasanSyncData = [];
+        foreach ($generator->generate('all') as $item) {
+            $kedinasanSyncData[$item['id']] = ['sort_order' => $item['sort_order']];
+        }
+
+        $kedinasanExam->questions()->sync($kedinasanSyncData);
     }
 
     private function ensureQuestionBank(?int $createdBy): void

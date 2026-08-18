@@ -5,12 +5,14 @@ namespace Tests\Feature\Admin;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamStatus;
 use App\Enums\ExportRequestStatus;
+use App\Enums\SkdTarget;
 use App\Enums\UserRole;
 use App\Livewire\Admin\Results\Index;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\ExportRequest;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -44,6 +46,56 @@ class ExamResultsExportTest extends TestCase
         $exportRequest = ExportRequest::query()->first();
         $this->assertNotNull($exportRequest?->file_path);
         Storage::disk('local')->assertExists($exportRequest->file_path);
+
+        $csv = Storage::disk('local')->get($exportRequest->file_path);
+        $this->assertStringContainsString('Target SKD', $csv);
+        $this->assertStringContainsString('CPNS', $csv);
+    }
+
+    public function test_export_includes_skd_target_column_for_kedinasan_attempt(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $peserta = User::factory()->create(['role' => UserRole::Peserta, 'name' => 'Ani Kedinasan']);
+
+        $exam = Exam::query()->create([
+            'title' => 'Simulasi Kedinasan',
+            'slug' => 'simulasi-kedinasan-export',
+            'duration_minutes' => 100,
+            'status' => ExamStatus::Published,
+            'settings' => [
+                'difficulty' => 'all',
+                'skd_target' => SkdTarget::SekolahKedinasan->value,
+            ],
+            'created_by' => $admin->id,
+        ]);
+
+        ExamAttempt::query()->create([
+            'exam_id' => $exam->id,
+            'user_id' => $peserta->id,
+            'skd_target' => SkdTarget::SekolahKedinasan,
+            'started_at' => now()->subHour(),
+            'submitted_at' => now(),
+            'expires_at' => now()->addHour(),
+            'status' => ExamAttemptStatus::Submitted,
+            'score_twk' => 70,
+            'score_tiu' => 85,
+            'score_tkp' => 160,
+            'total_score' => 315,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Index::class)
+            ->call('requestExport')
+            ->assertHasNoErrors();
+
+        $exportRequest = ExportRequest::query()->first();
+        $csv = Storage::disk('local')->get($exportRequest->file_path);
+
+        $this->assertStringContainsString('Target SKD', $csv);
+        $this->assertStringContainsString('Sekolah Kedinasan', $csv);
+        $this->assertStringContainsString('Ani Kedinasan', $csv);
     }
 
     public function test_export_respects_date_range_filter(): void
@@ -159,7 +211,7 @@ class ExamResultsExportTest extends TestCase
     /**
      * @return array{0: Exam, 1: User}
      */
-    private function seedSubmittedAttempt(string $name, ?Carbon $submittedAt = null): array
+    private function seedSubmittedAttempt(string $name, CarbonInterface|null $submittedAt = null): array
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);
         $peserta = User::factory()->create([

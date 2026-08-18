@@ -3,10 +3,12 @@
 namespace App\Livewire\Admin\Exams;
 
 use App\Enums\ExamStatus;
+use App\Enums\SkdTarget;
 use App\Models\Exam;
 use App\Services\ExamQuestionGeneratorService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -42,6 +44,8 @@ class Index extends Component
 
     public string $difficulty = 'all';
 
+    public string $skd_target = 'cpns';
+
     protected function rules(): array
     {
         return [
@@ -53,6 +57,7 @@ class Index extends Component
             'status' => ['required', 'in:draft,published,archived'],
             'pin' => ['nullable', 'required_if:use_pin,true', 'string', 'size:4', 'regex:/^[A-Z0-9]+$/'],
             'difficulty' => ['required', 'in:all,easy,medium,hard'],
+            'skd_target' => ['required', Rule::enum(SkdTarget::class)],
         ];
     }
 
@@ -106,6 +111,7 @@ class Index extends Component
         $this->use_pin = filled($exam->pin);
         $this->pin = $exam->pin ?? '';
         $this->difficulty = $exam->settings['difficulty'] ?? 'all';
+        $this->skd_target = $exam->skdTarget()->value;
         $this->showModal = true;
     }
 
@@ -114,11 +120,18 @@ class Index extends Component
         $validated = $this->validate();
 
         DB::transaction(function () use ($validated, $generator) {
-            $settings = [
+            $existingSettings = [];
+
+            if ($this->editingId) {
+                $existingSettings = Exam::query()->find($this->editingId)?->settings ?? [];
+            }
+
+            $settings = array_merge(is_array($existingSettings) ? $existingSettings : [], [
                 'difficulty' => $validated['difficulty'],
+                'skd_target' => $validated['skd_target'],
                 'question_counts' => ExamQuestionGeneratorService::COUNTS_BY_SUBJECT,
                 'total_questions' => ExamQuestionGeneratorService::TOTAL_QUESTIONS,
-            ];
+            ]);
 
             $data = [
                 'title' => $validated['title'],
@@ -175,6 +188,7 @@ class Index extends Component
         $this->duration_minutes = 100;
         $this->status = 'draft';
         $this->difficulty = 'all';
+        $this->skd_target = SkdTarget::Cpns->value;
         $this->resetValidation();
     }
 
@@ -196,6 +210,6 @@ class Index extends Component
             'exams',
             'questionAvailability',
             'editingExamHasAttempts',
-        ));
+        ))->with('skdTargetOptions', SkdTarget::options());
     }
 }

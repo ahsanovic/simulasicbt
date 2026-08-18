@@ -3,6 +3,7 @@
 namespace App\Livewire\Peserta;
 
 use App\Enums\ScoreTrendPeriod;
+use App\Enums\SkdTarget;
 use App\Livewire\Concerns\InteractsWithAiReadinessReport;
 use App\Services\DeepSeekRecommendationService;
 use App\Services\ExamWeaknessAnalysisService;
@@ -18,6 +19,8 @@ class Statistik extends Component
     use InteractsWithAiReadinessReport;
 
     public string $scoreTrendPeriod = ScoreTrendPeriod::All->value;
+
+    public string $skdTargetFilter = 'all';
 
     public function mount(
         ExamWeaknessAnalysisService $weaknessAnalysis,
@@ -35,14 +38,43 @@ class Statistik extends Component
         }
     }
 
+    public function setSkdTargetFilter(string $value): void
+    {
+        if ($value === 'all' || SkdTarget::tryFrom($value) !== null) {
+            $this->skdTargetFilter = $value;
+            $this->refreshWeaknessStatsForSkdFilter();
+        }
+    }
+
+    private function refreshWeaknessStatsForSkdFilter(): void
+    {
+        $skdFilter = $this->skdTargetFilter === 'all'
+            ? null
+            : SkdTarget::from($this->skdTargetFilter);
+
+        $this->weaknessStats = app(ExamWeaknessAnalysisService::class)->getStatsForUser(
+            (int) auth()->id(),
+            $skdFilter,
+        );
+        $this->needsRefresh = true;
+        $this->isGenerated = false;
+        $this->recommendation = null;
+        $this->error = null;
+    }
+
     public function render(PesertaStatisticsService $statistics)
     {
         $period = ScoreTrendPeriod::from($this->scoreTrendPeriod);
+        $skdTarget = $this->skdTargetFilter === 'all'
+            ? null
+            : SkdTarget::from($this->skdTargetFilter);
 
         return view('livewire.peserta.statistik', [
-            'stats' => $statistics->forUser(auth()->user(), $period),
+            'stats' => $statistics->forUser(auth()->user(), $period, $skdTarget),
             'activeScoreTrendPeriod' => $period,
             'scoreTrendPeriods' => ScoreTrendPeriod::options(),
+            'skdTargetFilter' => $this->skdTargetFilter,
+            'skdTargetOptions' => SkdTarget::filterOptions(),
         ]);
     }
 }

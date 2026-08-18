@@ -57,7 +57,7 @@
                             <td class="px-5 py-4 text-slate-600">
                                 {{ $event->exam?->title ?? '—' }}
                                 @if($event->exam)
-                                    <span class="block text-xs text-slate-400">{{ $event->exam->duration_minutes }} mnt</span>
+                                    <span class="block text-xs text-slate-400">{{ $event->exam->skdTarget()->label() }} · {{ $event->exam->duration_minutes }} mnt</span>
                                 @endif
                             </td>
                             <td class="px-5 py-4"><span class="ui-badge bg-indigo-50 text-indigo-700">{{ $event->sessions_count }} sesi</span></td>
@@ -109,7 +109,7 @@
                         <select wire:model="exam_id" class="ui-select">
                             <option value="">— Pilih paket ujian —</option>
                             @foreach ($exams as $exam)
-                                <option value="{{ $exam->id }}">{{ $exam->title }}</option>
+                                <option value="{{ $exam->id }}">{{ $exam->title }} ({{ $exam->skdTarget()->label() }})</option>
                             @endforeach
                         </select>
                         @error('exam_id') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror

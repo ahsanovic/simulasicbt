@@ -241,9 +241,10 @@ function bindMetricToggles(wrapper, payload) {
         button.dataset.bound = '1';
         button.addEventListener('click', () => {
             const metricKey = button.dataset.scoreMetric ?? 'total';
+            const currentPayload = readChartPayload(wrapper);
 
             setActiveToggle(wrapper, metricKey);
-            renderScoreTrendChart(wrapper, payload, metricKey);
+            renderScoreTrendChart(wrapper, currentPayload, metricKey);
         });
     });
 
@@ -253,6 +254,11 @@ function bindMetricToggles(wrapper, payload) {
 function initStatisticsCharts(root = document) {
     chartWrappers(root).forEach((wrapper) => {
         const payload = readChartPayload(wrapper);
+
+        if (! payload?.labels?.length) {
+            return;
+        }
+
         const metricKey = activeMetric.get(wrapper) ?? 'total';
 
         bindMetricToggles(wrapper, payload);
@@ -262,6 +268,14 @@ function initStatisticsCharts(root = document) {
 
 document.addEventListener('DOMContentLoaded', () => initStatisticsCharts());
 document.addEventListener('livewire:navigated', () => initStatisticsCharts());
+
+document.addEventListener('livewire:init', () => {
+    Livewire.hook('commit', ({ succeed }) => {
+        succeed(() => {
+            requestAnimationFrame(() => initStatisticsCharts());
+        });
+    });
+});
 
 window.initStatisticsCharts = initStatisticsCharts;
 

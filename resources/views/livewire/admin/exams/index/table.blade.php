@@ -25,6 +25,9 @@
                                     PIN <span class="font-mono tracking-widest">{{ $exam->pin }}</span>
                                 </span>
                             @endif
+                            <span class="mt-1 inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                                {{ $exam->skdTarget()->label() }}
+                            </span>
                         </td>
                         <td class="px-5 py-4 text-slate-600">{{ $exam->duration_minutes }} mnt</td>
                         <td class="px-5 py-4"><span class="ui-badge bg-primary-100 text-primary-700">{{ $exam->questions_count }} soal</span></td>

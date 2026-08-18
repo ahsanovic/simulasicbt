@@ -6,6 +6,7 @@ use App\DTOs\DrillConfig;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ExamHistoryFilter;
+use App\Enums\SkdTarget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +20,7 @@ class ExamAttempt extends Model
         'event_session_id',
         'duel_session_id',
         'attempt_type',
+        'skd_target',
         'parent_attempt_id',
         'drill_config',
         'user_id',
@@ -49,6 +51,7 @@ class ExamAttempt extends Model
             'submitted_at' => 'datetime',
             'expires_at' => 'datetime',
             'attempt_type' => ExamAttemptType::class,
+            'skd_target' => SkdTarget::class,
             'status' => ExamAttemptStatus::class,
             'score_twk' => 'integer',
             'score_tiu' => 'integer',
@@ -113,6 +116,44 @@ class ExamAttempt extends Model
     public function isDrill(): bool
     {
         return $this->attempt_type === ExamAttemptType::Drill;
+    }
+
+    public function skdTarget(): SkdTarget
+    {
+        if ($this->skd_target instanceof SkdTarget) {
+            return $this->skd_target;
+        }
+
+        if (is_string($this->skd_target) && ($target = SkdTarget::tryFrom($this->skd_target)) !== null) {
+            return $target;
+        }
+
+        if ($this->parent_attempt_id !== null && $this->relationLoaded('parentAttempt') && $this->parentAttempt !== null) {
+            return $this->parentAttempt->skdTarget();
+        }
+
+        return $this->exam?->skdTarget() ?? SkdTarget::default();
+    }
+
+    /** @return array{twk: int, tiu: int, tkp: int, total: int} */
+    public function passingGrades(): array
+    {
+        return exam_passing_grades($this->skdTarget());
+    }
+
+    public function passes(): bool
+    {
+        if ($this->isRemedial() || $this->isDrill()) {
+            return false;
+        }
+
+        return exam_attempt_passes(
+            $this->score_twk,
+            $this->score_tiu,
+            $this->score_tkp,
+            $this->total_score,
+            $this->skdTarget(),
+        );
     }
 
     public function drillConfig(): ?DrillConfig

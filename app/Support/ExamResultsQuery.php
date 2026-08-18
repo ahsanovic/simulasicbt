@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Data\ExamResultsExportFilters;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
+use App\Enums\SkdTarget;
 use App\Models\ExamAttempt;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -52,6 +53,10 @@ final class ExamResultsQuery
             $query->where('attempt_type', ExamAttemptType::Remedial);
         }
 
+        if ($filters->skdTargetFilter !== '' && SkdTarget::tryFrom($filters->skdTargetFilter) !== null) {
+            $query->where('skd_target', $filters->skdTargetFilter);
+        }
+
         if ($filters->dateFrom !== '') {
             $query->whereDate('submitted_at', '>=', $filters->dateFrom);
         }
@@ -69,15 +74,18 @@ final class ExamResultsQuery
 
         self::applyFilters($baseQuery, $filters);
 
-        $grades = exam_passing_grades();
+        $attempts = (clone $baseQuery)->get([
+            'score_twk',
+            'score_tiu',
+            'score_tkp',
+            'total_score',
+            'skd_target',
+        ]);
 
         return [
-            'total' => (clone $baseQuery)->count(),
-            'passed' => (clone $baseQuery)
-                ->where('score_twk', '>=', $grades['twk'])
-                ->where('score_tiu', '>=', $grades['tiu'])
-                ->where('score_tkp', '>=', $grades['tkp'])
-                ->where('total_score', '>=', $grades['total'])
+            'total' => $attempts->count(),
+            'passed' => $attempts
+                ->filter(fn (ExamAttempt $attempt) => $attempt->passes())
                 ->count(),
         ];
     }

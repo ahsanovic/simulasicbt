@@ -240,7 +240,7 @@ class ExamReview extends Component
     public function render()
     {
         return view('livewire.peserta.exam-review', [
-            'passingGrades' => exam_passing_grades(),
+            'passingGrades' => $this->attempt->passingGrades(),
             'scoreMax' => exam_score_max(),
         ]);
     }

@@ -6,6 +6,7 @@ use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ExamStatus;
 use App\Enums\ScoreTrendPeriod;
+use App\Enums\SkdTarget;
 use App\Enums\UserRole;
 use App\Livewire\Peserta\Statistik;
 use App\Models\Exam;
@@ -159,5 +160,132 @@ class StatistikTest extends TestCase
             ->test(Statistik::class)
             ->call('setScoreTrendPeriod', ScoreTrendPeriod::Days30->value)
             ->assertSee('dalam 30 hari');
+    }
+
+    public function test_skd_target_filter_limits_statistics_to_selected_profile(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $cpnsExam = Exam::query()->create([
+            'title' => 'Simulasi CPNS',
+            'slug' => 'simulasi-cpns-filter-'.uniqid(),
+            'duration_minutes' => 100,
+            'status' => ExamStatus::Published,
+            'settings' => [
+                'difficulty' => 'all',
+                'skd_target' => SkdTarget::Cpns->value,
+                'question_counts' => ExamQuestionGeneratorService::COUNTS_BY_SUBJECT,
+                'total_questions' => ExamQuestionGeneratorService::TOTAL_QUESTIONS,
+            ],
+            'created_by' => $admin->id,
+        ]);
+
+        $kedinasanExam = Exam::query()->create([
+            'title' => 'Simulasi Kedinasan',
+            'slug' => 'simulasi-kedinasan-filter-'.uniqid(),
+            'duration_minutes' => 100,
+            'status' => ExamStatus::Published,
+            'settings' => [
+                'difficulty' => 'all',
+                'skd_target' => SkdTarget::SekolahKedinasan->value,
+                'question_counts' => ExamQuestionGeneratorService::COUNTS_BY_SUBJECT,
+                'total_questions' => ExamQuestionGeneratorService::TOTAL_QUESTIONS,
+            ],
+            'created_by' => $admin->id,
+        ]);
+
+        ExamAttempt::query()->create([
+            'exam_id' => $cpnsExam->id,
+            'user_id' => $user->id,
+            'attempt_type' => ExamAttemptType::Full,
+            'skd_target' => SkdTarget::Cpns,
+            'status' => ExamAttemptStatus::Submitted,
+            'started_at' => now()->subDays(2),
+            'submitted_at' => now()->subDays(2),
+            'expires_at' => now()->subDays(1),
+            'score_twk' => 70,
+            'score_tiu' => 85,
+            'score_tkp' => 170,
+            'total_score' => 325,
+        ]);
+
+        ExamAttempt::query()->create([
+            'exam_id' => $kedinasanExam->id,
+            'user_id' => $user->id,
+            'attempt_type' => ExamAttemptType::Full,
+            'skd_target' => SkdTarget::SekolahKedinasan,
+            'status' => ExamAttemptStatus::Submitted,
+            'started_at' => now()->subDay(),
+            'submitted_at' => now()->subDay(),
+            'expires_at' => now(),
+            'score_twk' => 70,
+            'score_tiu' => 85,
+            'score_tkp' => 160,
+            'total_score' => 315,
+        ]);
+
+        $service = app(PesertaStatisticsService::class);
+
+        $allStats = $service->forUser($user);
+        $cpnsStats = $service->forUser($user, skdTargetFilter: SkdTarget::Cpns);
+        $kedinasanStats = $service->forUser($user, skdTargetFilter: SkdTarget::SekolahKedinasan);
+
+        $this->assertSame(2, $allStats['overview']['total_simulations']);
+        $this->assertSame(1, $cpnsStats['overview']['total_simulations']);
+        $this->assertSame(1, $kedinasanStats['overview']['total_simulations']);
+        $this->assertTrue($allStats['show_all_passing_profiles']);
+        $this->assertSame(166, $cpnsStats['passing_grades']['tkp']);
+        $this->assertSame(156, $kedinasanStats['passing_grades']['tkp']);
+
+        Livewire::actingAs($user)
+            ->test(Statistik::class)
+            ->assertSee('Jenis Simulasi SKD')
+            ->assertSee('CPNS')
+            ->assertSee('Sekolah Kedinasan')
+            ->call('setSkdTargetFilter', SkdTarget::SekolahKedinasan->value)
+            ->assertSee('Standar Sekolah Kedinasan')
+            ->assertSee('Ringkasan Performa')
+            ->call('setSkdTargetFilter', 'all')
+            ->assertSee('Ambang batas mengikuti jenis simulasi');
+    }
+
+    public function test_skd_target_filter_shows_empty_state_when_no_matching_attempts(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Peserta]);
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $cpnsExam = Exam::query()->create([
+            'title' => 'Simulasi CPNS',
+            'slug' => 'simulasi-cpns-empty-'.uniqid(),
+            'duration_minutes' => 100,
+            'status' => ExamStatus::Published,
+            'settings' => [
+                'difficulty' => 'all',
+                'skd_target' => SkdTarget::Cpns->value,
+            ],
+            'created_by' => $admin->id,
+        ]);
+
+        ExamAttempt::query()->create([
+            'exam_id' => $cpnsExam->id,
+            'user_id' => $user->id,
+            'attempt_type' => ExamAttemptType::Full,
+            'skd_target' => SkdTarget::Cpns,
+            'status' => ExamAttemptStatus::Submitted,
+            'started_at' => now()->subDay(),
+            'submitted_at' => now()->subDay(),
+            'expires_at' => now(),
+            'score_twk' => 70,
+            'score_tiu' => 85,
+            'score_tkp' => 170,
+            'total_score' => 325,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Statistik::class)
+            ->call('setSkdTargetFilter', SkdTarget::SekolahKedinasan->value)
+            ->assertSee('Belum Ada Simulasi untuk Filter Ini')
+            ->assertDontSee('Ringkasan Performa');
     }
 }

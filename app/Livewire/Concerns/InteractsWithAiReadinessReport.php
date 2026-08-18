@@ -5,6 +5,7 @@ namespace App\Livewire\Concerns;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamStatus;
 use App\Enums\LearningPlanTaskCategory;
+use App\Enums\SkdTarget;
 use App\Models\AiRecommendation;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
@@ -41,8 +42,20 @@ trait InteractsWithAiReadinessReport
         ExamWeaknessAnalysisService $weaknessAnalysis,
         DeepSeekRecommendationService $recommendationService,
     ): void {
-        $this->weaknessStats = $weaknessAnalysis->getStatsForUser((int) auth()->id());
+        $this->weaknessStats = $weaknessAnalysis->getStatsForUser(
+            (int) auth()->id(),
+            $this->weaknessSkdTargetFilter(),
+        );
         $this->loadStoredRecommendation($recommendationService);
+    }
+
+    protected function weaknessSkdTargetFilter(): ?SkdTarget
+    {
+        if (! property_exists($this, 'skdTargetFilter') || $this->skdTargetFilter === 'all') {
+            return null;
+        }
+
+        return SkdTarget::tryFrom($this->skdTargetFilter);
     }
 
     public function generateRecommendation(
@@ -54,7 +67,8 @@ trait InteractsWithAiReadinessReport
 
         try {
             $userId = (int) auth()->id();
-            $this->weaknessStats = $weaknessAnalysis->getStatsForUser($userId);
+            $skdFilter = $this->weaknessSkdTargetFilter();
+            $this->weaknessStats = $weaknessAnalysis->getStatsForUser($userId, $skdFilter);
 
             if (($this->weaknessStats['total_simulations'] ?? 0) === 0) {
                 $this->error = 'Selesaikan simulasi pertama untuk membuka analisis.';

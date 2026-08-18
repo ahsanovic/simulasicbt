@@ -94,11 +94,49 @@ if (! function_exists('format_exam_score')) {
     }
 }
 
+if (! function_exists('exam_passing_grades_profiles')) {
+    /** @return array<string, array{twk: int, tiu: int, tkp: int, total: int}> */
+    function exam_passing_grades_profiles(): array
+    {
+        $defaults = config('exam.passing_grades');
+        $stored = \App\Models\Setting::getValue('exam_passing_grades');
+
+        if (! is_string($stored) || trim($stored) === '') {
+            return $defaults;
+        }
+
+        $decoded = json_decode($stored, true);
+
+        if (! is_array($decoded)) {
+            return $defaults;
+        }
+
+        $profiles = $defaults;
+
+        foreach (\App\Enums\SkdTarget::cases() as $target) {
+            $key = $target->value;
+
+            if (! isset($decoded[$key]) || ! is_array($decoded[$key])) {
+                continue;
+            }
+
+            $profiles[$key] = array_merge($profiles[$key], array_intersect_key(
+                $decoded[$key],
+                array_flip(['twk', 'tiu', 'tkp', 'total']),
+            ));
+        }
+
+        return $profiles;
+    }
+}
+
 if (! function_exists('exam_passing_grades')) {
     /** @return array{twk: int, tiu: int, tkp: int, total: int} */
-    function exam_passing_grades(): array
+    function exam_passing_grades(?\App\Enums\SkdTarget $target = null): array
     {
-        return config('exam.passing_grades');
+        $key = ($target ?? \App\Enums\SkdTarget::default())->value;
+
+        return exam_passing_grades_profiles()[$key];
     }
 }
 
@@ -207,9 +245,14 @@ if (! function_exists('format_question_duration')) {
 }
 
 if (! function_exists('exam_attempt_passes')) {
-    function exam_attempt_passes(mixed $twk, mixed $tiu, mixed $tkp, mixed $total): bool
-    {
-        $grades = exam_passing_grades();
+    function exam_attempt_passes(
+        mixed $twk,
+        mixed $tiu,
+        mixed $tkp,
+        mixed $total,
+        ?\App\Enums\SkdTarget $target = null,
+    ): bool {
+        $grades = exam_passing_grades($target);
 
         return exam_score_passes($twk, $grades['twk'])
             && exam_score_passes($tiu, $grades['tiu'])

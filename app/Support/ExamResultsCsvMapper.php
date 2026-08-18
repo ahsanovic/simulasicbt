@@ -21,6 +21,7 @@ final class ExamResultsCsvMapper
             'Instansi',
             'Judul Ujian',
             'Jenis Ujian',
+            'Target SKD',
             'TWK',
             'TIU',
             'TKP',
@@ -48,6 +49,7 @@ final class ExamResultsCsvMapper
             $attempt->user?->instansi?->nama ?? '',
             $attempt->exam?->title ?? '',
             $this->resolveExamTypeLabel($isDuel, $isRemedial),
+            $attempt->skdTarget()->label(),
             (int) $attempt->score_twk,
             (int) $attempt->score_tiu,
             (int) $attempt->score_tkp,
@@ -86,6 +88,7 @@ final class ExamResultsCsvMapper
             $attempt->score_tiu,
             $attempt->score_tkp,
             $attempt->total_score,
+            $attempt->skdTarget(),
         ) ? 'Lulus' : 'Belum Lulus';
     }
 

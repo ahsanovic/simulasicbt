@@ -161,7 +161,8 @@ PROMPT;
             ))
             ->implode("\n");
 
-        $passingGrades = exam_passing_grades();
+        $cpnsGrades = exam_passing_grades(\App\Enums\SkdTarget::Cpns);
+        $kedinasanGrades = exam_passing_grades(\App\Enums\SkdTarget::SekolahKedinasan);
 
         $timeManagement = $stats['time_management'] ?? [];
         $timeLines = collect($timeManagement['summary_lines'] ?? [])
@@ -180,7 +181,8 @@ TIME
         return <<<PROMPT
 Nama peserta: {$user->name}
 Total simulasi selesai: {$stats['total_simulations']}
-Ambang batas CPNS: TWK {$passingGrades['twk']}, TIU {$passingGrades['tiu']}, TKP {$passingGrades['tkp']}, Total {$passingGrades['total']}
+Ambang batas CPNS: TWK {$cpnsGrades['twk']}, TIU {$cpnsGrades['tiu']}, TKP {$cpnsGrades['tkp']}, Total {$cpnsGrades['total']}
+Ambang batas Sekolah Kedinasan: TWK {$kedinasanGrades['twk']}, TIU {$kedinasanGrades['tiu']}, TKP {$kedinasanGrades['tkp']}, Total {$kedinasanGrades['total']}
 
 Akurasi per pilar:
 {$pillarLines}

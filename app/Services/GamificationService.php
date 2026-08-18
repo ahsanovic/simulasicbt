@@ -160,6 +160,7 @@ class GamificationService
             $attempt->score_tiu,
             $attempt->score_tkp,
             $attempt->total_score,
+            $attempt->skdTarget(),
         );
 
         $amount = $passed ? self::EXAM_PASS_XP_REWARD : self::EXAM_FAIL_XP_REWARD;

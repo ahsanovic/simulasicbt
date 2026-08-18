@@ -37,17 +37,12 @@ class ExamHistory extends Component
         $submittedAttempts = ExamAttempt::query()
             ->where('user_id', $this->user->id)
             ->where('status', ExamAttemptStatus::Submitted)
-            ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score']);
+            ->get(['score_twk', 'score_tiu', 'score_tkp', 'total_score', 'skd_target', 'attempt_type']);
 
         $stats = [
             'total' => $submittedAttempts->count(),
             'passed' => $submittedAttempts
-                ->filter(fn (ExamAttempt $attempt) => exam_attempt_passes(
-                    $attempt->score_twk,
-                    $attempt->score_tiu,
-                    $attempt->score_tkp,
-                    $attempt->total_score,
-                ))
+                ->filter(fn (ExamAttempt $attempt) => $attempt->passes())
                 ->count(),
         ];
 
@@ -55,7 +50,6 @@ class ExamHistory extends Component
             'attempts' => $attempts,
             'stats' => $stats,
             'totalXp' => $gamificationService->totalXp($this->user),
-            'passingGrades' => exam_passing_grades(),
         ]);
     }
 }

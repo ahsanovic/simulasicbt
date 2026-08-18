@@ -1,6 +1,6 @@
 @props([
     'attempt',
-    'passingGrades',
+    'passingGrades' => null,
     'scoreMax',
     'wrongCount' => 0,
     'remedialUnlock' => null,
@@ -9,14 +9,15 @@
 ])
 
 @php
+    use App\Enums\SkdTarget;
+
     $isRemedial = $attempt->isRemedial();
     $isDrill = $attempt->isDrill();
-    $passes = ! $isRemedial && ! $isDrill && exam_attempt_passes(
-        $attempt->score_twk,
-        $attempt->score_tiu,
-        $attempt->score_tkp,
-        $attempt->total_score,
-    );
+    $passingGrades = ($isRemedial || $isDrill)
+        ? ($passingGrades ?? exam_passing_grades())
+        : $attempt->passingGrades();
+    $passes = ! $isRemedial && ! $isDrill && $attempt->passes();
+    $showFormationMatchmaking = ! $isRemedial && ! $isDrill && $attempt->skdTarget() === SkdTarget::Cpns;
 
     $xpEarned = 0;
     if ($isRemedial) {
@@ -242,6 +243,7 @@
                 </div>
             @endif
 
+            @if ($showFormationMatchmaking)
             <div class="rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 via-cyan-50/80 to-primary-50/60 p-4 sm:p-5">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="min-w-0">
@@ -266,6 +268,7 @@
                     </a>
                 </div>
             </div>
+            @endif
             @endif
         </div>
 

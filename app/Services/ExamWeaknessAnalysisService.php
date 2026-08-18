@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Enums\ExamAttemptStatus;
+use App\Enums\SkdTarget;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,14 +14,16 @@ class ExamWeaknessAnalysisService
 {
     private const string CACHE_PREFIX = 'exam_weakness_stats:';
 
-    public function cacheKey(int $userId): string
+    public function cacheKey(int $userId, ?SkdTarget $skdTarget = null): string
     {
-        return self::CACHE_PREFIX.$userId;
+        return self::CACHE_PREFIX.$userId.':'.($skdTarget?->value ?? 'all');
     }
 
     public function forget(int $userId): void
     {
-        Cache::forget($this->cacheKey($userId));
+        foreach (['all', SkdTarget::Cpns->value, SkdTarget::SekolahKedinasan->value] as $suffix) {
+            Cache::forget(self::CACHE_PREFIX.$userId.':'.$suffix);
+        }
     }
 
     /**
@@ -31,12 +35,12 @@ class ExamWeaknessAnalysisService
      *     time_management: array<string, mixed>
      * }
      */
-    public function getStatsForUser(int $userId): array
+    public function getStatsForUser(int $userId, ?SkdTarget $skdTarget = null): array
     {
         return Cache::remember(
-            $this->cacheKey($userId),
+            $this->cacheKey($userId, $skdTarget),
             now()->addDay(),
-            fn () => $this->buildStats($userId),
+            fn () => $this->buildStats($userId, $skdTarget),
         );
     }
 
@@ -49,15 +53,13 @@ class ExamWeaknessAnalysisService
      *     time_management: array<string, mixed>
      * }
      */
-    public function buildStats(int $userId): array
+    public function buildStats(int $userId, ?SkdTarget $skdTarget = null): array
     {
-        $totalSimulations = ExamAttempt::query()
-            ->where('user_id', $userId)
+        $totalSimulations = $this->attemptQuery($userId, $skdTarget)
             ->where('status', ExamAttemptStatus::Submitted)
             ->count();
 
-        $latestAttemptAt = ExamAttempt::query()
-            ->where('user_id', $userId)
+        $latestAttemptAt = $this->attemptQuery($userId, $skdTarget)
             ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
             ->max('submitted_at');
 
@@ -67,13 +69,12 @@ class ExamWeaknessAnalysisService
                 'pillars' => [],
                 'materials' => [],
                 'latest_attempt_at' => null,
-                'time_management' => app(ExamTimeManagementService::class)->analyzeUserTimePatterns($userId),
+                'time_management' => app(ExamTimeManagementService::class)->analyzeUserTimePatterns($userId, $skdTarget),
             ];
         }
 
         $answers = ExamAnswer::query()
-            ->whereHas('attempt', fn ($query) => $query
-                ->where('user_id', $userId)
+            ->whereHas('attempt', fn (Builder $query) => $this->applyAttemptScope($query, $userId, $skdTarget)
                 ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired]))
             ->with([
                 'question.subject',
@@ -176,8 +177,24 @@ class ExamWeaknessAnalysisService
             'latest_attempt_at' => $latestAttemptAt
                 ? Carbon::parse($latestAttemptAt)->toDateTimeString()
                 : null,
-            'time_management' => app(ExamTimeManagementService::class)->analyzeUserTimePatterns($userId),
+            'time_management' => app(ExamTimeManagementService::class)->analyzeUserTimePatterns($userId, $skdTarget),
         ];
+    }
+
+    private function attemptQuery(int $userId, ?SkdTarget $skdTarget = null): Builder
+    {
+        return $this->applyAttemptScope(ExamAttempt::query(), $userId, $skdTarget);
+    }
+
+    private function applyAttemptScope(Builder $query, int $userId, ?SkdTarget $skdTarget = null): Builder
+    {
+        $query->where('user_id', $userId);
+
+        if ($skdTarget !== null) {
+            $query->where('skd_target', $skdTarget->value);
+        }
+
+        return $query;
     }
 
     /** @return array{key: string, label: string} */

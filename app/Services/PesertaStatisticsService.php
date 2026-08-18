@@ -6,6 +6,7 @@ use App\Enums\DuelSessionStatus;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ScoreTrendPeriod;
+use App\Enums\SkdTarget;
 use App\Models\DuelSession;
 use App\Models\ExamAttempt;
 use App\Models\User;
@@ -26,24 +27,35 @@ class PesertaStatisticsService
     /**
      * @return array<string, mixed>
      */
-    public function forUser(User $user, ScoreTrendPeriod $scoreTrendPeriod = ScoreTrendPeriod::All): array
-    {
+    public function forUser(
+        User $user,
+        ScoreTrendPeriod $scoreTrendPeriod = ScoreTrendPeriod::All,
+        ?SkdTarget $skdTargetFilter = null,
+    ): array {
         $userId = (int) $user->id;
-        $officialAttempts = $this->officialSubmittedAttempts($userId);
-        $hasHistory = $officialAttempts->isNotEmpty();
+        $allOfficialAttempts = $this->officialSubmittedAttempts($userId);
+        $hasHistory = $allOfficialAttempts->isNotEmpty();
+        $officialAttempts = $this->filterAttempts($allOfficialAttempts, $skdTargetFilter);
+        $hasFilteredHistory = $officialAttempts->isNotEmpty();
         $totalXp = $this->gamification->totalXp($user);
-        $passingGrades = exam_passing_grades();
+        $passingGrades = $this->resolvePassingGrades($skdTargetFilter);
         $scoreMax = exam_score_max();
 
         $bestScores = $this->bestScores($officialAttempts);
         $overview = $this->overview($officialAttempts, $userId, $totalXp, $user);
-        $weaknessStats = $hasHistory ? $this->weaknessAnalysis->getStatsForUser($userId) : null;
+        $weaknessStats = $hasFilteredHistory
+            ? $this->weaknessAnalysis->getStatsForUser($userId, $skdTargetFilter)
+            : null;
 
         return [
             'has_history' => $hasHistory,
+            'has_filtered_history' => $hasFilteredHistory,
             'overview' => $overview,
             'best_scores' => $bestScores,
             'passing_grades' => $passingGrades,
+            'show_all_passing_profiles' => $skdTargetFilter === null,
+            'skd_target_filter' => $skdTargetFilter?->value ?? 'all',
+            'skd_target_label' => $skdTargetFilter?->label(),
             'score_max' => $scoreMax,
             'score_trend' => $this->scoreTrend($officialAttempts, $passingGrades, $scoreTrendPeriod),
             'pillar_comparison' => $this->pillarComparison($bestScores, $passingGrades, $scoreMax),
@@ -61,12 +73,42 @@ class PesertaStatisticsService
                 'due' => $this->flashcardService->dueCount($user),
             ],
             'leaderboard_ranks' => $this->leaderboardSummary->getRanks($userId),
-            'formation_summary' => $hasHistory
+            'formation_summary' => $hasFilteredHistory && $this->shouldShowFormationSummary($skdTargetFilter)
                 ? $this->formationMatchmaking->getDashboardSummary($user)
                 : null,
             'duel' => $this->duelStats($userId),
             'recent_attempts' => $this->recentAttempts($userId),
         ];
+    }
+
+    /**
+     * @param  Collection<int, ExamAttempt>  $attempts
+     * @return Collection<int, ExamAttempt>
+     */
+    private function filterAttempts(Collection $attempts, ?SkdTarget $skdTargetFilter): Collection
+    {
+        if ($skdTargetFilter === null) {
+            return $attempts;
+        }
+
+        return $attempts
+            ->filter(fn (ExamAttempt $attempt) => $attempt->skdTarget() === $skdTargetFilter)
+            ->values();
+    }
+
+    /** @return array{twk: int, tiu: int, tkp: int, total: int} */
+    private function resolvePassingGrades(?SkdTarget $skdTargetFilter): array
+    {
+        if ($skdTargetFilter instanceof SkdTarget) {
+            return exam_passing_grades($skdTargetFilter);
+        }
+
+        return SkdTarget::minimumPassingGrades();
+    }
+
+    private function shouldShowFormationSummary(?SkdTarget $skdTargetFilter): bool
+    {
+        return $skdTargetFilter === null || $skdTargetFilter === SkdTarget::Cpns;
     }
 
     /**
@@ -92,12 +134,7 @@ class PesertaStatisticsService
     private function overview(Collection $officialAttempts, int $userId, int $totalXp, User $user): array
     {
         $total = $officialAttempts->count();
-        $passed = $officialAttempts->filter(fn (ExamAttempt $attempt) => exam_attempt_passes(
-            $attempt->score_twk,
-            $attempt->score_tiu,
-            $attempt->score_tkp,
-            $attempt->total_score,
-        ))->count();
+        $passed = $officialAttempts->filter(fn (ExamAttempt $attempt) => $attempt->passes())->count();
 
         $firstScore = $officialAttempts->first()?->total_score;
         $lastScore = $officialAttempts->last()?->total_score;
@@ -164,12 +201,7 @@ class PesertaStatisticsService
                     'twk' => (int) $attempt->score_twk,
                     'tiu' => (int) $attempt->score_tiu,
                     'tkp' => (int) $attempt->score_tkp,
-                    'passed' => exam_attempt_passes(
-                        $attempt->score_twk,
-                        $attempt->score_tiu,
-                        $attempt->score_tkp,
-                        $attempt->total_score,
-                    ),
+                    'passed' => $attempt->passes(),
                 ];
             });
 
@@ -277,12 +309,7 @@ class PesertaStatisticsService
             ->limit(6)
             ->get()
             ->map(function (ExamAttempt $attempt) {
-                $passed = $attempt->total_score !== null && exam_attempt_passes(
-                    $attempt->score_twk,
-                    $attempt->score_tiu,
-                    $attempt->score_tkp,
-                    $attempt->total_score,
-                );
+                $passed = $attempt->total_score !== null && $attempt->passes();
 
                 return [
                     'id' => $attempt->id,

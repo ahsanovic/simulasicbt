@@ -78,6 +78,7 @@ class CoinService
             $attempt->score_tiu,
             $attempt->score_tkp,
             $attempt->total_score,
+            $attempt->skdTarget(),
         );
 
         $amount = $passed ? self::EXAM_PASS_COIN_REWARD : self::EXAM_FAIL_COIN_REWARD;

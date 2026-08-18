@@ -7,6 +7,7 @@ final class ExamResultsExportFilters
     public function __construct(
         public string $search = '',
         public string $examTypeFilter = '',
+        public string $skdTargetFilter = '',
         public string $dateFrom = '',
         public string $dateTo = '',
     ) {}
@@ -16,17 +17,19 @@ final class ExamResultsExportFilters
         return new self(
             search: (string) ($data['search'] ?? ''),
             examTypeFilter: (string) ($data['exam_type_filter'] ?? ''),
+            skdTargetFilter: (string) ($data['skd_target_filter'] ?? ''),
             dateFrom: (string) ($data['date_from'] ?? ''),
             dateTo: (string) ($data['date_to'] ?? ''),
         );
     }
 
-    /** @return array{search: string, exam_type_filter: string, date_from: string, date_to: string} */
+    /** @return array{search: string, exam_type_filter: string, skd_target_filter: string, date_from: string, date_to: string} */
     public function toArray(): array
     {
         return [
             'search' => $this->search,
             'exam_type_filter' => $this->examTypeFilter,
+            'skd_target_filter' => $this->skdTargetFilter,
             'date_from' => $this->dateFrom,
             'date_to' => $this->dateTo,
         ];

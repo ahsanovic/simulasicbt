@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EventExamMode;
 use App\Enums\EventStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,11 @@ class Event extends Model
         'name',
         'code',
         'exam_id',
+        'is_mode_ujian',
+        'exam_mode',
+        'skb_question_count',
+        'skb_correct_score',
+        'skb_duration_minutes',
         'status',
         'public_livescore',
         'public_code',
@@ -30,6 +36,8 @@ class Event extends Model
     {
         return [
             'status' => EventStatus::class,
+            'exam_mode' => EventExamMode::class,
+            'is_mode_ujian' => 'boolean',
             'public_livescore' => 'boolean',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
@@ -50,6 +58,12 @@ class Event extends Model
     {
         return $this->hasMany(ExamAttempt::class);
     }
+
+    public function participants(): HasMany
+    {
+        return $this->hasMany(EventParticipant::class);
+    }
+
 
     public function creator(): BelongsTo
     {

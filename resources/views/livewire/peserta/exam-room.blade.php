@@ -20,6 +20,10 @@
          :class="{ 'ring-4 ring-inset ring-rose-500/40 transition-shadow duration-150': showRedZoneFlash }"
      @endif>
 
+    @if ($isModeUjian)
+        <x-peserta.mode-ujian-guard />
+    @endif
+
     <x-ui.flash-toast />
 
     @include('livewire.peserta.exam-room.header')
@@ -30,14 +34,16 @@
 
             <div class="space-y-5 min-w-0">
                 @include('livewire.peserta.exam-room.progress')
-                @include('livewire.peserta.exam-room.help-items')
+                @unless ($isModeUjian)
+                    @include('livewire.peserta.exam-room.help-items')
+                @endunless
                 @include('livewire.peserta.exam-room.question')
                 @include('livewire.peserta.exam-room.actions')
             </div>
         </div>
     </main>
 
-    @if ($this->currentAnswer?->question->subject->code->value === 'tiu')
+    @if (! $isModeUjian && $this->currentAnswer?->question->subject->code->value === 'tiu')
         @include('livewire.peserta.exam-room.scratchpad')
     @endif
     @include('livewire.peserta.exam-room.last-question-modal')

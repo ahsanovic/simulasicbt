@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "simulasicbt",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["artisan", "serve", "--host=localhost", "--port=8000"],
+      "port": 8000,
+      "cwd": "H:\\simulasicbt"
+    }
+  ]
+}

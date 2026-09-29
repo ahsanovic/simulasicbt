@@ -2,11 +2,14 @@
 
 namespace App\Livewire\Admin\Events;
 
+use App\Enums\EventExamMode;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\EventSession;
 use App\Models\Exam;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -34,14 +37,38 @@ class Index extends Component
 
     public string $description = '';
 
+    public bool $is_mode_ujian = false;
+
+    public string $exam_mode = 'skd';
+
+    public ?int $skb_question_count = null;
+
+    public ?int $skb_correct_score = null;
+
+    public ?int $skb_duration_minutes = null;
+
+    public ?int $sessionCount = 1;
+
     protected function rules(): array
     {
+        $mode = EventExamMode::from($this->exam_mode);
+
         return [
             'name' => ['required', 'string', 'max:255'],
-            'exam_id' => ['required', 'integer', 'exists:exams,id'],
+            'exam_id' => [
+                $this->is_mode_ujian && ! $mode->includesSkd() ? 'nullable' : 'required',
+                'integer',
+                'exists:exams,id',
+            ],
             'status' => ['required', 'in:draft,active,closed'],
             'public_livescore' => ['boolean'],
             'description' => ['nullable', 'string'],
+            'is_mode_ujian' => ['boolean'],
+            'exam_mode' => [Rule::requiredIf($this->is_mode_ujian), 'in:skd,skb,both'],
+            'skb_question_count' => [$this->is_mode_ujian && $mode->includesSkb() ? 'required' : 'nullable', 'integer', 'min:1', 'max:200'],
+            'skb_correct_score' => [$this->is_mode_ujian && $mode->includesSkb() ? 'required' : 'nullable', 'integer', 'min:1', 'max:100'],
+            'skb_duration_minutes' => [$this->is_mode_ujian && $mode->includesSkb() ? 'required' : 'nullable', 'integer', 'min:1', 'max:600'],
+            'sessionCount' => [$this->is_mode_ujian && ! $this->editingId ? 'required' : 'nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
 
@@ -71,7 +98,22 @@ class Index extends Component
         $this->status = $event->status->value;
         $this->public_livescore = (bool) $event->public_livescore;
         $this->description = $event->description ?? '';
+        $this->is_mode_ujian = (bool) $event->is_mode_ujian;
+        $this->exam_mode = $event->exam_mode->value;
+        $this->skb_question_count = $event->skb_question_count;
+        $this->skb_correct_score = $event->skb_correct_score;
+        $this->skb_duration_minutes = $event->skb_duration_minutes;
         $this->showModal = true;
+    }
+
+    public function updatedIsModeUjian(): void
+    {
+        $this->resetValidation();
+    }
+
+    public function updatedExamMode(): void
+    {
+        $this->resetValidation();
     }
 
     public function save(): void
@@ -80,13 +122,20 @@ class Index extends Component
 
         $data = [
             'name' => $validated['name'],
-            'exam_id' => $validated['exam_id'],
+            'exam_id' => $validated['exam_id'] ?: null,
             'status' => EventStatus::from($validated['status']),
             'public_livescore' => $this->public_livescore,
             'description' => $validated['description'] ?: null,
+            'is_mode_ujian' => $this->is_mode_ujian,
+            'exam_mode' => $this->is_mode_ujian ? $validated['exam_mode'] : EventExamMode::Skd->value,
+            'skb_question_count' => $validated['skb_question_count'] ?: null,
+            'skb_correct_score' => $validated['skb_correct_score'] ?: null,
+            'skb_duration_minutes' => $validated['skb_duration_minutes'] ?: null,
         ];
 
-        DB::transaction(function () use ($data) {
+        $mode = EventExamMode::from($this->exam_mode);
+
+        DB::transaction(function () use ($data, $mode) {
             if ($this->editingId) {
                 Event::query()->findOrFail($this->editingId)->update($data);
 
@@ -96,12 +145,20 @@ class Index extends Component
             $data['created_by'] = auth()->id();
             $event = Event::query()->create($data);
 
-            // Every event starts with one session so it is usable right away.
-            $event->sessions()->create([
-                'name' => 'Sesi 1',
-                'code' => EventSession::generateUniqueCode(),
-                'status' => EventStatus::Draft,
-            ]);
+            // Mode Ujian: admin declared how many sessions up front, each
+            // gets its own system-generated PIN(s) — never typed by hand.
+            // Plain offline events keep the old single-session bootstrap.
+            $sessionCount = $this->is_mode_ujian ? max(1, (int) $this->sessionCount) : 1;
+
+            for ($i = 1; $i <= $sessionCount; $i++) {
+                $event->sessions()->create([
+                    'name' => "Sesi {$i}",
+                    'code' => EventSession::generateUniqueCode(),
+                    'skd_pin' => $this->is_mode_ujian && $mode->includesSkd() ? EventSession::generateUniquePin('skd_pin') : null,
+                    'skb_pin' => $this->is_mode_ujian && $mode->includesSkb() ? EventSession::generateUniquePin('skb_pin') : null,
+                    'status' => EventStatus::Draft,
+                ]);
+            }
         });
 
         session()->flash('success', 'Event berhasil disimpan.');
@@ -129,8 +186,13 @@ class Index extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'name', 'exam_id', 'description', 'public_livescore']);
+        $this->reset([
+            'editingId', 'name', 'exam_id', 'description', 'public_livescore',
+            'is_mode_ujian', 'skb_question_count', 'skb_correct_score', 'skb_duration_minutes',
+        ]);
         $this->status = 'draft';
+        $this->exam_mode = 'skd';
+        $this->sessionCount = 1;
         $this->resetValidation();
     }
 

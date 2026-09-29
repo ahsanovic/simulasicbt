@@ -1,10 +1,10 @@
-<div wire:poll.30s class="min-h-screen">
+<div wire:poll.30s="refreshBoard" class="min-h-screen">
     <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 pr-16 sm:px-6 sm:pr-20">
             <div class="min-w-0">
                 <a href="{{ route('public.livescore.index') }}" class="text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300">← Semua Event</a>
-                <h1 class="truncate text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ $event->name }}</h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400">{{ $event->exam?->title }}</p>
+                <h1 class="truncate text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{{ $event?->name }}</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400">{{ $event?->exam?->title }}</p>
             </div>
             <div class="flex items-center gap-3">
                 @if ($this->sessions->count() > 1)
@@ -13,6 +13,12 @@
                         @foreach ($this->sessions as $session)
                             <option value="{{ $session->id }}">{{ $session->name }}</option>
                         @endforeach
+                    </select>
+                @endif
+                @if ($showExamTypePicker)
+                    <select wire:model.live="viewMode" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:border-primary-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-500">
+                        <option value="skd">SKD</option>
+                        <option value="skb">SKB</option>
                     </select>
                 @endif
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
@@ -57,7 +63,11 @@
                             <p class="truncate text-lg font-bold text-slate-900 dark:text-white sm:text-xl">{{ $row['name'] }}</p>
                             <p class="truncate text-xs text-slate-500 dark:text-slate-400">
                                 @if($row['session']){{ $row['session'] }}@endif
-                                @if($row['instansi']) · {{ $row['instansi'] }}@endif
+                                @if ($category === 'skb')
+                                    @if($row['jabatan']) · {{ $row['jabatan'] }}@endif
+                                @elseif($row['instansi'])
+                                    · {{ $row['instansi'] }}
+                                @endif
                             </p>
                         </div>
 
@@ -67,19 +77,30 @@
                                 <p class="text-base font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $row['answered'] }}<span class="text-slate-400 dark:text-slate-500">/{{ $row['total'] }}</span></p>
                             </div>
                             <div class="flex shrink-0 items-center gap-3">
-                                @foreach (['TWK' => $row['twk'], 'TIU' => $row['tiu'], 'TKP' => $row['tkp']] as $label => $value)
+                                @if ($category === 'skb')
                                     <div class="w-11 text-center sm:w-12">
-                                        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ $label }}</p>
-                                        <p class="text-base font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $value }}</p>
+                                        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Benar</p>
+                                        <p class="text-base font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $row['benar'] }}</p>
                                     </div>
-                                @endforeach
+                                @else
+                                    @foreach (['TWK' => $row['twk'], 'TIU' => $row['tiu'], 'TKP' => $row['tkp']] as $label => $value)
+                                        <div class="w-11 text-center sm:w-12">
+                                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ $label }}</p>
+                                            <p class="text-base font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $value }}</p>
+                                        </div>
+                                    @endforeach
+                                @endif
                             </div>
                             <div class="shrink-0 text-center">
                                 <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total</p>
                                 <p class="text-2xl font-black tabular-nums text-slate-900 dark:text-white sm:text-3xl">{{ $row['score'] }}</p>
                             </div>
                             <div class="shrink-0 text-right sm:w-24">
-                                @if($row['in_progress'])
+                                @if ($category === 'skb' && ($row['status_label'] ?? null) === 'Belum Ujian')
+                                    <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                        Belum Ujian
+                                    </span>
+                                @elseif($row['in_progress'])
                                     <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
                                         <span class="h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-400"></span> Ujian
                                     </span>

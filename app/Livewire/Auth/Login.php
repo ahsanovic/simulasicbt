@@ -71,7 +71,8 @@ class Login extends Component
                 ->where('role', UserRole::Peserta)
                 ->where(function ($query) {
                     $query->where('username', $this->login)
-                        ->orWhere('nip', $this->login);
+                        ->orWhere('nip', $this->login)
+                        ->orWhere('nik', $this->login);
                 })
                 ->first();
         }
@@ -201,6 +202,20 @@ class Login extends Component
     protected function redirectAfterLogin(): void
     {
         $user = Auth::user();
+
+        if ($user->role === UserRole::Peserta) {
+            $modeUjianParticipant = \App\Models\EventParticipant::query()
+                ->where('user_id', $user->id)
+                ->whereHas('event', fn ($q) => $q->where('is_mode_ujian', true)->where('status', \App\Enums\EventStatus::Active))
+                ->latest()
+                ->first();
+
+            if ($modeUjianParticipant) {
+                $this->redirect(route('peserta.mode-ujian.dashboard'), navigate: true);
+
+                return;
+            }
+        }
 
         $this->redirect(match ($user->role) {
             UserRole::Admin => route('admin.dashboard'),

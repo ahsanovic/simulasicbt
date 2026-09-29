@@ -250,14 +250,23 @@ class LiveScore extends Component
             ->get()
             ->keyBy('user_id');
 
+        $liveScores = app(SkbExamService::class)->liveScores($attempts);
+
         return $participants
-            ->map(fn (EventParticipant $participant) => $this->skbRowFor($participant, $attempts->get($participant->user_id)))
+            ->map(fn (EventParticipant $participant) => $this->skbRowFor(
+                $participant,
+                $attempt = $attempts->get($participant->user_id),
+                $attempt ? ($liveScores[$attempt->id] ?? null) : null,
+            ))
             ->sortByDesc('score')
             ->values()
             ->all();
     }
 
-    private function skbRowFor(EventParticipant $participant, ?SkbExamAttempt $attempt): array
+    /**
+     * @param  array{benar: int, score: int}|null  $live
+     */
+    private function skbRowFor(EventParticipant $participant, ?SkbExamAttempt $attempt, ?array $live = null): array
     {
         $jabatan = $participant->jabatanSkb?->name ?? $participant->jabatan_label;
 
@@ -290,8 +299,8 @@ class LiveScore extends Component
             'jabatan' => $jabatan,
             'answered' => $answered,
             'total' => $total,
-            'benar' => $inProgress ? 0 : (int) $attempt->correct_count,
-            'score' => $inProgress ? 0 : (int) $attempt->total_score,
+            'benar' => $live['benar'] ?? 0,
+            'score' => $live['score'] ?? 0,
             'status' => $attempt->status,
             'status_label' => $inProgress ? 'Sedang Ujian' : 'Selesai',
             'in_progress' => $inProgress,

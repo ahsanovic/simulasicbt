@@ -1,4 +1,4 @@
-<div @if (! $showAddTimeModal) wire:poll.5s="pollBoard" @endif>
+<div @if (! $showAddTimeModal) wire:poll.10s="pollBoard" @endif>
     <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
             <a href="{{ route('admin.events.sessions', $eventId) }}" wire:navigate class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">

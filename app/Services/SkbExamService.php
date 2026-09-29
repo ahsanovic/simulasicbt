@@ -8,6 +8,7 @@ use App\Models\EventParticipant;
 use App\Models\SkbExamAnswer;
 use App\Models\SkbExamAttempt;
 use App\Models\SkbQuestion;
+use App\Models\SkbQuestionOption;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -96,6 +97,58 @@ class SkbExamService
             ->update(['selected_option_id' => $selectedOptionId]);
 
         return true;
+    }
+
+    /**
+     * Live "benar" / score per attempt for the livescore boards.
+     *
+     * Submitted/expired attempts use the stored correct_count/total_score.
+     * In-progress attempts are scored on the fly from the answers saved so
+     * far (a saved answer counts once its option is the correct one), so the
+     * board moves while the peserta is still working instead of sitting at 0
+     * until submit. One query for all correct options, no N+1.
+     *
+     * @param  iterable<SkbExamAttempt>  $attempts  answers must be loaded (selected_option_id)
+     * @return array<int, array{benar: int, score: int}> keyed by attempt id
+     */
+    public function liveScores(iterable $attempts): array
+    {
+        $attempts = collect($attempts);
+
+        $selectedOptionIds = $attempts
+            ->filter(fn (SkbExamAttempt $attempt) => $attempt->status === ExamAttemptStatus::InProgress)
+            ->flatMap(fn (SkbExamAttempt $attempt) => $attempt->answers->pluck('selected_option_id'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $correctOptionIds = $selectedOptionIds->isEmpty()
+            ? []
+            : SkbQuestionOption::query()
+                ->whereIn('id', $selectedOptionIds)
+                ->where('is_correct', true)
+                ->pluck('id')
+                ->flip()
+                ->all();
+
+        return $attempts->mapWithKeys(function (SkbExamAttempt $attempt) use ($correctOptionIds) {
+            if ($attempt->status !== ExamAttemptStatus::InProgress) {
+                return [$attempt->id => [
+                    'benar' => (int) $attempt->correct_count,
+                    'score' => (int) $attempt->total_score,
+                ]];
+            }
+
+            $benar = $attempt->answers
+                ->filter(fn ($answer) => $answer->selected_option_id !== null
+                    && isset($correctOptionIds[$answer->selected_option_id]))
+                ->count();
+
+            return [$attempt->id => [
+                'benar' => $benar,
+                'score' => $benar * (int) $attempt->correct_score,
+            ]];
+        })->all();
     }
 
     public function toggleMark(SkbExamAttempt $attempt, int $questionId): void

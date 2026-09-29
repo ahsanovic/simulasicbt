@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'username',
         'nip',
+        'nik',
         'instansi_id',
         'formation_id',
         'formation_selected_at',

@@ -15,6 +15,7 @@
             'label' => 'Konten Ujian',
             'items' => [
                 ['route' => 'admin.questions.index', 'label' => 'Bank Soal', 'icon' => 'questions'],
+                ['route' => 'admin.jabatan-skb.index', 'label' => 'Soal SKB', 'icon' => 'questions'],
                 ['route' => 'admin.exams.index', 'label' => 'Kelola Ujian', 'icon' => 'exams'],
                 ['route' => 'admin.events.index', 'label' => 'Event Offline', 'icon' => 'events'],
             ],

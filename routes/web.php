@@ -1,13 +1,17 @@
 <?php
 
+use App\Exports\EventParticipantsImportTemplate;
 use App\Exports\ParticipantsExport;
 use App\Exports\ParticipantsImportTemplate;
 use App\Exports\QuestionsImportTemplateExport;
+use App\Exports\SkbQuestionsImportTemplate;
+use App\Http\Controllers\Admin\EventParticipantImportController;
 use App\Http\Controllers\Admin\EventParticipantsExportController;
 use App\Http\Controllers\Admin\ExamResultsExportController;
 use App\Http\Controllers\Admin\ParticipantImportController;
 use App\Http\Controllers\Admin\QuestionContentImageController;
 use App\Http\Controllers\Admin\QuestionImportController;
+use App\Http\Controllers\Admin\SkbQuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Peserta\CertificateController;
 use App\Http\Controllers\PublicStorageController;
@@ -16,9 +20,12 @@ use App\Livewire\Admin\CoinPurchases\Index as CoinPurchasesIndex;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Events\Index as EventsIndex;
 use App\Livewire\Admin\Events\LiveScore as EventLiveScore;
+use App\Livewire\Admin\Events\Participants as EventParticipants;
 use App\Livewire\Admin\Events\Sessions as EventSessions;
 use App\Livewire\Admin\Exams\Index as ExamsIndex;
 use App\Livewire\Admin\Formations\Index as FormationsIndex;
+use App\Livewire\Admin\JabatanSkb\Index as JabatanSkbIndex;
+use App\Livewire\Admin\JabatanSkb\SoalIndex as JabatanSkbSoalIndex;
 use App\Livewire\Admin\OnlineParticipants\Index as OnlineParticipantsIndex;
 use App\Livewire\Admin\Questions\Generate as QuestionsGenerate;
 use App\Livewire\Admin\Questions\Index as QuestionsIndex;
@@ -43,6 +50,10 @@ use App\Livewire\Peserta\KartuSakti;
 use App\Livewire\Peserta\LeaderboardHub;
 use App\Livewire\Peserta\MateriBelajar;
 use App\Livewire\Peserta\MateriBelajarShow;
+use App\Livewire\Peserta\ModeUjian\Dashboard as ModeUjianDashboard;
+use App\Livewire\Peserta\ModeUjian\SkbExamRoom;
+use App\Livewire\Peserta\ModeUjian\SkbResult;
+use App\Livewire\Peserta\ModeUjian\SkdResult;
 use App\Livewire\Peserta\RencanaBelajar;
 use App\Livewire\Peserta\Shop;
 use App\Livewire\Peserta\SimulasiFormasi;
@@ -104,11 +115,24 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     })->name('questions.import-template');
     Route::get('/exams', ExamsIndex::class)->name('exams.index');
     Route::get('/formations', FormationsIndex::class)->name('formations.index');
+    Route::get('/jabatan-skb', JabatanSkbIndex::class)->name('jabatan-skb.index');
+    Route::get('/jabatan-skb/{jabatanSkb}/soal', JabatanSkbSoalIndex::class)->name('jabatan-skb.soal.index');
+    Route::post('/jabatan-skb/{jabatanSkb}/soal/import', [SkbQuestionImportController::class, 'store'])->name('jabatan-skb.soal.import');
+    Route::get('/jabatan-skb/{jabatanSkb}/soal/import-template', function () {
+        return Excel::download(new SkbQuestionsImportTemplate, 'template-import-soal-skb.xlsx');
+    })->name('jabatan-skb.soal.import-template');
     Route::get('/events', EventsIndex::class)->name('events.index');
     Route::get('/events/{event}/sessions', EventSessions::class)->name('events.sessions');
     Route::get('/events/{event}/sessions/{session}/livescore', EventLiveScore::class)->name('events.sessions.livescore');
     Route::get('/events/{event}/export', [EventParticipantsExportController::class, 'event'])->name('events.export');
     Route::get('/events/{event}/sessions/{session}/export', [EventParticipantsExportController::class, 'session'])->name('events.sessions.export');
+    Route::get('/events/{event}/peserta', EventParticipants::class)->name('events.participants');
+    Route::post('/events/{event}/peserta/import', [EventParticipantImportController::class, 'store'])->name('events.participants.import');
+    Route::get('/events/{event}/peserta/import-template', function (\App\Models\Event $event) {
+        $sessionNames = $event->sessions()->orderBy('name')->pluck('name')->all();
+
+        return Excel::download(new EventParticipantsImportTemplate($sessionNames), 'template-import-peserta-event.xlsx');
+    })->name('events.participants.import-template');
     Route::get('/peserta-ujian', OnlineParticipantsIndex::class)->name('online-participants.index');
     Route::get('/results', ResultsIndex::class)->name('results.index');
     Route::get('/results/exports/{exportRequest}/download', [ExamResultsExportController::class, 'download'])
@@ -155,5 +179,9 @@ Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('pes
     Route::get('/rencana-belajar', RencanaBelajar::class)->name('rencana-belajar.index');
     Route::get('/kartu-sakti', KartuSakti::class)->name('kartu-sakti.index');
     Route::get('/toko', Shop::class)->name('shop.index');
+    Route::get('/mode-ujian', ModeUjianDashboard::class)->name('mode-ujian.dashboard');
+    Route::get('/mode-ujian/skd/{attempt}/hasil', SkdResult::class)->name('mode-ujian.skd-result');
+    Route::get('/mode-ujian/skb', SkbExamRoom::class)->name('mode-ujian.skb.room');
+    Route::get('/mode-ujian/skb/{attempt}/hasil', SkbResult::class)->name('mode-ujian.skb-result');
 });
 });

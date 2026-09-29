@@ -17,6 +17,8 @@ class EventSession extends Model
         'event_id',
         'name',
         'code',
+        'skd_pin',
+        'skb_pin',
         'status',
         'starts_at',
         'ends_at',
@@ -39,6 +41,16 @@ class EventSession extends Model
     public function attempts(): HasMany
     {
         return $this->hasMany(ExamAttempt::class);
+    }
+
+    public function skbAttempts(): HasMany
+    {
+        return $this->hasMany(SkbExamAttempt::class);
+    }
+
+    public function participants(): HasMany
+    {
+        return $this->hasMany(EventParticipant::class);
     }
 
     public function isJoinable(): bool
@@ -67,5 +79,20 @@ class EventSession extends Model
         } while (static::query()->where('code', $code)->exists());
 
         return $code;
+    }
+
+    /**
+     * Auto-generates a numeric PIN unique across every session's $column
+     * (checked globally, not just within one event) — admins never type
+     * these, only the system generates them, so uniqueness is enforced here
+     * rather than relying on manual entry.
+     */
+    public static function generateUniquePin(string $column, int $length = 4): string
+    {
+        do {
+            $pin = str_pad((string) random_int(0, (10 ** $length) - 1), $length, '0', STR_PAD_LEFT);
+        } while (static::query()->where($column, $pin)->exists());
+
+        return $pin;
     }
 }

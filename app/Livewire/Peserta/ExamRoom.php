@@ -48,6 +48,9 @@ class ExamRoom extends Component
     public bool $helpItemsEnabled = false;
 
     #[Locked]
+    public bool $isModeUjian = false;
+
+    #[Locked]
     public bool $stressTestEnabled = false;
 
     #[Locked]
@@ -109,7 +112,7 @@ class ExamRoom extends Component
             ->where('user_id', auth()->id())
             ->where('status', ExamAttemptStatus::InProgress)
             ->with([
-                'event:id,name',
+                'event:id,name,is_mode_ujian',
                 'eventSession:id,name',
                 'answers' => fn ($query) => $query->select(
                     'id',
@@ -152,7 +155,8 @@ class ExamRoom extends Component
         $this->isRemedial = $attempt->isRemedial();
         $this->isDrill = $attempt->isDrill();
         $this->isDuel = $attempt->isDuelAttempt();
-        $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel;
+        $this->isModeUjian = (bool) ($attempt->event?->is_mode_ujian ?? false);
+        $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel && ! $this->isModeUjian;
         $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;
         $this->answerStates = $attempt->answers
             ->sortBy(fn (ExamAnswer $answer) => $answer->sort_order ?: 999)
@@ -530,8 +534,7 @@ class ExamRoom extends Component
         }
         $attempt = $examService->submitAttempt($this->resolveAttempt(), auth()->user());
         session()->flash('show_result_attempt_id', $attempt->id);
-        $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
-        $this->redirect(route('peserta.history', $redirectParams), navigate: true);
+        $this->redirectAfterSubmit($attempt);
     }
 
     public function checkExpiry(): void
@@ -551,9 +554,20 @@ class ExamRoom extends Component
             $attempt = app(ExamService::class)->submitAttempt($this->resolveAttempt(), auth()->user());
             session()->flash('show_result_attempt_id', $attempt->id);
             session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
-            $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
-            $this->redirect(route('peserta.history', $redirectParams), navigate: true);
+            $this->redirectAfterSubmit($attempt);
         }
+    }
+
+    private function redirectAfterSubmit(ExamAttempt $attempt): void
+    {
+        if ($attempt->event?->is_mode_ujian) {
+            $this->redirect(route('peserta.mode-ujian.skd-result', $attempt), navigate: true);
+
+            return;
+        }
+
+        $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
+        $this->redirect(route('peserta.history', $redirectParams), navigate: true);
     }
 
     private function currentAnswerState(): ?array

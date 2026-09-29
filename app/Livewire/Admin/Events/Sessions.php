@@ -72,9 +72,19 @@ class Sessions extends Component
         ];
 
         if ($this->editingId) {
+            // PINs and the join code are system-generated only (never typed),
+            // so editing a session never touches them here — use the
+            // regenerate buttons on the table instead.
             $this->event->sessions()->whereKey($this->editingId)->firstOrFail()->update($data);
         } else {
             $data['code'] = EventSession::generateUniqueCode();
+
+            if ($this->event->is_mode_ujian) {
+                $mode = $this->event->exam_mode;
+                $data['skd_pin'] = $mode->includesSkd() ? EventSession::generateUniquePin('skd_pin') : null;
+                $data['skb_pin'] = $mode->includesSkb() ? EventSession::generateUniquePin('skb_pin') : null;
+            }
+
             $this->event->sessions()->create($data);
         }
 
@@ -87,6 +97,20 @@ class Sessions extends Component
         $session = $this->event->sessions()->findOrFail($sessionId);
         $session->update(['code' => EventSession::generateUniqueCode()]);
         session()->flash('success', 'Kode sesi diperbarui.');
+    }
+
+    public function regenerateSkdPin(int $sessionId): void
+    {
+        $session = $this->event->sessions()->findOrFail($sessionId);
+        $session->update(['skd_pin' => EventSession::generateUniquePin('skd_pin')]);
+        session()->flash('success', 'PIN SKD sesi diperbarui.');
+    }
+
+    public function regenerateSkbPin(int $sessionId): void
+    {
+        $session = $this->event->sessions()->findOrFail($sessionId);
+        $session->update(['skb_pin' => EventSession::generateUniquePin('skb_pin')]);
+        session()->flash('success', 'PIN SKB sesi diperbarui.');
     }
 
     public function cycleStatus(int $sessionId): void
@@ -123,7 +147,7 @@ class Sessions extends Component
     public function render()
     {
         $sessions = $this->event->sessions()
-            ->withCount('attempts')
+            ->withCount(['attempts', 'participants'])
             ->latest()
             ->get();
 

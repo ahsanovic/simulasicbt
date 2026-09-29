@@ -35,6 +35,9 @@
                         <tr wire:key="event-{{ $event->id }}" class="transition hover:bg-slate-50/50">
                             <td class="px-5 py-4">
                                 <p class="font-semibold text-slate-900">{{ $event->name }}</p>
+                                @if ($event->is_mode_ujian)
+                                    <span class="ui-badge mt-1 inline-flex bg-indigo-100 text-indigo-700">Mode Ujian · {{ $event->exam_mode->label() }}</span>
+                                @endif
                                 @if($event->description)
                                     <p class="mt-0.5 max-w-xs truncate text-xs text-slate-500">{{ $event->description }}</p>
                                 @endif
@@ -74,6 +77,9 @@
                             </td>
                             <td class="px-5 py-4 text-right whitespace-nowrap">
                                 <a href="{{ route('admin.events.sessions', $event) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-indigo-600 hover:bg-indigo-50">Kelola Sesi</a>
+                                @if ($event->is_mode_ujian)
+                                    <a href="{{ route('admin.events.participants', $event) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-indigo-600 hover:bg-indigo-50">Import Peserta</a>
+                                @endif
                                 <a href="{{ route('admin.events.export', $event) }}" class="ui-btn-ghost px-3 py-1.5 text-emerald-600 hover:bg-emerald-50">Export</a>
                                 <button wire:click="openEditModal({{ $event->id }})" class="ui-btn-ghost px-3 py-1.5">Edit</button>
                                 <button wire:click="delete({{ $event->id }})" wire:confirm="Hapus event ini beserta semua sesinya?" class="ui-btn-ghost px-3 py-1.5 text-rose-600 hover:bg-rose-50">Hapus</button>
@@ -104,8 +110,69 @@
                         <input type="text" wire:model="name" class="ui-input" placeholder="mis. Tryout Akbar Dinas Kesehatan 2026">
                         @error('name') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
+                    <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+                        <label class="flex items-start gap-3">
+                            <input type="checkbox" wire:model.live="is_mode_ujian" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500/20">
+                            <span>
+                                <span class="text-sm font-semibold text-slate-900">Mode Ujian</span>
+                                <span class="block text-xs text-slate-500">Peserta login pakai NIK (diimpor khusus event ini), PIN sesi sebelum tiap fase, dan tampilan ujian yang disederhanakan.</span>
+                            </span>
+                        </label>
+
+                        @if ($is_mode_ujian)
+                            <div class="mt-4 space-y-3 border-t border-indigo-100 pt-4">
+                                <div>
+                                    <label class="ui-label">Tipe Ujian</label>
+                                    <select wire:model.live="exam_mode" class="ui-select">
+                                        <option value="skd">SKD saja</option>
+                                        <option value="skb">SKB saja</option>
+                                        <option value="both">SKD & SKB</option>
+                                    </select>
+                                    @error('exam_mode') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                </div>
+
+                                @unless ($editingId)
+                                    <div>
+                                        <label class="ui-label">Jumlah Sesi</label>
+                                        <input type="number" min="1" max="50" wire:model="sessionCount" class="ui-input" placeholder="mis. 3">
+                                        @error('sessionCount') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                        <p class="mt-1.5 text-xs text-slate-500">Tiap sesi otomatis dibuat dengan PIN sendiri-sendiri (tidak diketik manual).</p>
+                                    </div>
+                                @endunless
+
+                                @if (in_array($exam_mode, ['skb', 'both'], true))
+                                    <div class="grid gap-3 sm:grid-cols-3">
+                                        <div>
+                                            <label class="ui-label">Durasi SKB (menit)</label>
+                                            <input type="number" min="1" wire:model="skb_duration_minutes" class="ui-input" placeholder="mis. 90">
+                                            @error('skb_duration_minutes') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label class="ui-label">Jumlah Soal SKB</label>
+                                            <input type="number" min="1" wire:model="skb_question_count" class="ui-input" placeholder="mis. 40">
+                                            @error('skb_question_count') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label class="ui-label">Nilai per Jawaban Benar</label>
+                                            <input type="number" min="1" wire:model="skb_correct_score" class="ui-input" placeholder="mis. 5">
+                                            @error('skb_correct_score') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-slate-500">Soal SKB diambil otomatis dari bank soal jabatan masing-masing peserta.</p>
+                                @endif
+
+                                <div class="rounded-lg bg-white p-3 text-xs text-slate-600">
+                                    PIN sesi (SKD{{ in_array($exam_mode, ['skb', 'both'], true) ? ' & SKB' : '' }}) diatur per sesi, bukan di sini — buka <strong>Kelola Sesi</strong> setelah event ini disimpan.
+                                </div>
+
+                                <div class="rounded-lg bg-white p-3 text-xs text-slate-600">
+                                    Peserta Mode Ujian diimpor terpisah (Nama, NIK, Jabatan) lewat tombol <strong>"Import Peserta"</strong> setelah event ini disimpan.
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                     <div>
-                        <label class="ui-label">Paket Ujian</label>
+                        <label class="ui-label">Paket Ujian {{ $is_mode_ujian && $exam_mode === 'skb' ? '(opsional untuk SKB saja)' : '' }}</label>
                         <select wire:model="exam_id" class="ui-select">
                             <option value="">— Pilih paket ujian —</option>
                             @foreach ($exams as $exam)
@@ -113,7 +180,7 @@
                             @endforeach
                         </select>
                         @error('exam_id') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        <p class="mt-1.5 text-xs text-slate-500">Semua sesi dalam event ini memakai paket ujian yang sama.</p>
+                        <p class="mt-1.5 text-xs text-slate-500">Paket ujian dipakai untuk fase SKD (soal TWK/TIU/TKP).</p>
                     </div>
                     <div>
                         <label class="ui-label">Status Event</label>

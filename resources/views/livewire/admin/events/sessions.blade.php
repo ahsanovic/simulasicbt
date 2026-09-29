@@ -31,7 +31,7 @@
                 <thead>
                     <tr class="border-b border-slate-100 bg-slate-50/80">
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Sesi</th>
-                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Kode</th>
+                        <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{{ $event->is_mode_ujian ? 'PIN' : 'Kode' }}</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Jadwal</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Peserta</th>
                         <th class="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
@@ -43,12 +43,35 @@
                         <tr wire:key="session-{{ $session->id }}" class="transition hover:bg-slate-50/50">
                             <td class="px-5 py-4 font-semibold text-slate-900">{{ $session->name }}</td>
                             <td class="px-5 py-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-sm font-bold tracking-widest text-indigo-700">{{ $session->code }}</span>
-                                    <button wire:click="regenerateCode({{ $session->id }})" wire:confirm="Buat ulang kode sesi? Kode lama tidak berlaku lagi." title="Buat ulang kode" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-                                        <x-ui.icon name="refresh" class="h-4 w-4" />
-                                    </button>
-                                </div>
+                                @if ($event->is_mode_ujian)
+                                    <div class="flex flex-col gap-1 text-xs">
+                                        @if ($event->exam_mode->includesSkd())
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="w-8 shrink-0 text-slate-400">SKD</span>
+                                                <span class="rounded-lg bg-indigo-50 px-2 py-0.5 font-mono font-bold tracking-widest text-indigo-700">{{ $session->skd_pin ?: '—' }}</span>
+                                                <button wire:click="regenerateSkdPin({{ $session->id }})" wire:confirm="Buat ulang PIN SKD sesi ini? PIN lama tidak berlaku lagi." title="Buat ulang PIN SKD" class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                                                    <x-ui.icon name="refresh" class="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        @endif
+                                        @if ($event->exam_mode->includesSkb())
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="w-8 shrink-0 text-slate-400">SKB</span>
+                                                <span class="rounded-lg bg-indigo-50 px-2 py-0.5 font-mono font-bold tracking-widest text-indigo-700">{{ $session->skb_pin ?: '—' }}</span>
+                                                <button wire:click="regenerateSkbPin({{ $session->id }})" wire:confirm="Buat ulang PIN SKB sesi ini? PIN lama tidak berlaku lagi." title="Buat ulang PIN SKB" class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                                                    <x-ui.icon name="refresh" class="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @else
+                                    <div class="flex items-center gap-2">
+                                        <span class="rounded-lg bg-indigo-50 px-2.5 py-1 font-mono text-sm font-bold tracking-widest text-indigo-700">{{ $session->code }}</span>
+                                        <button wire:click="regenerateCode({{ $session->id }})" wire:confirm="Buat ulang kode sesi? Kode lama tidak berlaku lagi." title="Buat ulang kode" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                                            <x-ui.icon name="refresh" class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-5 py-4 text-xs text-slate-500">
                                 @if($session->starts_at)
@@ -57,7 +80,7 @@
                                     <span class="text-slate-400">Tanpa jadwal</span>
                                 @endif
                             </td>
-                            <td class="px-5 py-4"><span class="ui-badge bg-slate-100 text-slate-700">{{ $session->attempts_count }}</span></td>
+                            <td class="px-5 py-4"><span class="ui-badge bg-slate-100 text-slate-700">{{ $event->is_mode_ujian ? $session->participants_count : $session->attempts_count }}</span></td>
                             <td class="px-5 py-4">
                                 @php
                                     $statusColor = match($session->status->value) {
@@ -69,6 +92,9 @@
                                 <button wire:click="cycleStatus({{ $session->id }})" title="Ubah status" class="ui-badge {{ $statusColor }} cursor-pointer">{{ $session->status->label() }}</button>
                             </td>
                             <td class="px-5 py-4 text-right whitespace-nowrap">
+                                @if ($event->is_mode_ujian)
+                                    <a href="{{ route('admin.events.participants', ['event' => $event, 'sessionFilter' => $session->id]) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-indigo-600 hover:bg-indigo-50">Peserta</a>
+                                @endif
                                 <a href="{{ route('admin.events.sessions.livescore', [$event, $session]) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-indigo-600 hover:bg-indigo-50">Livescore</a>
                                 <a href="{{ route('admin.events.sessions.export', [$event, $session]) }}" class="ui-btn-ghost px-3 py-1.5 text-emerald-600 hover:bg-emerald-50">Export</a>
                                 <button wire:click="openEditModal({{ $session->id }})" class="ui-btn-ghost px-3 py-1.5">Edit</button>
@@ -116,8 +142,16 @@
                             <option value="active">Aktif</option>
                             <option value="closed">Ditutup</option>
                         </select>
-                        <p class="mt-1.5 text-xs text-slate-500">Kode gabung dibuat otomatis. Peserta bisa masuk hanya jika sesi <strong>Aktif</strong> (dan dalam rentang jadwal).</p>
+                        @if (! $event->is_mode_ujian)
+                            <p class="mt-1.5 text-xs text-slate-500">Kode gabung dibuat otomatis. Peserta bisa masuk hanya jika sesi <strong>Aktif</strong> (dan dalam rentang jadwal).</p>
+                        @endif
                     </div>
+
+                    @if ($event->is_mode_ujian && ! $editingId)
+                        <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 text-xs text-indigo-900">
+                            PIN sesi dibuat otomatis oleh sistem saat sesi ini disimpan — tidak perlu diketik. Lihat/ganti PIN dari tabel setelah tersimpan.
+                        </div>
+                    @endif
                     <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
                         <button type="button" wire:click="closeModal" class="ui-btn-secondary">Batal</button>
                         <button type="submit" class="ui-btn-primary">Simpan Sesi</button>

@@ -35,10 +35,18 @@ class LiveScore extends Component
     #[Url(as: 'jenis', except: 'skd')]
     public string $viewMode = 'skd';
 
-    /** @var list<string> Selected in-progress attempt ids (as strings for checkbox binding). */
-    public array $selected = [];
+    /**
+     * Selected in-progress attempt ids (as strings for checkbox binding),
+     * keyed by board ('skd'/'skb') and kept independent per board — so
+     * ticking participants on the SKD board and switching to SKB never
+     * loses that selection or bleeds into the SKB one, and vice versa.
+     *
+     * @var array{skd: list<string>, skb: list<string>}
+     */
+    public array $selected = ['skd' => [], 'skb' => []];
 
-    public bool $selectAll = false;
+    /** @var array{skd: bool, skb: bool} */
+    public array $selectAll = ['skd' => false, 'skb' => false];
 
     public int $addMinutes = 5;
 
@@ -337,9 +345,10 @@ class LiveScore extends Component
     }
 
     /** @return list<string> Every attempt in this session — reset applies to finished ones too. */
-    private function allAttemptIds(): array
+    private function allAttemptIds(?string $board = null): array
     {
-        $query = $this->activeBoard() === 'skb' ? $this->session->skbAttempts() : $this->session->attempts();
+        $board ??= $this->activeBoard();
+        $query = $board === 'skb' ? $this->session->skbAttempts() : $this->session->attempts();
 
         return $query
             ->pluck('id')
@@ -354,14 +363,13 @@ class LiveScore extends Component
     }
 
     /**
-     * Switching exam type is a fresh board: stale selections/pagination from
-     * the previous board must not leak into the new one.
+     * Switching exam type just shows a different board's rows; selections
+     * live per board in $selected/$selectAll (see their doc comments), so
+     * they are deliberately left alone here instead of being wiped.
      */
     public function updatedViewMode(): void
     {
         $this->currentPage = 1;
-        $this->selected = [];
-        $this->selectAll = false;
         unset($this->allRows, $this->filteredRows, $this->rows, $this->totalPages, $this->summary);
     }
 
@@ -370,9 +378,10 @@ class LiveScore extends Component
         $this->currentPage = max(1, min($page, $this->totalPages()));
     }
 
-    public function updatedSelectAll(bool $value): void
+    /** $key is which board's "select all" checkbox changed ('skd'/'skb'), from the selectAll.{key} binding. */
+    public function updatedSelectAll(bool $value, string $key): void
     {
-        $this->selected = $value ? $this->allAttemptIds() : [];
+        $this->selected[$key] = $value ? $this->allAttemptIds($key) : [];
     }
 
     public function resetAttempt(int $attemptId, ExamService $examService, SkbExamService $skbExamService): void
@@ -427,7 +436,8 @@ class LiveScore extends Component
 
     public function resetSelected(ExamService $examService, SkbExamService $skbExamService): void
     {
-        $ids = array_map('intval', $this->selected);
+        $board = $this->activeBoard();
+        $ids = array_map('intval', $this->selected[$board]);
 
         if ($ids === []) {
             session()->flash('error', 'Belum ada peserta yang dipilih.');
@@ -435,15 +445,15 @@ class LiveScore extends Component
             return;
         }
 
-        if ($this->activeBoard() === 'skb') {
+        if ($board === 'skb') {
             $attempts = $this->session->skbAttempts()->whereIn('id', $ids)->get();
 
             foreach ($attempts as $attempt) {
                 $skbExamService->resetAttempt($attempt);
             }
 
-            $this->selected = [];
-            $this->selectAll = false;
+            $this->selected[$board] = [];
+            $this->selectAll[$board] = false;
             unset($this->rows, $this->summary);
 
             session()->flash('success', "Ujian SKB {$attempts->count()} peserta direset — dimulai dari awal.");
@@ -465,8 +475,8 @@ class LiveScore extends Component
             }
         }
 
-        $this->selected = [];
-        $this->selectAll = false;
+        $this->selected[$board] = [];
+        $this->selectAll[$board] = false;
         unset($this->rows, $this->summary);
 
         session()->flash('success', "Ujian {$done} peserta direset — dimulai dari awal.");
@@ -502,7 +512,7 @@ class LiveScore extends Component
         if ($this->addTimeTargetId !== null) {
             $query->whereKey($this->addTimeTargetId);
         } else {
-            $query->whereIn('id', array_map('intval', $this->selected));
+            $query->whereIn('id', array_map('intval', $this->selected[$this->activeBoard()]));
         }
 
         return $query->get();
@@ -533,6 +543,9 @@ class LiveScore extends Component
                 ? ($attempts->first() !== null ? $this->targetDisplayName($attempts->first()) : 'Peserta')
                 : $attempts->count().' peserta terpilih',
             'is_bulk' => $this->addTimeTargetId === null,
+            // Shown in the modal so it's never ambiguous which exam this
+            // extension applies to — always the board currently active.
+            'board_label' => $this->activeBoard() === 'skb' ? 'SKB' : 'SKD',
             'duration' => $this->examDurationMinutes(),
             'remaining' => $attempts->count() === 1
                 ? (int) ceil(max(0, $attempts->first()->remainingSeconds()) / 60)
@@ -551,7 +564,7 @@ class LiveScore extends Component
 
     public function openAddTimeForSelected(): void
     {
-        if ($this->selected === []) {
+        if ($this->selected[$this->activeBoard()] === []) {
             session()->flash('error', 'Belum ada peserta yang dipilih.');
 
             return;
@@ -636,8 +649,9 @@ class LiveScore extends Component
 
     public function addTimeToSelected(): void
     {
+        $board = $this->activeBoard();
         $requested = $this->normalizedMinutes();
-        $ids = array_map('intval', $this->selected);
+        $ids = array_map('intval', $this->selected[$board]);
 
         if ($ids === []) {
             session()->flash('error', 'Belum ada peserta yang dipilih.');
@@ -645,7 +659,7 @@ class LiveScore extends Component
             return;
         }
 
-        $isSkb = $this->activeBoard() === 'skb';
+        $isSkb = $board === 'skb';
 
         $attempts = ($isSkb ? $this->session->skbAttempts() : $this->session->attempts())
             ->whereIn('id', $ids)
@@ -675,8 +689,8 @@ class LiveScore extends Component
             $applied++;
         }
 
-        $this->selected = [];
-        $this->selectAll = false;
+        $this->selected[$board] = [];
+        $this->selectAll[$board] = false;
         unset($this->rows, $this->summary);
 
         if ($applied === 0) {

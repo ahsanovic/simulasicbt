@@ -82,30 +82,34 @@
 
     {{-- Toolbar: aksi massal untuk peserta terpilih --}}
     <div class="ui-card mb-5 flex flex-wrap items-center gap-3 p-4">
+        @php $selectedCount = count($selected[$category]); @endphp
         <button wire:click="openAddTimeForSelected"
-                @disabled(count($selected) === 0)
+                @disabled($selectedCount === 0)
                 @class([
                     'ui-btn-primary',
-                    'opacity-50 cursor-not-allowed' => count($selected) === 0,
+                    'opacity-50 cursor-not-allowed' => $selectedCount === 0,
                 ])>
-            Tambah Waktu Terpilih ({{ count($selected) }})
+            Tambah Waktu {{ strtoupper($category) }} Terpilih ({{ $selectedCount }})
         </button>
 
         <span class="hidden h-6 w-px bg-slate-200 sm:block"></span>
 
         <button wire:click="resetSelected"
                 wire:confirm="Reset ujian peserta terpilih? Semua jawaban terhapus dan ujian dimulai dari awal."
-                @disabled(count($selected) === 0)
+                @disabled($selectedCount === 0)
                 @class([
                     'ui-btn-secondary text-rose-600 hover:bg-rose-50',
-                    'opacity-50 cursor-not-allowed' => count($selected) === 0,
+                    'opacity-50 cursor-not-allowed' => $selectedCount === 0,
                 ])>
-            Reset Ujian Terpilih ({{ count($selected) }})
+            Reset Ujian {{ strtoupper($category) }} Terpilih ({{ $selectedCount }})
         </button>
 
         <p class="w-full text-xs text-slate-500">
             Centang peserta di tabel (atau "centang semua" di header). <strong>Tambah waktu</strong> hanya berlaku bagi yang masih ujian dan tidak boleh membuat sisa waktu melebihi durasi ujian;
             <strong>reset</strong> bisa untuk siapa saja — termasuk yang sudah selesai/kehabisan waktu, mis. saat jam perangkat tidak sesuai.
+            @if ($showExamTypePicker)
+                Pilihan peserta SKD dan SKB tersimpan terpisah — berpindah "Jenis Ujian" tidak akan menghapus centang di papan yang lain.
+            @endif
         </p>
     </div>
 
@@ -115,8 +119,8 @@
                 <thead>
                     <tr class="border-b border-slate-100 bg-slate-50/80">
                         <th class="px-4 py-3.5 text-left">
-                            <input type="checkbox" wire:model.live="selectAll"
-                                   title="Centang semua peserta"
+                            <input type="checkbox" wire:model.live="selectAll.{{ $category }}"
+                                   title="Centang semua peserta {{ strtoupper($category) }}"
                                    class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500/20">
                         </th>
                         <th class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">#</th>
@@ -143,7 +147,7 @@
                         <tr wire:key="{{ $row['row_key'] }}" class="transition hover:bg-slate-50/50">
                             <td class="px-4 py-4">
                                 @if ($row['attempt_id'] !== null)
-                                    <input type="checkbox" wire:model.live="selected" value="{{ $row['attempt_id'] }}"
+                                    <input type="checkbox" wire:model.live="selected.{{ $category }}" value="{{ $row['attempt_id'] }}"
                                            class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500/20">
                                 @endif
                             </td>
@@ -260,7 +264,10 @@
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" wire:click="closeAddTimeModal"></div>
             <div class="relative w-full max-w-md rounded-2xl bg-white shadow-2xl">
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-                    <h2 class="text-lg font-bold text-slate-900">Tambah Waktu Ujian</h2>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Tambah Waktu Ujian {{ $ctx['board_label'] }}</h2>
+                        <p class="text-xs text-slate-500">Hanya memperpanjang ujian {{ $ctx['board_label'] }} — tidak memengaruhi ujian {{ $ctx['board_label'] === 'SKD' ? 'SKB' : 'SKD' }} peserta ini.</p>
+                    </div>
                     <button type="button" wire:click="closeAddTimeModal" class="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>

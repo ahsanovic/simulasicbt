@@ -57,10 +57,10 @@ class EventLiveScoreTest extends TestCase
         Livewire::actingAs($admin)
             ->test(LiveScore::class, ['event' => $event, 'session' => $session])
             ->set('addMinutes', 15)
-            ->set('selected', [(string) $attempts[0]->id, (string) $attempts[1]->id])
+            ->set('selected.skd', [(string) $attempts[0]->id, (string) $attempts[1]->id])
             ->call('addTimeToSelected')
             ->assertHasNoErrors()
-            ->assertSet('selected', []);
+            ->assertSet('selected.skd', []);
 
         foreach ([$attempts[0], $attempts[1]] as $attempt) {
             $this->assertEqualsWithDelta(15, $attempt->expires_at->diffInMinutes($attempt->fresh()->expires_at), 0.2);
@@ -190,7 +190,7 @@ class EventLiveScoreTest extends TestCase
         Livewire::actingAs($admin)
             ->test(LiveScore::class, ['event' => $event, 'session' => $session])
             ->set('addMinutes', 10)
-            ->set('selected', [(string) $attempts[0]->id, (string) $finished->id])
+            ->set('selected.skd', [(string) $attempts[0]->id, (string) $finished->id])
             ->call('addTimeToSelected')
             ->assertHasNoErrors();
 
@@ -237,8 +237,8 @@ class EventLiveScoreTest extends TestCase
 
         $selected = Livewire::actingAs($admin)
             ->test(LiveScore::class, ['event' => $event, 'session' => $session])
-            ->set('selectAll', true)
-            ->get('selected');
+            ->set('selectAll.skd', true)
+            ->get('selected.skd');
 
         $this->assertContains((string) $attempts[0]->id, $selected);
         $this->assertContains((string) $finished->id, $selected);
@@ -277,10 +277,10 @@ class EventLiveScoreTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(LiveScore::class, ['event' => $event, 'session' => $session])
-            ->set('selected', [(string) $attempts[0]->id, (string) $finished->id])
+            ->set('selected.skd', [(string) $attempts[0]->id, (string) $finished->id])
             ->call('resetSelected')
             ->assertHasNoErrors()
-            ->assertSet('selected', []);
+            ->assertSet('selected.skd', []);
 
         foreach ([$attempts[0], $finished] as $attempt) {
             $fresh = $attempt->fresh();

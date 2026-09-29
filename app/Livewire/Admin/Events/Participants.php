@@ -4,11 +4,15 @@ namespace App\Livewire\Admin\Events;
 
 use App\Enums\UserRole;
 use App\Livewire\Concerns\HandlesImportErrorModal;
+use App\Models\CoinTransaction;
 use App\Models\Event;
 use App\Models\EventParticipant;
+use App\Models\ExamAttempt;
 use App\Models\Formation;
 use App\Models\JabatanSkb;
 use App\Models\User;
+use App\Models\XpReward;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -206,7 +210,40 @@ class Participants extends Component
 
     public function delete(int $participantId): void
     {
-        $this->event->participants()->whereKey($participantId)->delete();
+        $participant = $this->event->participants()->findOrFail($participantId);
+
+        DB::transaction(function () use ($participant) {
+            // SKB data (skb_exam_attempts -> skb_exam_answers) cascades away
+            // via its event_participant_id foreign key, but the SKD
+            // ExamAttempt is only linked by event_id/user_id — no FK to
+            // event_participants — so it (and everything scored from it)
+            // must be torn down here explicitly, or it lingers as a ghost
+            // row on the SKD livescore board after the participant is gone.
+            $attempts = ExamAttempt::query()
+                ->where('event_id', $participant->event_id)
+                ->where('user_id', $participant->user_id)
+                ->get();
+
+            foreach ($attempts as $attempt) {
+                $attempt->answers()->delete();
+                $attempt->telemetries()->delete();
+
+                XpReward::query()
+                    ->where('source_type', ExamAttempt::class)
+                    ->where('source_id', $attempt->id)
+                    ->delete();
+
+                CoinTransaction::query()
+                    ->where('source_type', ExamAttempt::class)
+                    ->where('source_id', $attempt->id)
+                    ->delete();
+
+                $attempt->delete();
+            }
+
+            $participant->delete();
+        });
+
         session()->flash('success', 'Peserta dihapus dari event ini.');
     }
 

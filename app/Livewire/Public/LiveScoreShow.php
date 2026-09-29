@@ -231,8 +231,10 @@ class LiveScoreShow extends Component
             ->get()
             ->keyBy('user_id');
 
+        $liveScores = app(SkbExamService::class)->liveScores($attempts);
+
         return $participants
-            ->map(function (EventParticipant $participant) use ($attempts) {
+            ->map(function (EventParticipant $participant) use ($attempts, $liveScores) {
                 $attempt = $attempts->get($participant->user_id);
                 $jabatan = $participant->jabatanSkb?->name ?? $participant->jabatan_label;
 
@@ -260,8 +262,8 @@ class LiveScoreShow extends Component
                     'session' => $participant->eventSession?->name,
                     'answered' => $answered,
                     'total' => $total,
-                    'benar' => $inProgress ? 0 : (int) $attempt->correct_count,
-                    'score' => $inProgress ? 0 : (int) $attempt->total_score,
+                    'benar' => $liveScores[$attempt->id]['benar'] ?? 0,
+                    'score' => $liveScores[$attempt->id]['score'] ?? 0,
                     'status_label' => $inProgress ? 'Sedang Ujian' : 'Selesai',
                     'in_progress' => $inProgress,
                 ];

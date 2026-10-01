@@ -22,6 +22,7 @@
                 <div x-data="examTimer({{ max(0, $this->remainingSeconds) }}, {
                     stressMode: @js($stressTestEnabled),
                     clockPressureSeconds: 1800,
+                    syncDeadline: true,
                 })">
                     <p class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Sisa Waktu</p>
                     <p @class([

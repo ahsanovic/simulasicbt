@@ -4,7 +4,8 @@
 
     $user = auth()->user();
     $shouldShow = $user !== null
-        && ! request()->routeIs('peserta.exam.room', 'peserta.duel.room', 'peserta.testimonials.index')
+        // Never during an exam, and never anywhere in Mode Ujian (official exam, not the practice app).
+        && ! request()->routeIs('peserta.exam.room', 'peserta.duel.room', 'peserta.testimonials.index', 'peserta.mode-ujian.*')
         && app(TestimonialService::class)->shouldPromptUser($user);
 @endphp
 

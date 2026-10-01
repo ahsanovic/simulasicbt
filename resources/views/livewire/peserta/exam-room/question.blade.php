@@ -3,7 +3,8 @@
         <div class="mb-5 flex flex-wrap items-center gap-2">
             @php $code = $this->currentAnswer->question->subject->code->value; @endphp
             <x-peserta.exam-question-badges :question="$this->currentAnswer->question" />
-            @if ($code === 'tiu')
+            {{-- Scratchpad is not loaded in mode ujian (it would clash with the anti-cheat guard), so no button there either. --}}
+            @if ($code === 'tiu' && ! $isModeUjian)
                 <button type="button"
                         x-data
                         x-on:click="$dispatch('open-scratchpad')"

@@ -9,6 +9,7 @@ use App\Models\SkbExamAnswer;
 use App\Models\SkbExamAttempt;
 use App\Models\SkbQuestion;
 use App\Models\SkbQuestionOption;
+use App\Support\ExamDeadline;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -88,7 +89,7 @@ class SkbExamService
      */
     public function saveAnswer(SkbExamAttempt $attempt, int $questionId, ?int $selectedOptionId): bool
     {
-        if (! $attempt->isActive()) {
+        if ($attempt->status !== ExamAttemptStatus::InProgress || ! ExamDeadline::acceptsAnswers($attempt->expires_at)) {
             return false;
         }
 
@@ -160,6 +161,17 @@ class SkbExamService
     public function submitAttempt(SkbExamAttempt $attempt): SkbExamAttempt
     {
         return DB::transaction(function () use ($attempt) {
+            // The poll and the browser's time-up call can both land at the
+            // deadline: lock the row so only the first one scores it.
+            $attempt = SkbExamAttempt::query()
+                ->whereKey($attempt->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($attempt->status !== ExamAttemptStatus::InProgress) {
+                return $attempt;
+            }
+
             $attempt->load('answers.question.options');
 
             $correctCount = 0;

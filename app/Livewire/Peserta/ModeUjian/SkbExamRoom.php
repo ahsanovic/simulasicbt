@@ -3,10 +3,12 @@
 namespace App\Livewire\Peserta\ModeUjian;
 
 use App\Enums\ExamAttemptStatus;
+use App\Livewire\Concerns\EnforcesExamDeadline;
 use App\Models\SkbExamAttempt;
 use App\Models\SkbQuestion;
 use App\Models\SkbQuestionOption;
 use App\Services\SkbExamService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -16,6 +18,8 @@ use Livewire\Component;
 #[Title('Ujian SKB')]
 class SkbExamRoom extends Component
 {
+    use EnforcesExamDeadline;
+
     public int $attemptId;
 
     public int $attemptExpiresAt;
@@ -63,7 +67,7 @@ class SkbExamRoom extends Component
 
     public function getRemainingSecondsProperty(): int
     {
-        return max(0, $this->attemptExpiresAt - now()->timestamp);
+        return $this->deadlineRemainingSeconds();
     }
 
     public function getAnswersProperty()
@@ -79,6 +83,31 @@ class SkbExamRoom extends Component
     public function getUnansweredCountProperty(): int
     {
         return count($this->answerStates) - $this->answeredCount;
+    }
+
+    /** The pick on screen is the one stored for the current question. */
+    public function getCurrentPickSavedProperty(): bool
+    {
+        return $this->selectedOptionId !== null
+            && $this->selectedOptionId === ($this->answerStates[$this->currentIndex]['selected_option_id'] ?? null);
+    }
+
+    /** Unanswered count once "Selesai Ujian" also saves the pick on screen. */
+    public function getUnansweredOnSubmitCountProperty(): int
+    {
+        $pendingPick = $this->selectedOptionId !== null
+            && ($this->answerStates[$this->currentIndex]['selected_option_id'] ?? null) === null;
+
+        return max(0, $this->unansweredCount - ($pendingPick ? 1 : 0));
+    }
+
+    public function getSubmitConfirmMessageProperty(): string
+    {
+        $unanswered = $this->unansweredOnSubmitCount;
+
+        return $unanswered > 0
+            ? "Masih ada {$unanswered} soal belum dijawab. Yakin ingin menyelesaikan ujian SKB sekarang? Skor akan disimpan."
+            : 'Semua soal sudah dijawab. Selesaikan ujian SKB ini? Skor akan disimpan.';
     }
 
     public function getProgressPercentProperty(): int
@@ -109,6 +138,10 @@ class SkbExamRoom extends Component
 
     public function selectOption(int $optionId): void
     {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
         if (! $this->isValidOptionForCurrentQuestion($optionId)) {
             return;
         }
@@ -123,10 +156,19 @@ class SkbExamRoom extends Component
 
     public function saveAnswer(): void
     {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
+        $this->persistCurrentAnswer();
+    }
+
+    private function persistCurrentAnswer(): bool
+    {
         $state = $this->answerStates[$this->currentIndex] ?? null;
 
         if ($state === null) {
-            return;
+            return true;
         }
 
         $optionId = $this->selectedOptionId;
@@ -144,14 +186,20 @@ class SkbExamRoom extends Component
         if (! $saved) {
             $this->checkExpiry();
 
-            return;
+            return false;
         }
 
         $this->answerStates[$this->currentIndex]['selected_option_id'] = $optionId;
+
+        return true;
     }
 
     public function toggleMark(): void
     {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
         $this->answerStates[$this->currentIndex]['is_marked'] = ! $this->answerStates[$this->currentIndex]['is_marked'];
 
         app(SkbExamService::class)->toggleMark(
@@ -162,6 +210,10 @@ class SkbExamRoom extends Component
 
     public function goToQuestion(int $index): void
     {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
         if (isset($this->answerStates[$index])) {
             $this->currentIndex = $index;
             $this->selectedOptionId = $this->answerStates[$index]['selected_option_id'] ?? null;
@@ -170,7 +222,9 @@ class SkbExamRoom extends Component
 
     public function next(): void
     {
-        $this->saveAnswer();
+        if (! $this->ensureWithinDeadline() || ! $this->persistCurrentAnswer()) {
+            return;
+        }
 
         if ($this->currentIndex < count($this->answerStates) - 1) {
             $this->currentIndex++;
@@ -180,6 +234,10 @@ class SkbExamRoom extends Component
 
     public function previous(): void
     {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
         if ($this->currentIndex > 0) {
             $this->currentIndex--;
             $this->selectedOptionId = $this->answerStates[$this->currentIndex]['selected_option_id'] ?? null;
@@ -188,17 +246,35 @@ class SkbExamRoom extends Component
 
     public function submitExam(): void
     {
+        // Past the deadline this closes the attempt like a timeout instead.
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
+        // Capture the on-screen pick, so an answer chosen on the last question
+        // still counts when "Selesai Ujian" is clicked without "Simpan Jawaban".
+        $this->persistCurrentAnswer();
+
         $attempt = app(SkbExamService::class)->submitAttempt($this->resolveAttempt());
         $this->redirect(route('peserta.mode-ujian.skb-result', $attempt), navigate: false);
     }
 
-    public function checkExpiry(): void
+    protected function freshDeadlineAttempt(): ?Model
     {
-        if ($this->remainingSeconds <= 0) {
-            $attempt = app(SkbExamService::class)->submitAttempt($this->resolveAttempt());
-            session()->flash('error', 'Waktu ujian SKB habis. Jawaban otomatis dikumpulkan.');
-            $this->redirect(route('peserta.mode-ujian.skb-result', $attempt), navigate: false);
+        return SkbExamAttempt::query()->find($this->attemptId, ['id', 'status', 'expires_at']);
+    }
+
+    protected function closeTimedOutAttempt(): string
+    {
+        // Same capture as a manual submit, but only for a pick made before
+        // time ran out (the browser locks the screen at zero).
+        if ($this->withinAnswerGrace()) {
+            $this->persistCurrentAnswer();
         }
+
+        $attempt = app(SkbExamService::class)->submitAttempt($this->resolveAttempt());
+
+        return route('peserta.mode-ujian.skb-result', $attempt);
     }
 
     private function isValidOptionForCurrentQuestion(int $optionId): bool

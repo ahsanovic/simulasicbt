@@ -1,4 +1,5 @@
 <div class="mx-auto max-w-xl px-4 py-10">
+    <x-ui.flash-toast />
     <div class="ui-card p-6 sm:p-8 text-center">
         <div class="mb-2 flex items-start justify-between gap-3 text-left">
             <div>

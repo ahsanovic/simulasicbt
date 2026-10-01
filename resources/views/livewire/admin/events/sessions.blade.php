@@ -12,8 +12,8 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('admin.events.export', $event) }}" class="ui-btn-secondary">
-                    <x-ui.icon name="file" class="h-4 w-4" /> Export Semua Sesi
+                <a href="{{ route('admin.events.results', $event) }}" wire:navigate class="ui-btn-secondary">
+                    <x-ui.icon name="file" class="h-4 w-4" /> Hasil Ujian
                 </a>
                 <button wire:click="openCreateModal" class="ui-btn-primary">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -96,7 +96,7 @@
                                     <a href="{{ route('admin.events.participants', ['event' => $event, 'sessionFilter' => $session->id]) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-indigo-600 hover:bg-indigo-50">Peserta</a>
                                 @endif
                                 <a href="{{ route('admin.events.sessions.livescore', [$event, $session]) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-indigo-600 hover:bg-indigo-50">Livescore</a>
-                                <a href="{{ route('admin.events.sessions.export', [$event, $session]) }}" class="ui-btn-ghost px-3 py-1.5 text-emerald-600 hover:bg-emerald-50">Export</a>
+                                <a href="{{ route('admin.events.results', ['event' => $event, 'sesi' => $session->id]) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-emerald-600 hover:bg-emerald-50">Hasil Ujian</a>
                                 <button wire:click="openEditModal({{ $session->id }})" class="ui-btn-ghost px-3 py-1.5">Edit</button>
                                 <button wire:click="delete({{ $session->id }})" wire:confirm="Hapus sesi ini?" class="ui-btn-ghost px-3 py-1.5 text-rose-600 hover:bg-rose-50">Hapus</button>
                             </td>

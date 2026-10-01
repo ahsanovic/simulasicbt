@@ -64,7 +64,7 @@
                                 @endif
                             </td>
                             <td class="px-5 py-4"><span class="ui-badge bg-indigo-50 text-indigo-700">{{ $event->sessions_count }} sesi</span></td>
-                            <td class="px-5 py-4"><span class="ui-badge bg-slate-100 text-slate-700">{{ $event->attempts_count }}</span></td>
+                            <td class="px-5 py-4"><span class="ui-badge bg-slate-100 text-slate-700">{{-- Mode Ujian has a registered roster, so count that (deleting a peserta drops it). Plain offline events have no roster — whoever joined (an attempt) is the participant. --}}{{ $event->is_mode_ujian ? $event->participants_count : $event->attempts_count }}</span></td>
                             <td class="px-5 py-4">
                                 @php
                                     $statusColor = match($event->status->value) {
@@ -80,7 +80,7 @@
                                 @if ($event->is_mode_ujian)
                                     <a href="{{ route('admin.events.participants', $event) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-indigo-600 hover:bg-indigo-50">Import Peserta</a>
                                 @endif
-                                <a href="{{ route('admin.events.export', $event) }}" class="ui-btn-ghost px-3 py-1.5 text-emerald-600 hover:bg-emerald-50">Export</a>
+                                <a href="{{ route('admin.events.results', $event) }}" wire:navigate class="ui-btn-ghost px-3 py-1.5 text-emerald-600 hover:bg-emerald-50">Hasil Ujian</a>
                                 <button wire:click="openEditModal({{ $event->id }})" class="ui-btn-ghost px-3 py-1.5">Edit</button>
                                 <button wire:click="delete({{ $event->id }})" wire:confirm="Hapus event ini beserta semua sesinya?" class="ui-btn-ghost px-3 py-1.5 text-rose-600 hover:bg-rose-50">Hapus</button>
                             </td>

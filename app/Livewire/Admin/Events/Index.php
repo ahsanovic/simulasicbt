@@ -200,7 +200,7 @@ class Index extends Component
     {
         $events = Event::query()
             ->with('exam:id,title,duration_minutes,settings')
-            ->withCount(['sessions', 'attempts'])
+            ->withCount(['sessions', 'attempts', 'participants'])
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->latest()
             ->paginate(10);

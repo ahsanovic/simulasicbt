@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EventStatus;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -73,6 +74,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;
+    }
+
+    /** Registered in a Mode Ujian event that is currently running. */
+    public function isActiveModeUjianParticipant(): bool
+    {
+        return EventParticipant::query()
+            ->where('user_id', $this->id)
+            ->whereHas('event', fn ($query) => $query->where('is_mode_ujian', true)->where('status', EventStatus::Active))
+            ->exists();
     }
 
     public function isPeserta(): bool

@@ -48,7 +48,7 @@
 
                 <button type="button"
                         wire:click="submitExam"
-                        wire:confirm="{{ $isDrill ? 'Selesaikan drill soal ini?' : ($isRemedial ? 'Selesaikan ujian remedial ini?' : 'Selesaikan simulasi ini? Skor akan disimpan dan Anda dapat mengulang lagi nanti.') }}"
+                        wire:confirm="{{ $isModeUjian ? 'Selesaikan ujian SKD ini? Skor akan disimpan.' : ($isDrill ? 'Selesaikan drill soal ini?' : ($isRemedial ? 'Selesaikan ujian remedial ini?' : 'Selesaikan simulasi ini? Skor akan disimpan dan Anda dapat mengulang lagi nanti.')) }}"
                         class="ui-btn-danger shrink-0">
                     Selesai Ujian
                 </button>

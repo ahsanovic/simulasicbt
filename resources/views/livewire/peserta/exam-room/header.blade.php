@@ -22,6 +22,7 @@
                 <div x-data="examTimer({{ max(0, $this->remainingSeconds) }}, {
                     stressMode: @js($stressTestEnabled),
                     clockPressureSeconds: 1800,
+                    syncDeadline: true,
                 })">
                     <p class="text-[10px] font-bold uppercase tracking-wider text-rose-600">Sisa Waktu</p>
                     <p @class([
@@ -47,7 +48,7 @@
 
                 <button type="button"
                         wire:click="submitExam"
-                        wire:confirm="{{ $isDrill ? 'Selesaikan drill soal ini?' : ($isRemedial ? 'Selesaikan ujian remedial ini?' : 'Selesaikan simulasi ini? Skor akan disimpan dan Anda dapat mengulang lagi nanti.') }}"
+                        wire:confirm="{{ $isModeUjian ? 'Selesaikan ujian SKD ini? Skor akan disimpan.' : ($isDrill ? 'Selesaikan drill soal ini?' : ($isRemedial ? 'Selesaikan ujian remedial ini?' : 'Selesaikan simulasi ini? Skor akan disimpan dan Anda dapat mengulang lagi nanti.')) }}"
                         class="ui-btn-danger shrink-0">
                     Selesai Ujian
                 </button>

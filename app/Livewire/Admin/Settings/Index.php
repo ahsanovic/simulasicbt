@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Settings;
 
 use App\Enums\SkdTarget;
 use App\Models\Setting;
+use App\Support\ExamLockdown;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -36,6 +37,14 @@ class Index extends Component
 
     public int $kedinasan_total = 301;
 
+    /** Mode Sedang Ujian: closes the simulasi while an official exam runs. */
+    public bool $lockdownActive = false;
+
+    /** datetime-local value, shown to visitors as "dapat digunakan kembali pada". */
+    public string $lockdownReopensAt = '';
+
+    public string $lockdownMessage = '';
+
     public function mount(): void
     {
         $this->app_name = Setting::getValue('app_name', 'Simulasi CBT');
@@ -54,6 +63,10 @@ class Index extends Component
         $this->kedinasan_tiu = (int) $kedinasan['tiu'];
         $this->kedinasan_tkp = (int) $kedinasan['tkp'];
         $this->kedinasan_total = (int) $kedinasan['total'];
+
+        $this->lockdownActive = ExamLockdown::active();
+        $this->lockdownReopensAt = ExamLockdown::reopensAt()?->format('Y-m-d\TH:i') ?? '';
+        $this->lockdownMessage = ExamLockdown::message() ?? '';
     }
 
     public function openModal(): void
@@ -103,6 +116,30 @@ class Index extends Component
 
         $this->showModal = false;
         session()->flash('success', 'Pengaturan berhasil disimpan.');
+    }
+
+    public function saveLockdown(): void
+    {
+        $validated = $this->validate([
+            'lockdownActive' => ['boolean'],
+            'lockdownReopensAt' => ['nullable', 'date'],
+            'lockdownMessage' => ['nullable', 'string', 'max:1000'],
+        ], [], [
+            'lockdownReopensAt' => 'waktu dibuka kembali',
+            'lockdownMessage' => 'pesan',
+        ]);
+
+        ExamLockdown::save(
+            $validated['lockdownActive'],
+            filled($validated['lockdownReopensAt']) ? $validated['lockdownReopensAt'] : null,
+            filled($validated['lockdownMessage']) ? trim($validated['lockdownMessage']) : null,
+        );
+
+        session()->flash('success', $validated['lockdownActive']
+            ? 'Mode Sedang Ujian aktif. Login simulasi ditutup.'
+            : 'Mode Sedang Ujian nonaktif. Login simulasi dibuka kembali.');
+
+        $this->redirect(route('admin.settings.index'), navigate: true);
     }
 
     public function render()

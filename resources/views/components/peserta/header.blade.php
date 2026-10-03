@@ -24,7 +24,7 @@
             <a href="{{ route('peserta.dashboard') }}" wire:navigate class="flex items-center gap-3">
                 <img src="{{ asset('images/bkdlogo.png') }}" alt="BKD Jatim" class="h-13 w-auto object-contain">
                 <div class="hidden sm:block">
-                    <p class="text-sm font-bold text-slate-900">Simulasi CBT BKD Jatim</p>
+                    <p class="text-sm font-bold text-slate-900">{{ app_brand('Simulasi CBT BKD Jatim') }}</p>
                     <p class="text-xs text-slate-500">Portal Peserta</p>
                 </div>
             </a>

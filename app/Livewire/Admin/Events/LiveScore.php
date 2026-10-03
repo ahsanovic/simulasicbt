@@ -387,10 +387,36 @@ class LiveScore extends Component
         $this->currentPage = max(1, min($page, $this->totalPages()));
     }
 
-    /** $key is which board's "select all" checkbox changed ('skd'/'skb'), from the selectAll.{key} binding. */
-    public function updatedSelectAll(bool $value, string $key): void
+    /** selectAll as it was before this update, to tell which board's checkbox actually changed. */
+    private array $selectAllBefore = [];
+
+    public function updatingSelectAll(mixed $value, ?string $key): void
     {
-        $this->selected[$key] = $value ? $this->allAttemptIds($key) : [];
+        $this->selectAllBefore = $this->selectAll;
+    }
+
+    /**
+     * Livewire sends either one board ("selectAll.skd" → bool, $key = 'skd')
+     * or the whole property (array, $key = null). Only a board whose checkbox
+     * actually flipped is re-selected/cleared, so picks on the other board stay.
+     */
+    public function updatedSelectAll(mixed $value, ?string $key): void
+    {
+        $changes = $key !== null ? [$key => $value] : (array) $value;
+        $normalized = ['skd' => false, 'skb' => false];
+
+        foreach ($normalized as $board => $_) {
+            $before = (bool) ($this->selectAllBefore[$board] ?? false);
+            $checked = array_key_exists($board, $changes) ? (bool) $changes[$board] : $before;
+            $normalized[$board] = $checked;
+
+            if ($checked !== $before) {
+                $this->selected[$board] = $checked ? $this->allAttemptIds($board) : [];
+            }
+        }
+
+        // Drop anything other than the two boards a crafted request might add.
+        $this->selectAll = $normalized;
     }
 
     public function resetAttempt(int $attemptId, ExamService $examService, SkbExamService $skbExamService): void

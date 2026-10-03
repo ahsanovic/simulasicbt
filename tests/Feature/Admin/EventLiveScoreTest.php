@@ -244,6 +244,37 @@ class EventLiveScoreTest extends TestCase
         $this->assertContains((string) $finished->id, $selected);
     }
 
+    public function test_select_all_handles_the_whole_array_being_sent(): void
+    {
+        [$admin, $event, $session, $attempts, $finished] = $this->createSessionWithAttempts();
+
+        // The browser may send the whole selectAll property instead of
+        // "selectAll.skd" — this used to throw a TypeError (500).
+        $component = Livewire::actingAs($admin)
+            ->test(LiveScore::class, ['event' => $event, 'session' => $session])
+            ->set('selectAll', ['skd' => true, 'skb' => false]);
+
+        $selected = $component->get('selected.skd');
+        $this->assertContains((string) $attempts[0]->id, $selected);
+        $this->assertContains((string) $finished->id, $selected);
+
+        $component->set('selectAll', ['skd' => false, 'skb' => false]);
+        $this->assertSame([], $component->get('selected.skd'));
+    }
+
+    public function test_select_all_array_keeps_individual_picks_on_unchanged_board(): void
+    {
+        [$admin, $event, $session, $attempts] = $this->createSessionWithAttempts();
+
+        $component = Livewire::actingAs($admin)
+            ->test(LiveScore::class, ['event' => $event, 'session' => $session])
+            ->set('selected.skd', [(string) $attempts[0]->id])
+            ->set('selectAll', ['skd' => false, 'skb' => true, 'bogus' => true]);
+
+        $this->assertSame([(string) $attempts[0]->id], $component->get('selected.skd'));
+        $this->assertSame(['skd' => false, 'skb' => true], $component->get('selectAll'));
+    }
+
     public function test_resetting_a_finished_participant_restarts_their_exam(): void
     {
         [$admin, $event, $session, , $finished] = $this->createSessionWithAttempts();

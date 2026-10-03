@@ -4,7 +4,7 @@
 <meta name="app-url" content="{{ rtrim(config('app.url'), '/') }}" />
 
 <title>
-    {{ filled($title ?? null) ? $title.' - '.config('app.name', 'Laravel') : config('app.name', 'Laravel') }}
+    {{ filled($title ?? null) ? $title.' - '.app_brand() : app_brand() }}
 </title>
 
 <link rel="icon" href="/favicon.ico" sizes="any">

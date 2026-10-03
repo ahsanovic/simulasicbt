@@ -2,6 +2,7 @@
 
 use App\Enums\DevotionBadge;
 use App\Services\HtmlSanitizer;
+use App\Support\ExamLockdown;
 use Illuminate\Support\Str;
 
 if (! function_exists('sanitize_display_name')) {
@@ -266,5 +267,20 @@ if (! function_exists('devotion_badge_for_xp')) {
     function devotion_badge_for_xp(int $xp): array
     {
         return DevotionBadge::fromXp($xp)->toArray();
+    }
+}
+
+if (! function_exists('app_brand')) {
+    /**
+     * Name shown to peserta: the official exam name while Mode Sedang Ujian
+     * is on (never "Simulasi"), otherwise $default. Admin pages keep theirs.
+     */
+    function app_brand(?string $default = null): string
+    {
+        if (ExamLockdown::active() && ! request()->routeIs('admin.*')) {
+            return ExamLockdown::BRAND;
+        }
+
+        return $default ?? (string) config('app.name');
     }
 }

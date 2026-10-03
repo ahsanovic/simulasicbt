@@ -6,7 +6,7 @@
     @include('livewire.peserta.exam-room.confirm-name')
 @else
 <div class="min-h-screen bg-slate-100"
-     wire:poll.30s="checkExpiry"
+     @unless ($timeUp) wire:poll.{{ $isEventAttempt ? '10s' : '30s' }}="checkExpiry" @endunless
      @if ($stressTestEnabled)
          x-data="examStressTest({
              enabled: true,
@@ -25,10 +25,11 @@
     @endif
 
     <x-ui.flash-toast />
+    <x-peserta.exam-time-up-overlay :time-up="$timeUp" :result-url="$resultUrl" />
 
     @include('livewire.peserta.exam-room.header')
 
-    <main class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <main class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8" @if ($isModeUjian) data-exam-content @endif>
         <div class="grid gap-6 xl:grid-cols-[260px_1fr] 2xl:grid-cols-[280px_1fr]">
             @include('livewire.peserta.exam-room.navigation')
 

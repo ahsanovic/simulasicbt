@@ -44,6 +44,13 @@
                 </div>
             </header>
 
+            @if (\App\Support\ExamLockdown::active())
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-rose-600 px-4 py-2.5 text-sm text-white sm:px-6 lg:px-8" role="status">
+                    <p><span class="font-bold">Mode Sedang Ujian aktif</span> — login dan halaman simulasi ditutup untuk umum.</p>
+                    <a href="{{ route('admin.settings.index') }}" wire:navigate class="rounded-lg bg-white/15 px-3 py-1 font-semibold hover:bg-white/25">Kelola</a>
+                </div>
+            @endif
+
             <main class="flex-1 p-4 sm:p-6 lg:p-8">
                 {{ $slot }}
             </main>

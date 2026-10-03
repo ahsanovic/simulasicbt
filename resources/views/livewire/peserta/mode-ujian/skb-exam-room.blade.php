@@ -1,10 +1,11 @@
-<div class="min-h-screen bg-slate-100" wire:poll.30s="checkExpiry">
+<div class="min-h-screen bg-slate-100" @unless ($timeUp) wire:poll.10s="checkExpiry" @endunless>
     <x-peserta.mode-ujian-guard />
     <x-ui.flash-toast />
+    <x-peserta.exam-time-up-overlay :time-up="$timeUp" :result-url="$resultUrl" />
 
     @include('livewire.peserta.mode-ujian.skb-exam-room.header')
 
-    <main class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <main class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8" data-exam-content>
         <div class="grid gap-6 xl:grid-cols-[260px_1fr] 2xl:grid-cols-[280px_1fr]">
             @include('livewire.peserta.mode-ujian.skb-exam-room.navigation')
 

@@ -37,6 +37,7 @@ use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Livewire\Admin\Testimonials\Index as TestimonialsIndex;
 use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
+use App\Livewire\Auth\ExamLogin;
 use App\Livewire\Auth\Login;
 use App\Livewire\Peserta\AudioMode;
 use App\Livewire\Peserta\Dashboard as PesertaDashboard;
@@ -81,9 +82,15 @@ Route::get('livescore/{event:public_code}', PublicLiveScoreShow::class)->name('p
 Route::get('/', fn () => redirect()->route('login'));
 
 Route::middleware('guest')->group(function () {
-    Route::get('login', Login::class)->name('login');
-    Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
-    Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+    // Closed (closure notice instead) while Mode Sedang Ujian is on.
+    Route::middleware('exam-lockdown')->group(function () {
+        Route::get('login', Login::class)->name('login');
+        Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+        Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+    });
+
+    // Login for admins and Mode Ujian participants while Mode Sedang Ujian is on.
+    Route::get('ujian/login', ExamLogin::class)->name('ujian.login');
 });
 
 Route::post('logout', function () {
@@ -160,7 +167,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/settings', SettingsIndex::class)->name('settings.index');
 });
 
-Route::middleware(['auth', 'peserta', TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
+Route::middleware(['auth', 'peserta', 'exam-lockdown', TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {
     Route::get('/', PesertaDashboard::class)->name('dashboard');
     Route::get('/statistik', Statistik::class)->name('statistik.index');
     Route::get('/simulasi', SimulasiIndex::class)->name('simulasi.index');

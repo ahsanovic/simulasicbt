@@ -12,6 +12,33 @@
     display: none !important;
 }
 
+/* Mode Ujian content protection (see resources/js/exam-content-protection.js). */
+html.exam-protected body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+html.exam-protected :is(input, textarea, [contenteditable='true']) {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+html.exam-protected img {
+    -webkit-user-drag: none;
+}
+
+/* Snipping tools take focus away first: blur the questions while unfocused. */
+html.exam-protected.exam-unfocused [data-exam-content] {
+    filter: blur(14px);
+}
+
+@media print {
+    html.exam-protected body {
+        display: none !important;
+    }
+}
+
 @theme {
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 

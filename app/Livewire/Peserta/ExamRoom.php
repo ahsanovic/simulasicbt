@@ -4,6 +4,7 @@ namespace App\Livewire\Peserta;
 
 use App\Enums\ExamAttemptStatus;
 use App\Enums\HelpItem;
+use App\Livewire\Concerns\EnforcesExamDeadline;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
@@ -12,6 +13,7 @@ use App\Services\ExamPsychologyTelemetryService;
 use App\Services\ExamService;
 use App\Services\ExamStressResilienceService;
 use App\Services\HelpItemService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -23,6 +25,8 @@ use Livewire\Component;
 #[Title('Ruang Ujian')]
 class ExamRoom extends Component
 {
+    use EnforcesExamDeadline;
+
     #[Locked]
     public int $examId;
 
@@ -49,6 +53,10 @@ class ExamRoom extends Component
 
     #[Locked]
     public bool $isModeUjian = false;
+
+    /** Event attempts can get extra time from the livescore board, so poll more often. */
+    #[Locked]
+    public bool $isEventAttempt = false;
 
     #[Locked]
     public bool $stressTestEnabled = false;
@@ -126,6 +134,17 @@ class ExamRoom extends Component
             ->firstOrFail();
 
         if (! $attempt->isActive()) {
+            if ($attempt->event_id !== null) {
+                // Event exam whose time ran out while the peserta was away
+                // (refresh, disconnect, anti-cheat logout): score the saved
+                // answers like the livescore does, instead of dropping them.
+                app(ExamService::class)->finalizeExpiredAttempts([$attempt]);
+                session()->flash('error', 'Waktu ujian habis. Jawaban yang sudah tersimpan telah dikumpulkan.');
+                $this->redirect($this->resultUrl($attempt->fresh(['event'])), navigate: false);
+
+                return;
+            }
+
             $attempt->update(['status' => ExamAttemptStatus::Expired]);
             $this->redirect(route('peserta.dashboard'), navigate: true);
 
@@ -156,6 +175,7 @@ class ExamRoom extends Component
         $this->isDrill = $attempt->isDrill();
         $this->isDuel = $attempt->isDuelAttempt();
         $this->isModeUjian = (bool) ($attempt->event?->is_mode_ujian ?? false);
+        $this->isEventAttempt = $attempt->event_id !== null;
         $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel && ! $this->isModeUjian;
         $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;
         $this->answerStates = $attempt->answers
@@ -317,7 +337,7 @@ class ExamRoom extends Component
 
     public function skipAndMarkQuestion(): void
     {
-        if (! $this->helpItemsEnabled || ! $this->skipTrackerActive) {
+        if (! $this->helpItemsEnabled || ! $this->skipTrackerActive || ! $this->ensureWithinDeadline()) {
             return;
         }
 
@@ -336,7 +356,7 @@ class ExamRoom extends Component
             $this->syncMarkedInMemory(true);
         }
 
-        $this->saveAnswer();
+        $this->persistCurrentAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
 
@@ -366,11 +386,15 @@ class ExamRoom extends Component
 
     public function getRemainingSecondsProperty(): int
     {
-        return max(0, $this->attemptExpiresAt - now()->timestamp);
+        return $this->deadlineRemainingSeconds();
     }
 
     public function selectOption(int $optionId): void
     {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
         if (in_array($optionId, $this->currentEliminatedOptionIds, true)) {
             return;
         }
@@ -387,6 +411,15 @@ class ExamRoom extends Component
     }
 
     public function saveAnswer(): void
+    {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
+        $this->persistCurrentAnswer();
+    }
+
+    private function persistCurrentAnswer(): void
     {
         $state = $this->currentAnswerState();
 
@@ -415,6 +448,10 @@ class ExamRoom extends Component
 
     public function toggleMark(): void
     {
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
         $state = $this->currentAnswerState();
 
         if ($state === null) {
@@ -435,7 +472,7 @@ class ExamRoom extends Component
 
     public function goToQuestion(int $index): void
     {
-        if ($index < 0 || $index >= count($this->answerStates)) {
+        if ($index < 0 || $index >= count($this->answerStates) || ! $this->ensureWithinDeadline()) {
             return;
         }
 
@@ -460,7 +497,11 @@ class ExamRoom extends Component
 
     public function next(): void
     {
-        $this->saveAnswer();
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
+        $this->persistCurrentAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
 
@@ -523,8 +564,14 @@ class ExamRoom extends Component
 
     public function submitExam(ExamService $examService): void
     {
+        // Past the deadline this closes the attempt like a timeout instead,
+        // so a late pick isn't saved and the peserta sees why.
+        if (! $this->ensureWithinDeadline()) {
+            return;
+        }
+
         $this->showLastQuestionModal = false;
-        $this->saveAnswer();
+        $this->persistCurrentAnswer();
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
         $this->persistHelpItemsState();
@@ -537,37 +584,46 @@ class ExamRoom extends Component
         $this->redirectAfterSubmit($attempt);
     }
 
-    public function checkExpiry(): void
+    protected function freshDeadlineAttempt(): ?Model
     {
-        if ($this->remainingSeconds <= 0) {
-            // Terminal auto-submit: capture the current on-screen pick, same as
-            // a manual submit, so a selected-but-not-yet-saved answer on the
-            // active question isn't lost when time runs out.
-            $this->saveAnswer();
-            $this->accumulateCurrentQuestionDuration();
-            $this->persistAttemptMetadata();
-            $this->persistHelpItemsState();
-            if (! $this->isRemedial && ! $this->isDrill) {
-                $this->persistTelemetries();
-                $this->persistStressTestAnalysis();
-            }
-            $attempt = app(ExamService::class)->submitAttempt($this->resolveAttempt(), auth()->user());
-            session()->flash('show_result_attempt_id', $attempt->id);
-            session()->flash('error', 'Waktu ujian habis. Jawaban otomatis dikumpulkan.');
-            $this->redirectAfterSubmit($attempt);
+        return ExamAttempt::query()->find($this->attemptId, ['id', 'status', 'expires_at']);
+    }
+
+    protected function closeTimedOutAttempt(): string
+    {
+        // Terminal auto-submit: capture the current on-screen pick, same as a
+        // manual submit, so a selected-but-not-yet-saved answer on the active
+        // question isn't lost — but only if it was made before time ran out
+        // (the browser locks the screen at zero; the grace covers latency).
+        if ($this->withinAnswerGrace()) {
+            $this->persistCurrentAnswer();
         }
+
+        $this->accumulateCurrentQuestionDuration();
+        $this->persistAttemptMetadata();
+        $this->persistHelpItemsState();
+        if (! $this->isRemedial && ! $this->isDrill) {
+            $this->persistTelemetries();
+            $this->persistStressTestAnalysis();
+        }
+        $attempt = app(ExamService::class)->submitAttempt($this->resolveAttempt(), auth()->user());
+        session()->flash('show_result_attempt_id', $attempt->id);
+
+        return $this->resultUrl($attempt);
     }
 
     private function redirectAfterSubmit(ExamAttempt $attempt): void
     {
-        if ($attempt->event?->is_mode_ujian) {
-            $this->redirect(route('peserta.mode-ujian.skd-result', $attempt), navigate: true);
+        $this->redirect($this->resultUrl($attempt), navigate: true);
+    }
 
-            return;
+    private function resultUrl(ExamAttempt $attempt): string
+    {
+        if ($attempt->event?->is_mode_ujian) {
+            return route('peserta.mode-ujian.skd-result', $attempt);
         }
 
-        $redirectParams = $attempt->isDrill() ? ['filter' => 'drill'] : [];
-        $this->redirect(route('peserta.history', $redirectParams), navigate: true);
+        return route('peserta.history', $attempt->isDrill() ? ['filter' => 'drill'] : []);
     }
 
     private function currentAnswerState(): ?array

@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'peserta' => \App\Http\Middleware\EnsureUserIsPeserta::class,
+            'exam-lockdown' => \App\Http\Middleware\BlockDuringExamLockdown::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

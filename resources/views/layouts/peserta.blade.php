@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="motion-safe:scroll-smooth">
 <head>
-    @include('partials.head', ['title' => $title ?? 'Peserta - Simulasi CBT'])
+    @include('partials.head', ['title' => $title ?? 'Peserta'])
 </head>
 <body class="flex min-h-screen flex-col bg-slate-50 antialiased">
     @if ($showNav ?? true)

@@ -90,6 +90,43 @@ class SkbExamRoomSaveAnswerTest extends TestCase
         $this->assertSame($optionId, $last->fresh()->selected_option_id);
     }
 
+    public function test_selesai_ujian_saves_the_unsaved_pick_on_the_last_question(): void
+    {
+        [$user, $attempt] = $this->startSkbAttempt();
+        $component = Livewire::actingAs($user)->test(SkbExamRoom::class);
+
+        // Answer every question; the last one is picked but "Simpan Jawaban"
+        // is never clicked before "Selesai Ujian".
+        foreach ([1, 2, 3] as $sortOrder) {
+            $component->call('selectOption', $this->answerAt($attempt, $sortOrder)->question->correctOption()->id);
+
+            if ($sortOrder < 3) {
+                $component->call('next');
+            }
+        }
+
+        $component->call('submitExam');
+
+        $attempt->refresh();
+        $this->assertSame(ExamAttemptStatus::Submitted, $attempt->status);
+        $this->assertSame(3, $attempt->correct_count);
+        $this->assertNotNull($this->answerAt($attempt, 3)->selected_option_id);
+    }
+
+    public function test_last_question_shows_saved_state_after_simpan_jawaban(): void
+    {
+        [$user, $attempt] = $this->startSkbAttempt();
+        $optionId = $this->answerAt($attempt, 3)->question->options->first()->id;
+
+        Livewire::actingAs($user)
+            ->test(SkbExamRoom::class)
+            ->call('goToQuestion', 2)
+            ->call('selectOption', $optionId)
+            ->assertDontSee('Jawaban Tersimpan')
+            ->call('saveAnswer')
+            ->assertSee('Jawaban Tersimpan');
+    }
+
     public function test_option_from_another_question_is_rejected(): void
     {
         [$user, $attempt] = $this->startSkbAttempt();

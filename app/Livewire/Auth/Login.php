@@ -3,13 +3,13 @@
 namespace App\Livewire\Auth;
 
 use App\Enums\UserRole;
+use App\Livewire\Concerns\AuthenticatesCbtUsers;
 use App\Models\Instansi;
 use App\Models\User;
 use App\Rules\ValidNip;
-use Illuminate\Support\Facades\Auth;
+use App\Support\ExamLockdown;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Email;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +21,8 @@ use Livewire\Component;
 #[Title('Masuk')]
 class Login extends Component
 {
+    use AuthenticatesCbtUsers;
+
     public string $login = '';
 
     public string $password = '';
@@ -47,50 +49,14 @@ class Login extends Component
 
     public function authenticate(): void
     {
-        $this->validate([
-            'login' => ['required', 'string'],
-            'password' => ['required', 'string'],
-        ], [
-            'login.required' => 'username atau nip harus diisi',
-            'login.string' => 'username atau nip harus berupa string',
-            'password.required' => 'password harus diisi',
-            'password.string' => 'password harus berupa string',
-        ]);
-
-        $this->ensureIsNotRateLimited();
-
-        $user = User::query()
-            ->where('is_active', true)
-            ->where('username', $this->login)
-            ->where('role', UserRole::Admin)
-            ->first();
-
-        if ($user === null) {
-            $user = User::query()
-                ->where('is_active', true)
-                ->where('role', UserRole::Peserta)
-                ->where(function ($query) {
-                    $query->where('username', $this->login)
-                        ->orWhere('nip', $this->login)
-                        ->orWhere('nik', $this->login);
-                })
-                ->first();
+        // Livewire calls skip the route middleware: re-check the closure here.
+        if ($this->closedForExam()) {
+            return;
         }
 
-        if ($user === null || ! Hash::check($this->password, $user->password)) {
-            RateLimiter::hit($this->throttleKey());
+        $this->validateCredentials();
 
-            throw ValidationException::withMessages([
-                'login' => 'kredensial tidak valid atau akun nonaktif.',
-            ]);
-        }
-
-        Auth::login($user, $this->remember);
-
-        RateLimiter::clear($this->throttleKey());
-        session()->regenerate();
-
-        $this->redirectAfterLogin();
+        $this->completeLogin($this->resolveUserFromCredentials(), $this->remember);
     }
 
     public function openRegisterModal(): void
@@ -148,6 +114,10 @@ class Login extends Component
 
     public function registerPegawai(): void
     {
+        if ($this->closedForExam()) {
+            return;
+        }
+
         $this->ensureRegisterIsNotRateLimited();
 
         $validated = $this->validate([
@@ -199,46 +169,16 @@ class Login extends Component
         session()->flash('success', 'Pendaftaran berhasil. Silakan masuk dengan username atau NIP dan password Anda.');
     }
 
-    protected function redirectAfterLogin(): void
+    /** Mode Sedang Ujian closes this page; send any late form post back to the notice. */
+    private function closedForExam(): bool
     {
-        $user = Auth::user();
-
-        if ($user->role === UserRole::Peserta) {
-            $modeUjianParticipant = \App\Models\EventParticipant::query()
-                ->where('user_id', $user->id)
-                ->whereHas('event', fn ($q) => $q->where('is_mode_ujian', true)->where('status', \App\Enums\EventStatus::Active))
-                ->latest()
-                ->first();
-
-            if ($modeUjianParticipant) {
-                $this->redirect(route('peserta.mode-ujian.dashboard'), navigate: true);
-
-                return;
-            }
+        if (! ExamLockdown::active()) {
+            return false;
         }
 
-        $this->redirect(match ($user->role) {
-            UserRole::Admin => route('admin.dashboard'),
-            UserRole::Peserta => route('peserta.dashboard'),
-        }, navigate: true);
-    }
+        $this->redirect(route('login'));
 
-    protected function ensureIsNotRateLimited(): void
-    {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-            return;
-        }
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        throw ValidationException::withMessages([
-            'login' => "Terlalu banyak percobaan. Coba lagi dalam {$seconds} detik.",
-        ]);
-    }
-
-    protected function throttleKey(): string
-    {
-        return Str::transliterate(Str::lower($this->login).'|'.request()->ip());
+        return true;
     }
 
     protected function ensureRegisterIsNotRateLimited(): void

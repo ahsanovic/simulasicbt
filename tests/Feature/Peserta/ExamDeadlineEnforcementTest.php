@@ -261,7 +261,10 @@ class ExamDeadlineEnforcementTest extends TestCase
         Livewire::actingAs($ctx['user'])
             ->test(ExamRoom::class, ['exam' => $ctx['exam']])
             ->assertSeeHtml('data-exam-protection')
-            ->assertSeeHtml('data-exam-content');
+            ->assertSeeHtml('data-exam-content')
+            // No screen-covering screenshot shield: remote/recording apps
+            // inject PrintScreen, so it falsely accused peserta on clicks.
+            ->assertDontSee('Screenshot tidak diizinkan');
     }
 
     public function test_content_protection_is_active_in_skb_room(): void
@@ -271,7 +274,10 @@ class ExamDeadlineEnforcementTest extends TestCase
         Livewire::actingAs($user)
             ->test(SkbExamRoom::class)
             ->assertSeeHtml('data-exam-protection')
-            ->assertSeeHtml('data-exam-content');
+            ->assertSeeHtml('data-exam-content')
+            // No screen-covering screenshot shield: remote/recording apps
+            // inject PrintScreen, so it falsely accused peserta on clicks.
+            ->assertDontSee('Screenshot tidak diizinkan');
     }
 
     public function test_content_protection_is_not_applied_outside_mode_ujian(): void

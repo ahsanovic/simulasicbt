@@ -4,11 +4,16 @@ namespace App\Livewire\Peserta\ModeUjian;
 
 use App\Enums\EventStatus;
 use App\Enums\ExamAttemptStatus;
+use App\Models\Event;
 use App\Models\EventParticipant;
+use App\Models\EventSession;
 use App\Models\ExamAttempt;
+use App\Models\SkbExamAttempt;
 use App\Services\ExamService;
 use App\Services\SkbExamService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -56,10 +61,24 @@ class Dashboard extends Component
         $this->showPinModal = false;
     }
 
+    /**
+     * Resume or start SKD/SKB after the session PIN. All rules live here, on
+     * the server: the dashboard buttons are only cosmetics, a crafted call to
+     * this method must hit the same checks.
+     */
     public function submitPin(ExamService $examService, SkbExamService $skbExamService): void
     {
         $event = $this->participant->event;
         $session = $this->participant->eventSession;
+        $phase = in_array($this->pinPhase, ['skd', 'skb'], true) ? $this->pinPhase : null;
+
+        if ($phase === null
+            || ($phase === 'skd' && ! $event->exam_mode->includesSkd())
+            || ($phase === 'skb' && ! $event->exam_mode->includesSkb())) {
+            $this->pinError = 'Tahap ujian ini tidak tersedia pada event Anda.';
+
+            return;
+        }
 
         if ($session === null) {
             $this->pinError = 'Sesi belum diset oleh admin untuk akun Anda. Hubungi admin.';
@@ -67,7 +86,7 @@ class Dashboard extends Component
             return;
         }
 
-        $expectedPin = $this->pinPhase === 'skd' ? $session->skd_pin : $session->skb_pin;
+        $expectedPin = $phase === 'skd' ? $session->skd_pin : $session->skb_pin;
 
         if ($expectedPin === null || trim($this->pinInput) !== (string) $expectedPin) {
             $this->pinError = 'PIN sesi salah.';
@@ -75,31 +94,84 @@ class Dashboard extends Component
             return;
         }
 
-        if ($this->pinPhase === 'skd') {
-            $attempt = ExamAttempt::query()
-                ->where('event_id', $event->id)
-                ->where('user_id', Auth::id())
-                ->where('status', ExamAttemptStatus::InProgress)
-                ->latest('id')
-                ->first();
+        try {
+            // Lock this participant's row so a double click / second tab
+            // can't start two attempts at once: the second request waits,
+            // then finds the first attempt and resumes it.
+            DB::transaction(function () use ($phase, $event, $session, $examService, $skbExamService) {
+                EventParticipant::query()->whereKey($this->participant->id)->lockForUpdate()->first();
 
-            if ($attempt === null) {
-                $attempt = $examService->startAttempt($event->exam, Auth::user(), $event->id, $this->participant->event_session_id);
-                $attempt->update(['display_name' => $this->participant->name]);
-            }
-
-            $this->redirect(route('peserta.exam.room', $attempt->exam_id), navigate: false);
+                $phase === 'skd'
+                    ? $this->resumeOrStartSkd($event, $session, $examService)
+                    : $this->resumeOrStartSkb($event, $session, $skbExamService);
+            });
+        } catch (ValidationException $exception) {
+            // e.g. finished already, session not open, question bank too small.
+            $this->pinError = collect($exception->errors())->flatten()->first()
+                ?? 'Ujian tidak dapat dimulai. Hubungi pengawas.';
 
             return;
         }
 
-        $attempt = $skbExamService->findActiveAttempt($event, Auth::id());
+        $this->redirect(
+            $phase === 'skd' ? route('peserta.exam.room', $event->exam_id) : route('peserta.mode-ujian.skb.room'),
+            navigate: false,
+        );
+    }
 
-        if ($attempt === null) {
-            $attempt = $skbExamService->startAttempt($event, $this->participant);
+    private function resumeOrStartSkd(Event $event, EventSession $session, ExamService $examService): void
+    {
+        $attempts = ExamAttempt::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', Auth::id());
+
+        if ((clone $attempts)->where('status', ExamAttemptStatus::InProgress)->exists()) {
+            return; // resume — allowed even if the session was closed meanwhile
         }
 
-        $this->redirect(route('peserta.mode-ujian.skb.room'), navigate: false);
+        if ((clone $attempts)->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])->exists()) {
+            throw ValidationException::withMessages(['pin' => 'Anda sudah menyelesaikan ujian SKD. Ujian tidak dapat diulang.']);
+        }
+
+        $this->ensureSessionIsOpen($session);
+
+        $attempt = $examService->startAttempt($event->exam, Auth::user(), $event->id, $this->participant->event_session_id);
+        $attempt->update(['display_name' => $this->participant->name]);
+    }
+
+    private function resumeOrStartSkb(Event $event, EventSession $session, SkbExamService $skbExamService): void
+    {
+        if ($skbExamService->findActiveAttempt($event, Auth::id()) !== null) {
+            return; // resume — allowed even if the session was closed meanwhile
+        }
+
+        $finished = SkbExamAttempt::query()
+            ->where('event_id', $event->id)
+            ->where('user_id', Auth::id())
+            ->whereIn('status', [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired])
+            ->exists();
+
+        if ($finished) {
+            throw ValidationException::withMessages(['pin' => 'Anda sudah menyelesaikan ujian SKB. Ujian tidak dapat diulang.']);
+        }
+
+        $this->ensureSessionIsOpen($session);
+
+        $skbExamService->startAttempt($event, $this->participant);
+    }
+
+    /** New attempts only start while the proctor has the session open (status Aktif). */
+    private function ensureSessionIsOpen(EventSession $session): void
+    {
+        $status = $session->fresh()?->status;
+
+        if ($status === EventStatus::Closed) {
+            throw ValidationException::withMessages(['pin' => 'Sesi Anda sudah ditutup. Hubungi pengawas.']);
+        }
+
+        if ($status !== EventStatus::Active) {
+            throw ValidationException::withMessages(['pin' => 'Sesi Anda belum dibuka oleh pengawas. Tunggu instruksi pengawas.']);
+        }
     }
 
     public function render()

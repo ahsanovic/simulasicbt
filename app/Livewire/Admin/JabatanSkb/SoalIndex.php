@@ -6,10 +6,12 @@ use App\Enums\QuestionImportStatus;
 use App\Enums\QuestionOptionContentType;
 use App\Livewire\Concerns\HandlesImportErrorModal;
 use App\Models\JabatanSkb;
+use App\Models\SkbExamAnswer;
 use App\Models\SkbQuestion;
 use App\Models\SkbQuestionImportJob;
 use App\Models\SkbQuestionOption;
 use App\Services\HtmlSanitizer;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -186,17 +188,20 @@ class SoalIndex extends Component
             ];
 
             $oldImagePaths = [];
+            $existingOptions = collect();
 
             if ($this->editingId) {
                 $question = $this->jabatanSkb->questions()->findOrFail($this->editingId);
+
+                // Options are updated in place (matched by position), never
+                // deleted and recreated: participant answers point at option
+                // ids, and a recreated option would silently erase them.
+                $existingOptions = $question->options()->orderBy('sort_order')->orderBy('id')->get()->values();
+                $this->ensureRemovedOptionsWereNeverChosen($existingOptions->slice(count($validated['options'])));
+
                 $question->update($questionData);
 
-                $oldImagePaths = $question->options()
-                    ->whereNotNull('image_path')
-                    ->pluck('image_path')
-                    ->all();
-
-                SkbQuestionOption::withoutEvents(fn () => $question->options()->delete());
+                $oldImagePaths = $existingOptions->pluck('image_path')->filter()->values()->all();
             } else {
                 $question = SkbQuestion::query()->create([
                     ...$questionData,
@@ -227,15 +232,30 @@ class SoalIndex extends Component
                     $content = $sanitizer->sanitize($option['content'] ?? '');
                 }
 
-                SkbQuestionOption::query()->create([
-                    'skb_question_id' => $question->id,
+                $attributes = [
                     'label' => $option['label'],
                     'content_type' => $contentType,
                     'content' => $content,
                     'image_path' => $imagePath,
                     'is_correct' => $index === $this->correctOptionIndex,
                     'sort_order' => $index + 1,
-                ]);
+                ];
+
+                $existing = $existingOptions->get($index);
+
+                if ($existing !== null) {
+                    SkbQuestionOption::withoutEvents(fn () => $existing->update($attributes));
+                } else {
+                    SkbQuestionOption::query()->create(['skb_question_id' => $question->id, ...$attributes]);
+                }
+            }
+
+            // Options the admin removed from the end of the list; guarded above
+            // so none of them was ever chosen by a participant.
+            $removedIds = $existingOptions->slice(count($validated['options']))->pluck('id');
+
+            if ($removedIds->isNotEmpty()) {
+                SkbQuestionOption::withoutEvents(fn () => SkbQuestionOption::query()->whereIn('id', $removedIds)->delete());
             }
 
             foreach ($oldImagePaths as $oldPath) {
@@ -249,9 +269,45 @@ class SoalIndex extends Component
         $this->closeModal();
     }
 
+    /**
+     * @param  Collection<int, SkbQuestionOption>  $removedOptions
+     */
+    private function ensureRemovedOptionsWereNeverChosen($removedOptions): void
+    {
+        if ($removedOptions->isEmpty()) {
+            return;
+        }
+
+        $chosen = SkbExamAnswer::query()
+            ->whereIn('selected_option_id', $removedOptions->pluck('id'))
+            ->exists();
+
+        if ($chosen) {
+            throw ValidationException::withMessages([
+                'options' => 'Opsi yang dihapus sudah dipilih peserta pada ujian, sehingga tidak bisa dihapus. Ubah isinya saja atau batalkan penghapusan opsi.',
+            ]);
+        }
+    }
+
     public function delete(int $questionId): void
     {
-        $this->jabatanSkb->questions()->whereKey($questionId)->delete();
+        $question = $this->jabatanSkb->questions()->findOrFail($questionId);
+
+        // A question already handed out in an exam is part of that attempt's
+        // record (answers, score, export). Removing it would break scoring, so
+        // it can only be taken out of future exams by deactivating it.
+        $usedInAttempts = SkbExamAnswer::query()
+            ->where('skb_question_id', $question->id)
+            ->distinct()
+            ->count('skb_exam_attempt_id');
+
+        if ($usedInAttempts > 0) {
+            session()->flash('error', "Soal tidak bisa dihapus karena sudah dipakai di {$usedInAttempts} ujian peserta. Nonaktifkan soal agar tidak muncul di ujian berikutnya.");
+
+            return;
+        }
+
+        $question->delete();
         session()->flash('success', 'Soal SKB berhasil dihapus.');
     }
 

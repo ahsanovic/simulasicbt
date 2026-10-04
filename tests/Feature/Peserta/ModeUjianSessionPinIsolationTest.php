@@ -55,15 +55,18 @@ class ModeUjianSessionPinIsolationTest extends TestCase
 
         $this->assertDatabaseMissing('exam_attempts', ['user_id' => $userX->id]);
 
-        // X's own session 1 PIN must pass the PIN check (it may still fail
-        // later for the unrelated reason that this test seeds no question
-        // bank — that's not what this test is about; only pinError staying
-        // null proves the PIN itself was accepted).
-        Livewire::actingAs($userX)
+        // X's own session 1 PIN must pass the PIN check. Starting then fails
+        // for the unrelated reason that this test seeds no question bank, and
+        // that error is shown to the peserta — so the PIN was accepted as long
+        // as the message is not the wrong-PIN one.
+        $pinError = Livewire::actingAs($userX)
             ->test(Dashboard::class)
             ->call('openPinModal', 'skd')
             ->set('pinInput', $session1->skd_pin)
             ->call('submitPin')
-            ->assertSet('pinError', null);
+            ->get('pinError');
+
+        $this->assertNotSame('PIN sesi salah.', $pinError);
+        $this->assertSame('Bank soal tidak cukup untuk memulai ujian. Hubungi admin.', $pinError);
     }
 }

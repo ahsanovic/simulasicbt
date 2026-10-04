@@ -125,7 +125,9 @@ class SkbExamRoom extends Component
             return null;
         }
 
-        $question = SkbQuestion::query()->with('options')->find($questionId);
+        // withTrashed: the question stays part of this attempt even if it was
+        // removed from the bank after the attempt started.
+        $question = SkbQuestion::withTrashed()->with('options')->find($questionId);
 
         if ($question === null) {
             return null;

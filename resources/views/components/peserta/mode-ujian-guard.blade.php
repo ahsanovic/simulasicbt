@@ -70,12 +70,8 @@
         window.addEventListener('focus', () => checkViolation());
     "
 >
-    {{-- Copy / screenshot protection; violations only warn, never log out. --}}
-    <div x-data="examContentProtection" data-exam-protection>
-        <div x-show="shielded" x-cloak class="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950 p-4">
-            <p class="text-center text-sm font-semibold text-white">Screenshot tidak diizinkan selama ujian.</p>
-        </div>
-    </div>
+    {{-- Copy / screenshot protection (resources/js/exam-content-protection.js); never blocks the screen or logs out. --}}
+    <div x-data="examContentProtection" data-exam-protection></div>
 
     <form x-ref="logoutForm" method="POST" action="{{ route('logout') }}" class="hidden">
         @csrf

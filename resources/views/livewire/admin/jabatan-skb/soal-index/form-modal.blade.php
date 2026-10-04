@@ -48,6 +48,7 @@
 
                 <div class="rounded-xl border border-slate-200 p-4">
                     <h3 class="mb-3 text-sm font-semibold text-slate-800">Pilihan Jawaban</h3>
+                    @error('options') <p class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{{ $message }}</p> @enderror
 
                     <div class="space-y-2.5">
                         @foreach ($options as $index => $option)

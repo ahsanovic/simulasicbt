@@ -29,9 +29,14 @@ class SkbExamAnswer extends Model
         return $this->belongsTo(SkbExamAttempt::class, 'skb_exam_attempt_id');
     }
 
+    /**
+     * Includes soft-deleted questions: an answer always needs its question to
+     * be shown and scored, even if the question was removed from the bank
+     * after the participant got it.
+     */
     public function question(): BelongsTo
     {
-        return $this->belongsTo(SkbQuestion::class, 'skb_question_id');
+        return $this->belongsTo(SkbQuestion::class, 'skb_question_id')->withTrashed();
     }
 
     public function selectedOption(): BelongsTo

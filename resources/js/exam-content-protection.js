@@ -5,16 +5,23 @@ import { showToast } from './sweetalert-toast.js';
  * screenshots as hard as a web page can.
  *
  * A page cannot truly block OS-level screenshots (PrintScreen, Snipping Tool,
- * a phone camera). What it can do: wipe the clipboard after PrintScreen, cover
- * the questions for a moment, and blur them whenever the window loses focus
- * (snipping tools take focus). Violations are blocked and warned about — they
- * never log the peserta out; leaving the tab is handled by mode-ujian-guard.
+ * a phone camera). What it can do: wipe the clipboard after PrintScreen and
+ * blur the questions whenever the window loses focus (snipping tools take
+ * focus). Blocked copy/print/devtools actions get a warning; nothing here ever
+ * logs the peserta out — leaving the tab is handled by mode-ujian-guard.
+ *
+ * PrintScreen is handled SILENTLY. Remote/recording apps common in exam rooms
+ * (AnyDesk, TeamViewer, UltraViewer, OBS, Lightshot, ShareX…) inject or hook
+ * that key at OS level, so the page receives trusted PrintScreen events the
+ * peserta never pressed — e.g. on every answer click. Those are
+ * indistinguishable from a real press, so they must never cover the screen or
+ * accuse the peserta; quietly emptying the clipboard is harmless either way.
  */
 
 const BLOCKED_CTRL_KEYS = new Set(['a', 'c', 'p', 's', 'u', 'x']);
 const BLOCKED_CTRL_SHIFT_KEYS = new Set(['c', 'i', 'j', 's']);
 const WARNING_MESSAGE = 'Tindakan ini tidak diizinkan selama ujian.';
-const SCREENSHOT_MESSAGE = 'Screenshot tidak diizinkan selama ujian.';
+const CLIPBOARD_WIPE_COOLDOWN_MS = 3000;
 
 function isEditable(target) {
     return Boolean(target?.closest?.('input, textarea, [contenteditable="true"]'));
@@ -37,10 +44,10 @@ export function isBlockedShortcut(event) {
 /**
  * Wire the protection onto a document/window pair.
  *
- * @param {{ doc: Document, win: Window, onViolation: (message: string) => void, onShield: (seconds: number) => void, onFocusChange: (focused: boolean) => void }} deps
+ * @param {{ doc: Document, win: Window, onViolation: (message: string) => void, onFocusChange: (focused: boolean) => void, now?: () => number }} deps
  * @returns {() => void} uninstall
  */
-export function installExamContentProtection({ doc, win, onViolation, onShield, onFocusChange }) {
+export function installExamContentProtection({ doc, win, onViolation, onFocusChange, now = () => Date.now() }) {
     const listeners = [];
     const on = (target, type, handler, options) => {
         target.addEventListener(type, handler, options);
@@ -56,7 +63,16 @@ export function installExamContentProtection({ doc, win, onViolation, onShield, 
         onViolation(WARNING_MESSAGE);
     };
 
+    // Throttled: injected PrintScreen events can arrive on every click, and
+    // clipboard sync in remote tools should not be hammered by our writes.
+    let lastWipeAt = -Infinity;
     const wipeClipboard = () => {
+        if (now() - lastWipeAt < CLIPBOARD_WIPE_COOLDOWN_MS) {
+            return;
+        }
+
+        lastWipeAt = now();
+
         try {
             const result = win.navigator?.clipboard?.writeText?.('');
             result?.catch?.(() => {});
@@ -77,10 +93,7 @@ export function installExamContentProtection({ doc, win, onViolation, onShield, 
 
     on(doc, 'keydown', (event) => {
         if (String(event.key ?? '').toLowerCase() === 'printscreen') {
-            event.preventDefault();
             wipeClipboard();
-            onShield(2);
-            onViolation(SCREENSHOT_MESSAGE);
 
             return;
         }
@@ -93,12 +106,11 @@ export function installExamContentProtection({ doc, win, onViolation, onShield, 
     }, true);
 
     // Most browsers only report PrintScreen on keyup, after the OS has
-    // already taken the shot: wipe the clipboard copy it just made.
+    // already taken the shot: wipe the clipboard copy it just made. Silent on
+    // purpose — see the note at the top of this file.
     on(doc, 'keyup', (event) => {
         if (String(event.key ?? '').toLowerCase() === 'printscreen') {
             wipeClipboard();
-            onShield(2);
-            onViolation(SCREENSHOT_MESSAGE);
         }
     }, true);
 
@@ -111,8 +123,6 @@ export function installExamContentProtection({ doc, win, onViolation, onShield, 
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('examContentProtection', () => ({
-        shielded: false,
-        shieldTimer: null,
         lastWarningAt: 0,
         uninstall: null,
 
@@ -125,7 +135,6 @@ document.addEventListener('alpine:init', () => {
                 doc: document,
                 win: window,
                 onViolation: (message) => this.warn(message),
-                onShield: (seconds) => this.shield(seconds),
                 onFocusChange: (focused) => root.classList.toggle('exam-unfocused', ! focused),
             });
         },
@@ -142,15 +151,8 @@ document.addEventListener('alpine:init', () => {
             showToast('warning', message);
         },
 
-        shield(seconds) {
-            this.shielded = true;
-            clearTimeout(this.shieldTimer);
-            this.shieldTimer = setTimeout(() => { this.shielded = false; }, seconds * 1000);
-        },
-
         destroy() {
             this.uninstall?.();
-            clearTimeout(this.shieldTimer);
             document.documentElement.classList.remove('exam-protected', 'exam-unfocused');
         },
     }));

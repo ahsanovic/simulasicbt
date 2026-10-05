@@ -3,11 +3,19 @@
 namespace App\Models;
 
 use App\Enums\QuestionOptionContentType;
+use App\Support\ExamQuestionCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SkbQuestionOption extends Model
 {
+    protected static function booted(): void
+    {
+        // Shown content changed: drop the cached copy used by the exam rooms.
+        static::saved(fn (SkbQuestionOption $option) => ExamQuestionCache::forgetSkb($option->skb_question_id));
+        static::deleted(fn (SkbQuestionOption $option) => ExamQuestionCache::forgetSkb($option->skb_question_id));
+    }
+
     protected $fillable = [
         'skb_question_id',
         'label',

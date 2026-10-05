@@ -1,11 +1,11 @@
 <div class="min-h-screen bg-slate-100">
     @unless ($timeUp)
-        {{-- Deadline sync every 10s, start offset randomised per participant (see exam-timer.js). --}}
-        <div x-data="examDeadlinePoll(10000)" class="hidden"></div>
+        {{-- Deadline sync every 30s, start offset randomised per participant (see exam-timer.js). --}}
+        <div x-data="examDeadlinePoll(30000)" class="hidden"></div>
     @endunless
     <x-peserta.mode-ujian-guard />
     <x-ui.flash-toast />
-    <x-peserta.exam-connection-banner />
+    <x-peserta.exam-connection-banner attempt-key="skb-{{ $attemptId }}" :answer-version="$answerVersionBase" />
     <x-peserta.exam-time-up-overlay :time-up="$timeUp" :result-url="$resultUrl" />
 
     @include('livewire.peserta.mode-ujian.skb-exam-room.header')

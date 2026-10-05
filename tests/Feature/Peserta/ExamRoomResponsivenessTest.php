@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Peserta;
 
+use App\Enums\ExamAttemptStatus;
 use App\Livewire\Peserta\ExamRoom;
 use App\Livewire\Peserta\ModeUjian\SkbExamRoom;
 use Livewire\Features\SupportTesting\Testable;
@@ -57,7 +58,7 @@ class ExamRoomResponsivenessTest extends ExamDeadlineEnforcementTest
         $component = Livewire::actingAs($user)->test(SkbExamRoom::class)
             ->assertSeeHtml('wire:model="selectedOptionId"')
             ->assertDontSeeHtml('selectOption(')
-            ->assertSeeHtml('examDeadlinePoll(10000)')
+            ->assertSeeHtml('examDeadlinePoll(30000)')
             ->assertDontSeeHtml('wire:poll');
 
         // Deferred wire:model: the pick arrives with the next action.
@@ -103,7 +104,7 @@ class ExamRoomResponsivenessTest extends ExamDeadlineEnforcementTest
             ->test(ExamRoom::class, ['exam' => $ctx['exam']])
             ->assertSeeHtml('wire:model="selectedOptionId"')
             ->assertDontSeeHtml('selectOption(')
-            ->assertSeeHtml('examDeadlinePoll(10000)')
+            ->assertSeeHtml('examDeadlinePoll(30000)')
             ->assertDontSeeHtml('wire:poll');
 
         $component->set('selectedOptionId', $ctx['firstOptionId'])->call('next');
@@ -156,6 +157,53 @@ class ExamRoomResponsivenessTest extends ExamDeadlineEnforcementTest
         Livewire::actingAs($user)->test(SkbExamRoom::class)
             ->assertSet('currentIndex', 0)
             ->assertSet('selectedOptionId', $first->question->options->first()->id);
+    }
+
+    public function test_skb_already_submitted_attempt_goes_to_result_not_time_up(): void
+    {
+        [$user, $attempt] = $this->startSkbAttempt();
+        $component = Livewire::actingAs($user)->test(SkbExamRoom::class);
+
+        // "Selesai" went through but its response was lost; the room is still open.
+        $attempt->update(['status' => ExamAttemptStatus::Submitted, 'submitted_at' => now()]);
+
+        $component->call('checkExpiry')
+            ->assertSet('timeUp', false)
+            ->assertRedirect(route('peserta.mode-ujian.skb-result', $attempt->id));
+
+        $component->call('submitExam')
+            ->assertSet('timeUp', false)
+            ->assertRedirect(route('peserta.mode-ujian.skb-result', $attempt->id));
+    }
+
+    public function test_skd_already_submitted_attempt_goes_to_result_not_time_up(): void
+    {
+        $ctx = $this->createSkdAttempt(expiresInMinutes: 60, modeUjian: true);
+        $component = Livewire::actingAs($ctx['user'])->test(ExamRoom::class, ['exam' => $ctx['exam']]);
+
+        $ctx['attempt']->update(['status' => ExamAttemptStatus::Submitted, 'submitted_at' => now()]);
+
+        $component->call('next')
+            ->assertSet('timeUp', false)
+            ->assertRedirect(route('peserta.mode-ujian.skd-result', $ctx['attempt']->id));
+    }
+
+    public function test_attempt_closed_after_deadline_still_shows_time_up(): void
+    {
+        [$user, $attempt] = $this->startSkbAttempt();
+        $component = Livewire::actingAs($user)->test(SkbExamRoom::class);
+
+        $attempt->update(['status' => ExamAttemptStatus::Submitted, 'expires_at' => now()->subMinute()]);
+
+        $component->call('checkExpiry')->assertSet('timeUp', true);
+    }
+
+    public function test_save_buttons_show_saving_state(): void
+    {
+        [$user] = $this->startSkbAttempt();
+
+        Livewire::actingAs($user)->test(SkbExamRoom::class)
+            ->assertSeeHtml('<span wire:loading wire:target="next">Menyimpan…</span>');
     }
 
     /** @return array<string, mixed> */

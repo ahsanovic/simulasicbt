@@ -2,11 +2,19 @@
 
 namespace App\Models;
 
+use App\Support\LiveScoreCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EventParticipant extends Model
 {
+    /** Roster/session changes show on the livescore boards straight away (see LiveScoreCache). */
+    protected static function booted(): void
+    {
+        static::saved(fn (EventParticipant $participant) => LiveScoreCache::bust($participant->event_id));
+        static::deleted(fn (EventParticipant $participant) => LiveScoreCache::bust($participant->event_id));
+    }
+
     protected $fillable = [
         'event_id',
         'event_session_id',

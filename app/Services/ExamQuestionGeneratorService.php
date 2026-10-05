@@ -48,30 +48,37 @@ class ExamQuestionGeneratorService
      */
     public function generate(string $difficulty = 'all'): Collection
     {
-        $this->assertSufficientQuestions($difficulty);
-
-        $questionIds = collect();
-        $sortOrder = 1;
+        // Picks only the IDs (not every question's full content) and checks
+        // the bank from what it picked: a short pick means too few questions,
+        // so no separate COUNT per subject is needed when hundreds of
+        // participants start at once.
+        $picked = [];
 
         foreach (self::SUBJECT_ORDER as $code) {
-            $count = self::COUNTS_BY_SUBJECT[$code->value];
+            $required = self::COUNTS_BY_SUBJECT[$code->value];
 
-            $questions = $this->baseQuery($code, $difficulty)
+            $ids = $this->baseQuery($code, $difficulty)
                 ->inRandomOrder()
-                ->limit($count)
-                ->get()
-                ->shuffle()
-                ->values();
+                ->limit($required)
+                ->pluck('id');
 
-            foreach ($questions as $question) {
-                $questionIds->push([
-                    'id' => $question->id,
-                    'sort_order' => $sortOrder++,
+            if ($ids->count() < $required) {
+                throw ValidationException::withMessages([
+                    'difficulty' => $this->insufficientMessage($code, $ids->count(), $required),
                 ]);
             }
+
+            $picked[] = $ids->shuffle();
         }
 
-        return $questionIds;
+        $sortOrder = 1;
+
+        return collect($picked)
+            ->flatten()
+            ->map(function ($id) use (&$sortOrder) {
+                return ['id' => (int) $id, 'sort_order' => $sortOrder++];
+            })
+            ->values();
     }
 
     public function assertSufficientQuestions(string $difficulty = 'all'): void
@@ -80,8 +87,7 @@ class ExamQuestionGeneratorService
 
         foreach ($this->availability($difficulty) as $code => $stats) {
             if ($stats['available'] < $stats['required']) {
-                $label = SubjectCode::from($code)->label();
-                $errors['difficulty'] = "Bank soal {$label} tidak cukup. Tersedia {$stats['available']} soal, dibutuhkan {$stats['required']}.";
+                $errors['difficulty'] = $this->insufficientMessage(SubjectCode::from($code), $stats['available'], $stats['required']);
                 break;
             }
         }
@@ -89,6 +95,11 @@ class ExamQuestionGeneratorService
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    private function insufficientMessage(SubjectCode $code, int $available, int $required): string
+    {
+        return "Bank soal {$code->label()} tidak cukup. Tersedia {$available} soal, dibutuhkan {$required}.";
     }
 
     private function baseQuery(SubjectCode $code, string $difficulty)

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ExamQuestionCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +11,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class SkbQuestion extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        // Shown content changed: drop the cached copy used by the exam rooms.
+        static::saved(fn (SkbQuestion $question) => ExamQuestionCache::forgetSkb($question->id));
+        static::deleted(fn (SkbQuestion $question) => ExamQuestionCache::forgetSkb($question->id));
+        static::restored(fn (SkbQuestion $question) => ExamQuestionCache::forgetSkb($question->id));
+    }
 
     protected $fillable = [
         'jabatan_skb_id',

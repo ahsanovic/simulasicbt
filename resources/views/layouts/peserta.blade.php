@@ -16,9 +16,13 @@
 
     <x-peserta.testimonial-prompt />
 
-    @auth
-        <livewire:peserta.profile-modal />
-    @endauth
+    {{-- Opened from the header's user menu, so only rendered where the header is
+         (not in the exam rooms, where it cost 4 XP/coin queries per page load). --}}
+    @if ($showNav ?? true)
+        @auth
+            <livewire:peserta.profile-modal />
+        @endauth
+    @endif
 
     @livewireScripts
     @stack('scripts')

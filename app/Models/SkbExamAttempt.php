@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class SkbExamAttempt extends Model
 {
@@ -84,5 +85,50 @@ class SkbExamAttempt extends Model
         return $query
             ->where('status', ExamAttemptStatus::InProgress)
             ->where('expires_at', '<=', now());
+    }
+
+    /**
+     * Answered / correct counts for many SKB attempts at once (livescore
+     * boards), from two aggregate queries instead of loading every answer as
+     * a model. "benar" counts saved picks whose option is the correct one —
+     * the same rule as SkbExamService::liveScores().
+     *
+     * @param  list<int>  $attemptIds
+     * @return array<int, array{total: int, answered: int, benar: int}>
+     */
+    public static function liveBoardStats(array $attemptIds): array
+    {
+        $stats = [];
+
+        foreach ($attemptIds as $id) {
+            $stats[$id] = ['total' => 0, 'answered' => 0, 'benar' => 0];
+        }
+
+        if ($attemptIds === []) {
+            return $stats;
+        }
+
+        DB::table('skb_exam_answers')
+            ->whereIn('skb_exam_attempt_id', $attemptIds)
+            ->groupBy('skb_exam_attempt_id')
+            ->selectRaw('skb_exam_attempt_id, COUNT(*) as total, COUNT(selected_option_id) as answered')
+            ->get()
+            ->each(function (object $row) use (&$stats): void {
+                $stats[$row->skb_exam_attempt_id]['total'] = (int) $row->total;
+                $stats[$row->skb_exam_attempt_id]['answered'] = (int) $row->answered;
+            });
+
+        DB::table('skb_exam_answers as a')
+            ->join('skb_question_options as o', 'o.id', '=', 'a.selected_option_id')
+            ->whereIn('a.skb_exam_attempt_id', $attemptIds)
+            ->where('o.is_correct', true)
+            ->groupBy('a.skb_exam_attempt_id')
+            ->selectRaw('a.skb_exam_attempt_id, COUNT(*) as benar')
+            ->get()
+            ->each(function (object $row) use (&$stats): void {
+                $stats[$row->skb_exam_attempt_id]['benar'] = (int) $row->benar;
+            });
+
+        return $stats;
     }
 }

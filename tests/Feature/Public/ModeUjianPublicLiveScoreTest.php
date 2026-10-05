@@ -32,7 +32,7 @@ class ModeUjianPublicLiveScoreTest extends TestCase
             ->assertViewHas('category', 'skd');
     }
 
-    public function test_skb_only_public_board_shows_not_started_participant(): void
+    public function test_skb_only_public_board_hides_participants_who_have_not_started(): void
     {
         [$event, $session, $jabatan] = $this->makeModeUjianEvent(EventExamMode::Skb);
 
@@ -49,12 +49,11 @@ class ModeUjianPublicLiveScoreTest extends TestCase
 
         $component = Livewire::test(LiveScoreShow::class, ['event' => $event]);
         $component->assertViewHas('category', 'skb');
-        $component->assertSee('Peserta SKB Publik');
-        $component->assertSee('Belum Ujian');
+        $component->assertDontSee('Peserta SKB Publik');
+        $component->assertDontSee('Belum Ujian');
+        $component->assertSee('Belum ada peserta pada papan skor ini.');
 
-        $rows = $component->instance()->rows();
-        $this->assertCount(1, $rows);
-        $this->assertSame(0, $rows[0]['benar']);
+        $this->assertCount(0, $component->instance()->rows());
     }
 
     public function test_both_mode_public_board_defaults_to_skd_and_switches_to_skb_via_dropdown(): void

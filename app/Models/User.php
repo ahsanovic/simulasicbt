@@ -85,6 +85,19 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /** Where this user lands after logging in (and when opening a login page while logged in). */
+    public function homeUrl(): string
+    {
+        if ($this->role === UserRole::Peserta && $this->isActiveModeUjianParticipant()) {
+            return route('peserta.mode-ujian.dashboard');
+        }
+
+        return match ($this->role) {
+            UserRole::Admin => route('admin.dashboard'),
+            UserRole::Peserta => route('peserta.dashboard'),
+        };
+    }
+
     public function isPeserta(): bool
     {
         return $this->role === UserRole::Peserta;

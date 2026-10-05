@@ -1,4 +1,4 @@
-@if ($this->currentAnswer)
+@if ($this->currentQuestion)
     <div class="ui-card p-6 sm:p-8">
         <div class="mb-5 flex flex-wrap items-center gap-2">
             <span class="ui-badge bg-slate-100 text-slate-700">Soal {{ $currentIndex + 1 }}</span>
@@ -8,11 +8,11 @@
         </div>
 
         <div class="prose-exam mb-8 text-base">
-            {!! html_for_display($this->currentAnswer->question->content) !!}
+            {!! html_for_display($this->currentQuestion->content) !!}
         </div>
 
         <div class="space-y-3">
-            @foreach ($this->currentAnswer->question->options as $option)
+            @foreach ($this->currentQuestion->options as $option)
                 {{-- Picking is browser-only (deferred wire:model): instant highlight, no request. --}}
                 <label wire:key="opt-{{ $option->id }}" class="exam-option">
                     <span class="exam-option-letter">{{ $option->label }}</span>

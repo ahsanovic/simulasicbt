@@ -1,8 +1,8 @@
-@if ($this->currentAnswer)
+@if ($this->currentQuestion)
     <div class="ui-card p-6 sm:p-8">
         <div class="mb-5 flex flex-wrap items-center gap-2">
-            @php $code = $this->currentAnswer->question->subject->code->value; @endphp
-            <x-peserta.exam-question-badges :question="$this->currentAnswer->question" />
+            @php $code = $this->currentQuestion->subject->code->value; @endphp
+            <x-peserta.exam-question-badges :question="$this->currentQuestion" />
             {{-- Scratchpad is not loaded in mode ujian (it would clash with the anti-cheat guard), so no button there either. --}}
             @if ($code === 'tiu' && ! $isModeUjian)
                 <button type="button"
@@ -21,11 +21,11 @@
         </div>
 
         <div class="prose-exam mb-8 text-base">
-            {!! html_for_display($this->currentAnswer->question->content) !!}
+            {!! html_for_display($this->currentQuestion->content) !!}
         </div>
 
         <div class="space-y-3">
-            @foreach ($this->currentAnswer->question->options as $option)
+            @foreach ($this->currentQuestion->options as $option)
                 @php $isEliminated = in_array($option->id, $this->currentEliminatedOptionIds, true); @endphp
                 {{-- Picking is browser-only (deferred wire:model): instant highlight, no request. --}}
                 <label wire:key="opt-{{ $option->id }}" @class(['exam-option', 'exam-option-eliminated' => $isEliminated])>

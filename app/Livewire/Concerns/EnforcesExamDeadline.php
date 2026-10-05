@@ -35,6 +35,12 @@ trait EnforcesExamDeadline
     /** Submit the timed-out attempt and return the URL of its result page. */
     abstract protected function closeTimedOutAttempt(): string;
 
+    /** Result page of an attempt that is already submitted. */
+    abstract protected function submittedResultUrl(): string;
+
+    /** Set by syncDeadline(): the attempt was closed while time still remained. */
+    private bool $submittedBeforeDeadline = false;
+
     /**
      * Called by the background deadline poll and by the browser timer the
      * moment it reaches zero.
@@ -56,7 +62,7 @@ trait EnforcesExamDeadline
         }
 
         if (! $this->syncDeadline() || $this->deadlineRemainingSeconds() <= 0) {
-            $this->closeForTimeUp();
+            $this->leaveClosedAttempt();
 
             return;
         }
@@ -78,7 +84,7 @@ trait EnforcesExamDeadline
             return true;
         }
 
-        $this->closeForTimeUp();
+        $this->leaveClosedAttempt();
 
         return false;
     }
@@ -92,6 +98,8 @@ trait EnforcesExamDeadline
         $attempt = $this->freshDeadlineAttempt();
 
         if ($attempt === null || $attempt->status !== ExamAttemptStatus::InProgress) {
+            $this->submittedBeforeDeadline = $attempt !== null && $attempt->expires_at->isFuture();
+
             return false;
         }
 
@@ -109,6 +117,24 @@ trait EnforcesExamDeadline
     protected function withinAnswerGrace(): bool
     {
         return ExamDeadline::acceptsAnswers(now()->setTimestamp($this->attemptExpiresAt));
+    }
+
+    /**
+     * The attempt can't take answers any more. If it was already submitted
+     * while time remained — typically "Selesai Ujian" went through but its
+     * response was lost on a bad connection, and the peserta clicked again or
+     * the poll noticed — go straight to the result instead of the misleading
+     * "Waktu Ujian Habis" screen. Otherwise the time really ran out.
+     */
+    private function leaveClosedAttempt(): void
+    {
+        if ($this->submittedBeforeDeadline) {
+            $this->redirect($this->submittedResultUrl(), navigate: false);
+
+            return;
+        }
+
+        $this->closeForTimeUp();
     }
 
     private function closeForTimeUp(): void

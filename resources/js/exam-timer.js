@@ -12,20 +12,90 @@ window.skbFinishConfirmMessage = (wire) => {
 };
 
 /**
+ * Give up on an exam request the server never answers (stalled connection,
+ * overloaded server). Livewire has no timeout of its own: the button stayed
+ * disabled forever and every later click queued behind it, so the participant
+ * had to refresh. Cancelling frees the button; clicking again is safe because
+ * the component state (current question) still lives in the browser, so the
+ * retry saves the same answer and moves to the same next question.
+ *
+ * Generous on purpose: a busy-but-working server must not be pushed into
+ * cancel-and-retry (each retry is extra load at the worst moment). A slow
+ * background poll is dropped silently — only a real network failure shows the
+ * banner, so a slow server does not alarm the whole room at once.
+ */
+const EXAM_REQUEST_TIMEOUT_MS = 30000;
+const EXAM_POLL_TIMEOUT_MS = 15000;
+
+/**
+ * Answer version (X-Exam-Seq, see App\Livewire\Concerns\VersionsExamAnswers).
+ * Strictly increasing for every exam request, so the server can drop an old
+ * save that arrives after a newer one. Kept in localStorage per attempt so it
+ * keeps rising across a refresh (an old request may still be on its way), and
+ * never starts below the highest version already stored for the attempt.
+ */
+let examSeq = 0;
+
+function nextExamSeq(banner) {
+    const key = `exam-seq:${banner.dataset.attemptKey}`;
+    let stored = 0;
+
+    try {
+        stored = Number(window.localStorage.getItem(key)) || 0;
+    } catch (e) {
+        // Storage unavailable (private mode): the in-page counter still works.
+    }
+
+    examSeq = Math.max(examSeq, stored, Number(banner.dataset.answerVersion) || 0) + 1;
+
+    try {
+        window.localStorage.setItem(key, String(examSeq));
+    } catch (e) {
+        // ignore
+    }
+
+    return examSeq;
+}
+
+/**
  * Report failed Livewire requests to the exam connection banner. Livewire
  * ignores a network failure silently, and on a 5xx (server overloaded) shows
  * a full-page error modal; inside an exam room both become the banner.
  */
 document.addEventListener('livewire:init', () => {
-    window.Livewire.interceptRequest(({ request, onFailure, onError, onSuccess }) => {
+    window.Livewire.interceptRequest(({ request, onSend, onCancel, onFinish, onFailure, onError, onSuccess }) => {
         // The background deadline poll succeeding must not clear a "not
         // saved" warning left by a failed click, so tell the two apart.
         const background = [...request.messages].every((message) => [...message.actions].every((action) => action.name === 'checkExpiry'));
         const notify = (name) => window.dispatchEvent(new CustomEvent(name, { detail: { background } }));
+        const inExamRoom = () => document.querySelector('[data-exam-connection]') !== null;
+        let timeout = null;
+
+        const banner = document.querySelector('[data-exam-connection]');
+
+        if (banner && banner.dataset.attemptKey) {
+            request.options.headers['X-Exam-Seq'] = String(nextExamSeq(banner));
+        }
+
+        onSend(() => {
+            if (! inExamRoom()) {
+                return;
+            }
+
+            timeout = setTimeout(() => {
+                request.cancel();
+
+                if (! background) {
+                    notify('exam-request-failed');
+                }
+            }, background ? EXAM_POLL_TIMEOUT_MS : EXAM_REQUEST_TIMEOUT_MS);
+        });
+        onCancel(() => clearTimeout(timeout));
+        onFinish(() => clearTimeout(timeout));
 
         onFailure(() => notify('exam-request-failed'));
         onError(({ response, preventDefault }) => {
-            if (response.status >= 500 && document.querySelector('[data-exam-connection]')) {
+            if (response.status >= 500 && inExamRoom()) {
                 preventDefault();
                 notify('exam-request-failed');
             }
@@ -106,8 +176,11 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            // Fired as a "poll" action (like wire:poll): a click on "Simpan &
+            // Lanjutkan" then cancels a poll still in flight instead of waiting
+            // behind it — a slow or stalled poll used to block the click.
             // A failed poll (offline) is reported by the connection banner.
-            Promise.resolve(this.$wire.checkExpiry()).catch(() => {});
+            Promise.resolve(window.Livewire.fireAction(this.$wire, 'checkExpiry', [], { type: 'poll' })).catch(() => {});
         },
 
         destroy() {

@@ -78,18 +78,7 @@ trait AuthenticatesCbtUsers
 
     protected function redirectAfterLogin(): void
     {
-        $user = Auth::user();
-
-        if ($user->role === UserRole::Peserta && $user->isActiveModeUjianParticipant()) {
-            $this->redirect(route('peserta.mode-ujian.dashboard'), navigate: true);
-
-            return;
-        }
-
-        $this->redirect(match ($user->role) {
-            UserRole::Admin => route('admin.dashboard'),
-            UserRole::Peserta => route('peserta.dashboard'),
-        }, navigate: true);
+        $this->redirect(Auth::user()->homeUrl(), navigate: true);
     }
 
     protected function ensureIsNotRateLimited(): void

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\QuestionOptionContentType;
+use App\Support\ExamQuestionCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
@@ -30,6 +31,10 @@ class QuestionOption extends Model
 
     protected static function booted(): void
     {
+        // Shown content changed: drop the cached copy used by the exam rooms.
+        static::saved(fn (QuestionOption $option) => ExamQuestionCache::forgetSkd($option->question_id));
+        static::deleted(fn (QuestionOption $option) => ExamQuestionCache::forgetSkd($option->question_id));
+
         static::deleting(function (QuestionOption $option) {
             if ($option->image_path) {
                 Storage::disk('public')->delete($option->image_path);

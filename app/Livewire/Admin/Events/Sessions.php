@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Events;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\EventSession;
+use App\Support\LiveScoreCache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -128,6 +129,7 @@ class Sessions extends Component
     public function delete(int $sessionId): void
     {
         $this->event->sessions()->whereKey($sessionId)->delete();
+        LiveScoreCache::bust($this->event->id);
         session()->flash('success', 'Sesi berhasil dihapus.');
     }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EventStatus;
+use App\Support\LiveScoreCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,13 @@ use Illuminate\Support\Str;
 class EventSession extends Model
 {
     use SoftDeletes;
+
+    /** Roster/session changes show on the livescore boards straight away (see LiveScoreCache). */
+    protected static function booted(): void
+    {
+        static::saved(fn (EventSession $session) => LiveScoreCache::bust($session->event_id));
+        static::deleted(fn (EventSession $session) => LiveScoreCache::bust($session->event_id));
+    }
 
     protected $fillable = [
         'event_id',

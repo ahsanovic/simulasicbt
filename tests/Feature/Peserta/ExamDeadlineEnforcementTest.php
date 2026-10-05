@@ -102,7 +102,7 @@ class ExamDeadlineEnforcementTest extends TestCase
         $optionId = $first->question->options->first()->id;
 
         $component = Livewire::actingAs($user)->test(SkbExamRoom::class)
-            ->call('selectOption', $optionId);
+            ->set('selectedOptionId', $optionId);
 
         $this->travelTo($attempt->expires_at->copy()->addSeconds(2));
 
@@ -118,7 +118,7 @@ class ExamDeadlineEnforcementTest extends TestCase
         $optionId = $first->question->options->first()->id;
 
         $component = Livewire::actingAs($user)->test(SkbExamRoom::class)
-            ->call('selectOption', $optionId);
+            ->set('selectedOptionId', $optionId);
 
         $this->travelTo($attempt->expires_at->copy()->addSeconds(30));
 
@@ -181,7 +181,7 @@ class ExamDeadlineEnforcementTest extends TestCase
         $ctx = $this->createSkdAttempt(expiresInMinutes: 1);
 
         $component = Livewire::actingAs($ctx['user'])->test(ExamRoom::class, ['exam' => $ctx['exam']])
-            ->call('selectOption', $ctx['firstOptionId']);
+            ->set('selectedOptionId', $ctx['firstOptionId']);
 
         $this->travel(2)->minutes();
 
@@ -202,7 +202,7 @@ class ExamDeadlineEnforcementTest extends TestCase
         $ctx = $this->createSkdAttempt(expiresInMinutes: 1);
 
         $component = Livewire::actingAs($ctx['user'])->test(ExamRoom::class, ['exam' => $ctx['exam']])
-            ->call('selectOption', $ctx['firstOptionId']);
+            ->set('selectedOptionId', $ctx['firstOptionId']);
 
         $this->travelTo($ctx['attempt']->expires_at->copy()->addSeconds(2));
 

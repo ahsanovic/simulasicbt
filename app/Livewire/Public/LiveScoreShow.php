@@ -5,11 +5,11 @@ namespace App\Livewire\Public;
 use App\Enums\EventExamMode;
 use App\Enums\ExamAttemptStatus;
 use App\Models\Event;
-use App\Models\EventParticipant;
 use App\Models\ExamAttempt;
 use App\Models\SkbExamAttempt;
 use App\Services\ExamService;
 use App\Services\SkbExamService;
+use App\Support\LiveScoreCache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -142,9 +142,16 @@ class LiveScoreShow extends Component
     #[Computed]
     public function rows(): array
     {
-        $this->closeExpiredAttempts();
+        $board = $this->activeBoard();
 
-        $rows = $this->activeBoard() === 'skb' ? $this->skbRows() : $this->skdRows();
+        // Anyone can open this page, so every viewer of the same board reads
+        // one shared snapshot, rebuilt at most every few seconds (see
+        // LiveScoreCache) — the work no longer grows with the audience.
+        $rows = LiveScoreCache::remember($this->eventId, 'public:'.($this->sessionId ?? 'all').":{$board}", function () use ($board) {
+            $this->closeExpiredAttempts();
+
+            return $board === 'skb' ? $this->skbRows() : $this->skdRows();
+        });
 
         return collect($rows)
             ->values()
@@ -193,6 +200,7 @@ class LiveScoreShow extends Component
                 }
 
                 return [
+                    'key' => 'skd-'.$attempt->id,
                     'name' => $attempt->resolvedDisplayName(),
                     'instansi' => $attempt->user?->instansi?->nama,
                     'session' => $attempt->eventSession?->name,
@@ -211,56 +219,38 @@ class LiveScoreShow extends Component
     }
 
     /**
-     * SKB-only board: rows come from the event roster (not just attempts) so
-     * a peserta who hasn't started yet still appears as "Belum Ujian".
+     * SKB board: only participants who already clicked "Mulai" (they have an
+     * attempt) — those who have not started are not listed. Counts come from
+     * aggregate queries instead of loading every answer.
      */
     private function skbRows(): array
     {
-        $participants = EventParticipant::query()
-            ->where('event_id', $this->eventId)
-            ->when($this->sessionId, fn ($query) => $query->where('event_session_id', $this->sessionId))
-            ->with(['eventSession:id,name', 'jabatanSkb:id,name'])
-            ->get();
-
         $attempts = SkbExamAttempt::query()
             ->where('event_id', $this->eventId)
-            ->with(['answers:id,skb_exam_attempt_id,selected_option_id'])
+            ->when($this->sessionId, fn ($query) => $query->where('event_session_id', $this->sessionId))
+            ->with(['eventParticipant:id,name,jabatan_label,jabatan_skb_id', 'eventParticipant.jabatanSkb:id,name', 'eventSession:id,name', 'user:id,name'])
+            ->orderBy('id')
             ->get()
-            ->keyBy('user_id');
+            ->keyBy('user_id') // latest attempt per participant
+            ->values();
 
-        $liveScores = app(SkbExamService::class)->liveScores($attempts);
+        $stats = SkbExamAttempt::liveBoardStats($attempts->modelKeys());
 
-        return $participants
-            ->map(function (EventParticipant $participant) use ($attempts, $liveScores) {
-                $attempt = $attempts->get($participant->user_id);
-                $jabatan = $participant->jabatanSkb?->name ?? $participant->jabatan_label;
-
-                if ($attempt === null) {
-                    return [
-                        'name' => $participant->name,
-                        'jabatan' => $jabatan,
-                        'session' => $participant->eventSession?->name,
-                        'answered' => 0,
-                        'total' => 0,
-                        'benar' => 0,
-                        'score' => 0,
-                        'status_label' => 'Belum Ujian',
-                        'in_progress' => false,
-                    ];
-                }
-
-                $total = $attempt->answers->count();
-                $answered = $attempt->answers->whereNotNull('selected_option_id')->count();
+        return $attempts
+            ->map(function (SkbExamAttempt $attempt) use ($stats) {
+                $live = $stats[$attempt->id];
+                $participant = $attempt->eventParticipant;
                 $inProgress = $attempt->status === ExamAttemptStatus::InProgress;
 
                 return [
-                    'name' => $participant->name,
-                    'jabatan' => $jabatan,
-                    'session' => $participant->eventSession?->name,
-                    'answered' => $answered,
-                    'total' => $total,
-                    'benar' => $liveScores[$attempt->id]['benar'] ?? 0,
-                    'score' => $liveScores[$attempt->id]['score'] ?? 0,
+                    'key' => 'skb-'.$attempt->id,
+                    'name' => $participant?->name ?? $attempt->user?->name ?? 'Peserta',
+                    'jabatan' => $participant?->jabatanSkb?->name ?? $participant?->jabatan_label,
+                    'session' => $attempt->eventSession?->name,
+                    'answered' => $live['answered'],
+                    'total' => $live['total'],
+                    'benar' => $inProgress ? $live['benar'] : (int) $attempt->correct_count,
+                    'score' => $inProgress ? $live['benar'] * (int) $attempt->correct_score : (int) $attempt->total_score,
                     'status_label' => $inProgress ? 'Sedang Ujian' : 'Selesai',
                     'in_progress' => $inProgress,
                 ];

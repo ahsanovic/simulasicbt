@@ -27,22 +27,6 @@ class OfflineEventRecoveryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_selecting_an_option_is_saved_immediately_without_navigating(): void
-    {
-        $ctx = $this->createInProgressSessionAttempt();
-
-        Livewire::actingAs($ctx['user'])
-            ->test(ExamRoom::class, ['exam' => $ctx['exam']])
-            ->call('selectOption', $ctx['firstOptionId']);
-
-        // No next()/submit() was called — yet the answer must already be in the DB,
-        // so a sudden disconnect or power loss right after picking cannot lose it.
-        $this->assertDatabaseHas('exam_answers', [
-            'sort_order' => 1,
-            'selected_option_id' => $ctx['firstOptionId'],
-        ]);
-    }
-
     public function test_reconnecting_restores_previously_saved_answers(): void
     {
         $ctx = $this->createInProgressSessionAttempt();

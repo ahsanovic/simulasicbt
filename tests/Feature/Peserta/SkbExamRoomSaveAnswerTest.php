@@ -33,7 +33,7 @@ class SkbExamRoomSaveAnswerTest extends TestCase
 
         $component = Livewire::actingAs($user)
             ->test(SkbExamRoom::class)
-            ->call('selectOption', $optionId);
+            ->set('selectedOptionId', $optionId);
 
         $component->assertSet('selectedOptionId', $optionId);
         $this->assertNull($first->fresh()->selected_option_id);
@@ -49,7 +49,7 @@ class SkbExamRoomSaveAnswerTest extends TestCase
 
         $component = Livewire::actingAs($user)
             ->test(SkbExamRoom::class)
-            ->call('selectOption', $optionId)
+            ->set('selectedOptionId', $optionId)
             ->call('next');
 
         $component->assertSet('currentIndex', 1);
@@ -66,7 +66,7 @@ class SkbExamRoomSaveAnswerTest extends TestCase
 
         $component = Livewire::actingAs($user)
             ->test(SkbExamRoom::class)
-            ->call('selectOption', $optionId)
+            ->set('selectedOptionId', $optionId)
             ->call('goToQuestion', 1)
             ->call('goToQuestion', 0);
 
@@ -84,7 +84,7 @@ class SkbExamRoomSaveAnswerTest extends TestCase
             ->test(SkbExamRoom::class)
             ->call('goToQuestion', 2)
             ->assertSee('Simpan Jawaban')
-            ->call('selectOption', $optionId)
+            ->set('selectedOptionId', $optionId)
             ->call('saveAnswer');
 
         $this->assertSame($optionId, $last->fresh()->selected_option_id);
@@ -98,7 +98,7 @@ class SkbExamRoomSaveAnswerTest extends TestCase
         // Answer every question; the last one is picked but "Simpan Jawaban"
         // is never clicked before "Selesai Ujian".
         foreach ([1, 2, 3] as $sortOrder) {
-            $component->call('selectOption', $this->answerAt($attempt, $sortOrder)->question->correctOption()->id);
+            $component->set('selectedOptionId', $this->answerAt($attempt, $sortOrder)->question->correctOption()->id);
 
             if ($sortOrder < 3) {
                 $component->call('next');
@@ -142,8 +142,9 @@ class SkbExamRoomSaveAnswerTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(SkbExamRoom::class)
-            ->call('selectOption', $foreignOptionId)
-            ->assertSet('selectedOptionId', null)
+            // The pick comes from the browser; saving ignores an option that
+            // does not belong to the question on screen.
+            ->set('selectedOptionId', $foreignOptionId)
             ->call('next');
 
         $this->assertNull($first->fresh()->selected_option_id);

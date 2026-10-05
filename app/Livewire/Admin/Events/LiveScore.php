@@ -5,12 +5,12 @@ namespace App\Livewire\Admin\Events;
 use App\Enums\EventExamMode;
 use App\Enums\ExamAttemptStatus;
 use App\Models\Event;
-use App\Models\EventParticipant;
 use App\Models\EventSession;
 use App\Models\ExamAttempt;
 use App\Models\SkbExamAttempt;
 use App\Services\ExamService;
 use App\Services\SkbExamService;
+use App\Support\LiveScoreCache;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -171,9 +171,16 @@ class LiveScore extends Component
     #[Computed]
     public function allRows(): array
     {
-        $this->closeExpiredAttempts();
+        $board = $this->activeBoard();
 
-        return $this->activeBoard() === 'skb' ? $this->skbRows() : $this->skdRows();
+        // One shared snapshot per board for every open admin screen, rebuilt
+        // at most every few seconds (see LiveScoreCache). Closing expired
+        // attempts happens on rebuild, so it also runs only that often.
+        return LiveScoreCache::remember($this->session->event_id, "admin:{$this->session->id}:{$board}", function () use ($board) {
+            $this->closeExpiredAttempts();
+
+            return $board === 'skb' ? $this->skbRows() : $this->skdRows();
+        });
     }
 
     /**
@@ -233,71 +240,46 @@ class LiveScore extends Component
     }
 
     /**
-     * SKB-only board: rows come from the session roster (not just attempts)
-     * so a peserta who hasn't started yet still appears as "Belum Ujian"
-     * instead of being missing from the board entirely.
+     * SKB board: only participants who already clicked "Mulai" (they have an
+     * attempt). Those who have not started are counted in the summary card,
+     * not listed. Counts come from aggregate queries, not answer models.
      */
     private function skbRows(): array
     {
-        $participants = $this->session->participants()->with('jabatanSkb:id,name')->get();
-
         $attempts = SkbExamAttempt::query()
             ->where('event_session_id', $this->session->id)
-            ->with(['answers:id,skb_exam_attempt_id,selected_option_id'])
+            ->with(['eventParticipant:id,name,jabatan_label,jabatan_skb_id', 'eventParticipant.jabatanSkb:id,name', 'user:id,name'])
+            ->orderBy('id')
             ->get()
-            ->keyBy('user_id');
+            ->keyBy('user_id') // latest attempt per participant
+            ->values();
 
-        $liveScores = app(SkbExamService::class)->liveScores($attempts);
+        $stats = SkbExamAttempt::liveBoardStats($attempts->modelKeys());
 
-        return $participants
-            ->map(fn (EventParticipant $participant) => $this->skbRowFor(
-                $participant,
-                $attempt = $attempts->get($participant->user_id),
-                $attempt ? ($liveScores[$attempt->id] ?? null) : null,
-            ))
+        return $attempts
+            ->map(fn (SkbExamAttempt $attempt) => $this->skbRowFor($attempt, $stats[$attempt->id]))
             ->sortByDesc('score')
             ->values()
             ->all();
     }
 
     /**
-     * @param  array{benar: int, score: int}|null  $live
+     * @param  array{total: int, answered: int, benar: int}  $live
      */
-    private function skbRowFor(EventParticipant $participant, ?SkbExamAttempt $attempt, ?array $live = null): array
+    private function skbRowFor(SkbExamAttempt $attempt, array $live): array
     {
-        $jabatan = $participant->jabatanSkb?->name ?? $participant->jabatan_label;
-
-        if ($attempt === null) {
-            return [
-                'row_key' => 'skb-p'.$participant->id,
-                'attempt_id' => null,
-                'name' => $participant->name,
-                'jabatan' => $jabatan,
-                'answered' => 0,
-                'total' => 0,
-                'benar' => 0,
-                'score' => 0,
-                'status' => null,
-                'status_label' => 'Belum Ujian',
-                'in_progress' => false,
-                'remaining' => null,
-                'submitted_at' => null,
-            ];
-        }
-
-        $total = $attempt->answers->count();
-        $answered = $attempt->answers->whereNotNull('selected_option_id')->count();
+        $participant = $attempt->eventParticipant;
         $inProgress = $attempt->status === ExamAttemptStatus::InProgress;
 
         return [
             'row_key' => 'skb-'.$attempt->id,
             'attempt_id' => $attempt->id,
-            'name' => $participant->name,
-            'jabatan' => $jabatan,
-            'answered' => $answered,
-            'total' => $total,
-            'benar' => $live['benar'] ?? 0,
-            'score' => $live['score'] ?? 0,
+            'name' => $participant?->name ?? $attempt->user?->name ?? 'Peserta',
+            'jabatan' => $participant?->jabatanSkb?->name ?? $participant?->jabatan_label,
+            'answered' => $live['answered'],
+            'total' => $live['total'],
+            'benar' => $inProgress ? $live['benar'] : (int) $attempt->correct_count,
+            'score' => $inProgress ? $live['benar'] * (int) $attempt->correct_score : (int) $attempt->total_score,
             'status' => $attempt->status,
             'status_label' => $inProgress ? 'Sedang Ujian' : 'Selesai',
             'in_progress' => $inProgress,
@@ -342,9 +324,15 @@ class LiveScore extends Component
     {
         $rows = collect($this->filteredRows);
 
+        // The SKB board lists only participants who started; the ones still
+        // to start are counted from the session roster.
+        $notStarted = $this->activeBoard() === 'skb' && blank($this->search)
+            ? max(0, $this->session->participants()->count() - $rows->count())
+            : 0;
+
         return [
-            'total' => $rows->count(),
-            'not_started' => $rows->whereNull('status')->count(),
+            'total' => $rows->count() + $notStarted,
+            'not_started' => $notStarted,
             'in_progress' => $rows->where('status', ExamAttemptStatus::InProgress)->count(),
             'finished' => $rows->filter(fn ($row) => $row['status'] !== null && $row['status'] !== ExamAttemptStatus::InProgress)->count(),
         ];
@@ -360,6 +348,9 @@ class LiveScore extends Component
     private function forgetBoard(): void
     {
         unset($this->allRows, $this->filteredRows, $this->rows, $this->totalPages, $this->summary);
+
+        // Attempts changed: rebuild the shared snapshots (admin and public).
+        LiveScoreCache::bust($this->session->event_id);
     }
 
     /** @return list<string> Every attempt in this session — reset applies to finished ones too. */

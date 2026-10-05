@@ -1,4 +1,4 @@
-<div wire:poll.30s="refreshBoard" class="min-h-screen">
+<div wire:poll.10s="refreshBoard" class="min-h-screen">
     <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 pr-16 sm:px-6 sm:pr-20">
             <div class="min-w-0">
@@ -38,81 +38,12 @@
                 <p class="text-lg text-slate-500 dark:text-slate-400">Belum ada peserta pada papan skor ini.</p>
             </div>
         @else
+            {{-- Every participant is listed (public transparency). Rows use the short .ls-* classes
+                 (resources/css/app.css) and are keyed by attempt so a refresh only touches rows that changed. --}}
             <div class="space-y-2">
-                @foreach ($this->rows as $row)
-                    @php
-                        $rankStyle = match ($row['rank']) {
-                            1 => 'border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10',
-                            2 => 'border-slate-300 bg-slate-100 dark:border-slate-400/40 dark:bg-slate-400/10',
-                            3 => 'border-orange-300 bg-orange-50 dark:border-orange-600/40 dark:bg-orange-500/10',
-                            default => 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60',
-                        };
-                        $rankBadge = match ($row['rank']) {
-                            1 => 'bg-amber-400 text-amber-950',
-                            2 => 'bg-slate-300 text-slate-800',
-                            3 => 'bg-orange-500 text-orange-950',
-                            default => 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                        };
-                    @endphp
-                    {{-- Layar sempit: blok skor turun ke baris sendiri agar nama peserta tidak terpotong --}}
-                    <div wire:key="rank-{{ $row['rank'] }}-{{ $row['name'] }}" class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border px-4 py-3 shadow-sm sm:flex-nowrap sm:px-5 dark:shadow-none {{ $rankStyle }}">
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg font-black {{ $rankBadge }}">
-                            {{ $row['rank'] }}
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate text-lg font-bold text-slate-900 dark:text-white sm:text-xl">{{ $row['name'] }}</p>
-                            <p class="truncate text-xs text-slate-500 dark:text-slate-400">
-                                @if($row['session']){{ $row['session'] }}@endif
-                                @if ($category === 'skb')
-                                    @if($row['jabatan']) · {{ $row['jabatan'] }}@endif
-                                @elseif($row['instansi'])
-                                    · {{ $row['instansi'] }}
-                                @endif
-                            </p>
-                        </div>
-
-                        <div class="flex w-full items-center justify-between gap-4 border-t border-black/5 pt-3 sm:w-auto sm:justify-end sm:border-0 sm:pt-0 dark:border-white/10">
-                            <div class="hidden shrink-0 text-center sm:block">
-                                <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Dikerjakan</p>
-                                <p class="text-base font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $row['answered'] }}<span class="text-slate-400 dark:text-slate-500">/{{ $row['total'] }}</span></p>
-                            </div>
-                            <div class="flex shrink-0 items-center gap-3">
-                                @if ($category === 'skb')
-                                    <div class="w-11 text-center sm:w-12">
-                                        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Benar</p>
-                                        <p class="text-base font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $row['benar'] }}</p>
-                                    </div>
-                                @else
-                                    @foreach (['TWK' => $row['twk'], 'TIU' => $row['tiu'], 'TKP' => $row['tkp']] as $label => $value)
-                                        <div class="w-11 text-center sm:w-12">
-                                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ $label }}</p>
-                                            <p class="text-base font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ $value }}</p>
-                                        </div>
-                                    @endforeach
-                                @endif
-                            </div>
-                            <div class="shrink-0 text-center">
-                                <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total</p>
-                                <p class="text-2xl font-black tabular-nums text-slate-900 dark:text-white sm:text-3xl">{{ $row['score'] }}</p>
-                            </div>
-                            <div class="shrink-0 text-right sm:w-24">
-                                @if ($category === 'skb' && ($row['status_label'] ?? null) === 'Belum Ujian')
-                                    <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                        Belum Ujian
-                                    </span>
-                                @elseif($row['in_progress'])
-                                    <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
-                                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-400"></span> Ujian
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
-                                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span> Selesai
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+@foreach ($this->rows as $row)
+<div wire:key="{{ $row['key'] }}" class="ls-row{{ $row['rank'] <= 3 ? ' ls-row-'.$row['rank'] : '' }}"><div class="ls-rank">{{ $row['rank'] }}</div><div class="ls-who"><p class="ls-name">{{ $row['name'] }}</p><p class="ls-meta">{{ $row['session'] }}@if ($category === 'skb')@if ($row['jabatan']) · {{ $row['jabatan'] }}@endif @elseif ($row['instansi']) · {{ $row['instansi'] }}@endif</p></div><div class="ls-scores"><div class="ls-done"><p class="ls-label">Dikerjakan</p><p class="ls-value">{{ $row['answered'] }}<span class="ls-of">/{{ $row['total'] }}</span></p></div><div class="ls-group">@if ($category === 'skb')<div class="ls-stat"><p class="ls-label">Benar</p><p class="ls-value">{{ $row['benar'] }}</p></div>@else<div class="ls-stat"><p class="ls-label">TWK</p><p class="ls-value">{{ $row['twk'] }}</p></div><div class="ls-stat"><p class="ls-label">TIU</p><p class="ls-value">{{ $row['tiu'] }}</p></div><div class="ls-stat"><p class="ls-label">TKP</p><p class="ls-value">{{ $row['tkp'] }}</p></div>@endif</div><div class="ls-sum"><p class="ls-label">Total</p><p class="ls-total">{{ $row['score'] }}</p></div><div class="ls-state">@if ($row['in_progress'])<span class="ls-pill ls-live">Ujian</span>@else<span class="ls-pill ls-end">Selesai</span>@endif</div></div></div>
+@endforeach
             </div>
         @endif
     </main>

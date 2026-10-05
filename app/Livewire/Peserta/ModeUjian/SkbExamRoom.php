@@ -4,12 +4,14 @@ namespace App\Livewire\Peserta\ModeUjian;
 
 use App\Enums\ExamAttemptStatus;
 use App\Livewire\Concerns\EnforcesExamDeadline;
+use App\Livewire\Concerns\VersionsExamAnswers;
 use App\Models\SkbExamAttempt;
 use App\Models\SkbQuestion;
-use App\Models\SkbQuestionOption;
 use App\Services\SkbExamService;
+use App\Support\ExamQuestionCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -20,11 +22,15 @@ use Livewire\Component;
 class SkbExamRoom extends Component
 {
     use EnforcesExamDeadline;
+    use VersionsExamAnswers;
 
+    #[Locked]
     public int $attemptId;
 
+    #[Locked]
     public int $attemptExpiresAt;
 
+    #[Locked]
     public int $currentIndex = 0;
 
     /**
@@ -43,6 +49,7 @@ class SkbExamRoom extends Component
     public int $unansweredSaved = 0;
 
     /** @var array<int, array{id: int, sort_order: int, question_id: int, selected_option_id: ?int, is_marked: bool}> */
+    #[Locked]
     public array $answerStates = [];
 
     public function mount(): void
@@ -69,6 +76,7 @@ class SkbExamRoom extends Component
 
         $this->attemptId = $attempt->id;
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
+        $this->answerVersionBase = (int) $attempt->answers->max('answer_version');
         $this->answerStates = $attempt->answers->map(fn ($answer) => [
             'id' => $answer->id,
             'sort_order' => $answer->sort_order,
@@ -136,43 +144,13 @@ class SkbExamRoom extends Component
         return $total > 0 ? (int) round(($this->answeredCount / $total) * 100) : 0;
     }
 
-    public function getCurrentAnswerProperty()
+    /** The question on screen with its options, from the shared question cache. */
+    #[Computed]
+    public function currentQuestion(): ?SkbQuestion
     {
         $questionId = $this->answerStates[$this->currentIndex]['question_id'] ?? null;
 
-        if ($questionId === null) {
-            return null;
-        }
-
-        // withTrashed: the question stays part of this attempt even if it was
-        // removed from the bank after the attempt started.
-        $question = SkbQuestion::withTrashed()->with('options')->find($questionId);
-
-        if ($question === null) {
-            return null;
-        }
-
-        return (object) [
-            'question' => $question,
-        ];
-    }
-
-    public function selectOption(int $optionId): void
-    {
-        if (! $this->ensureWithinDeadline()) {
-            return;
-        }
-
-        if (! $this->isValidOptionForCurrentQuestion($optionId)) {
-            return;
-        }
-
-        // Selecting only updates the on-screen highlight. The answer is NOT
-        // persisted (and the question is NOT counted as answered) until the
-        // peserta explicitly clicks "Simpan & Lanjutkan" / "Simpan Jawaban".
-        // Navigating away via the navigator / "Sebelumnya" discards an
-        // unsaved pick — the last saved value is restored.
-        $this->selectedOptionId = $optionId;
+        return $questionId === null ? null : ExamQuestionCache::skb($questionId);
     }
 
     public function saveAnswer(): void
@@ -184,7 +162,12 @@ class SkbExamRoom extends Component
         $this->persistCurrentAnswer();
     }
 
-    private function persistCurrentAnswer(): bool
+    /**
+     * Save the on-screen pick of the current question. Returns false when it
+     * was refused (time is up, or stale — the room is then being reloaded);
+     * the caller must stop instead of moving on.
+     */
+    private function persistCurrentAnswer(bool $reloadIfStale = true): bool
     {
         $state = $this->answerStates[$this->currentIndex] ?? null;
 
@@ -200,14 +183,24 @@ class SkbExamRoom extends Component
             $optionId = $state['selected_option_id'];
         }
 
+        $version = $this->incomingAnswerVersion();
         $saved = app(SkbExamService::class)->saveAnswer(
             $this->resolveAttempt(),
             $state['question_id'],
             $optionId,
+            $version,
         );
 
-        if (! $saved) {
+        if ($saved === false) {
             $this->checkExpiry();
+
+            return false;
+        }
+
+        if ($saved === null) {
+            if ($reloadIfStale) {
+                $this->reloadForStaleAnswer('skb_exam_answers', $state['id'], $version);
+            }
 
             return false;
         }
@@ -276,7 +269,9 @@ class SkbExamRoom extends Component
 
         // Capture the on-screen pick, so an answer chosen on the last question
         // still counts when "Selesai Ujian" is clicked without "Simpan Jawaban".
-        $this->persistCurrentAnswer();
+        if (! $this->persistCurrentAnswer()) {
+            return;
+        }
 
         $attempt = app(SkbExamService::class)->submitAttempt($this->resolveAttempt());
         $this->redirect(route('peserta.mode-ujian.skb-result', $attempt), navigate: false);
@@ -284,15 +279,16 @@ class SkbExamRoom extends Component
 
     protected function freshDeadlineAttempt(): ?Model
     {
-        return SkbExamAttempt::query()->find($this->attemptId, ['id', 'status', 'expires_at']);
+        return SkbExamAttempt::query()->where('user_id', Auth::id())->find($this->attemptId, ['id', 'status', 'expires_at']);
     }
 
     protected function closeTimedOutAttempt(): string
     {
         // Same capture as a manual submit, but only for a pick made before
-        // time ran out (the browser locks the screen at zero).
+        // time ran out (the browser locks the screen at zero). A stale pick is
+        // just skipped: time is up, the attempt closes anyway.
         if ($this->withinAnswerGrace()) {
-            $this->persistCurrentAnswer();
+            $this->persistCurrentAnswer(reloadIfStale: false);
         }
 
         $attempt = app(SkbExamService::class)->submitAttempt($this->resolveAttempt());
@@ -302,25 +298,30 @@ class SkbExamRoom extends Component
 
     private function isValidOptionForCurrentQuestion(int $optionId): bool
     {
-        $questionId = $this->answerStates[$this->currentIndex]['question_id'] ?? null;
+        return (bool) $this->currentQuestion?->options->contains('id', $optionId);
+    }
 
-        if ($questionId === null) {
-            return false;
-        }
+    protected function submittedResultUrl(): string
+    {
+        return route('peserta.mode-ujian.skb-result', $this->attemptId);
+    }
 
-        return SkbQuestionOption::query()
-            ->whereKey($optionId)
-            ->where('skb_question_id', $questionId)
-            ->exists();
+    protected function examRoomUrl(): string
+    {
+        return route('peserta.mode-ujian.skb.room');
     }
 
     private function resolveAttempt(): SkbExamAttempt
     {
-        return SkbExamAttempt::query()->findOrFail($this->attemptId);
+        return SkbExamAttempt::query()->where('user_id', Auth::id())->findOrFail($this->attemptId);
     }
 
     public function render()
     {
+        // Actions may have moved to another question after the current one was
+        // read (e.g. to validate the pick): show the question now on screen.
+        unset($this->currentQuestion);
+
         $this->savedOptionId = $this->answerStates[$this->currentIndex]['selected_option_id'] ?? null;
         $this->unansweredSaved = $this->unansweredCount;
 

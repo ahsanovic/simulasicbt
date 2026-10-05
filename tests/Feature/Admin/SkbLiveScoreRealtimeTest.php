@@ -84,10 +84,10 @@ class SkbLiveScoreRealtimeTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(LiveScore::class, ['event' => $event, 'session' => $session])
-            ->assertSeeHtml('wire:poll.30s="pollBoard"');
+            ->assertSeeHtml('wire:poll.10s="pollBoard"');
 
         Livewire::test(LiveScoreShow::class, ['event' => $event])
-            ->assertSeeHtml('wire:poll.30s="refreshBoard"');
+            ->assertSeeHtml('wire:poll.10s="refreshBoard"');
     }
 
     private function answer(SkbExamAttempt $attempt, int $sortOrder, bool $correct): void

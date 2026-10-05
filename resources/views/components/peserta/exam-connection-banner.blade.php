@@ -6,7 +6,10 @@
     NOT saved yet, that the pick on screen is kept, and to click again once the
     connection is back. Hidden again after the next successful request.
 --}}
-<div x-data="examConnection" data-exam-connection wire:ignore>
+@props(['attemptKey' => '', 'answerVersion' => 0])
+
+{{-- data-attempt-key / data-answer-version seed the X-Exam-Seq answer version counter (exam-timer.js). --}}
+<div x-data="examConnection" data-exam-connection data-attempt-key="{{ $attemptKey }}" data-answer-version="{{ $answerVersion }}" wire:ignore>
     <div x-show="problem" x-cloak
          class="fixed inset-x-0 top-0 z-[9000] flex justify-center p-3"
          role="alert" aria-live="assertive">

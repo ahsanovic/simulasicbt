@@ -10,6 +10,7 @@ use App\Models\SkbExamAttempt;
 use App\Models\SkbQuestion;
 use App\Models\SkbQuestionOption;
 use App\Support\ExamDeadline;
+use App\Support\LiveScoreCache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -70,34 +71,48 @@ class SkbExamService
                 'correct_score' => (int) $event->skb_correct_score,
             ]);
 
-            foreach ($questionIds->values() as $index => $questionId) {
-                SkbExamAnswer::query()->create([
+            // One multi-row insert instead of one query per question (see ExamService::startAttempt).
+            $now = now();
+            SkbExamAnswer::query()->insert($questionIds->values()
+                ->map(fn ($questionId, $index) => [
                     'skb_exam_attempt_id' => $attempt->id,
                     'skb_question_id' => $questionId,
                     'sort_order' => $index + 1,
-                ]);
-            }
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])
+                ->all());
 
-            return $attempt->load(['answers.question.options']);
+            return $attempt;
         });
     }
 
     /**
-     * Persist a peserta-confirmed answer. Refuses (returns false) once the
-     * attempt is no longer in progress or its time is up, so answers cannot
-     * change after submission/expiry.
+     * Persist a peserta-confirmed answer. Refuses once the attempt is no
+     * longer in progress or its time is up, so answers cannot change after
+     * submission/expiry.
+     *
+     * @return bool|null true = saved, false = refused (attempt closed / past
+     *                   the deadline), null = ignored as stale (a newer
+     *                   versioned save already landed)
      */
-    public function saveAnswer(SkbExamAttempt $attempt, int $questionId, ?int $selectedOptionId): bool
+    public function saveAnswer(SkbExamAttempt $attempt, int $questionId, ?int $selectedOptionId, ?int $version = null): ?bool
     {
         if ($attempt->status !== ExamAttemptStatus::InProgress || ! ExamDeadline::acceptsAnswers($attempt->expires_at)) {
             return false;
         }
 
-        $attempt->answers()
+        // With a version (X-Exam-Seq) only a newer save may overwrite the
+        // stored one; an older request arriving late changes nothing.
+        $written = $attempt->answers()
             ->where('skb_question_id', $questionId)
-            ->update(['selected_option_id' => $selectedOptionId]);
+            ->when($version !== null, fn ($query) => $query->where('answer_version', '<', $version))
+            ->update([
+                'selected_option_id' => $selectedOptionId,
+                ...($version !== null ? ['answer_version' => $version] : []),
+            ]);
 
-        return true;
+        return $version !== null && $written === 0 ? null : true;
     }
 
     /**
@@ -172,22 +187,30 @@ class SkbExamService
                 return $attempt;
             }
 
-            $attempt->load('answers.question.options');
+            // Mark every answer in one statement instead of one UPDATE per
+            // answer (50+ queries inside this locked transaction): at the
+            // deadline the whole room submits in the same few seconds.
+            // Same rule as SkbQuestion::correctOption(): the first option
+            // flagged correct, in option order.
+            $correctOption = SkbQuestionOption::query()
+                ->select('skb_question_options.id')
+                ->whereColumn('skb_question_options.skb_question_id', 'skb_exam_answers.skb_question_id')
+                ->where('skb_question_options.is_correct', true)
+                ->orderBy('skb_question_options.sort_order')
+                ->orderBy('skb_question_options.id')
+                ->limit(1);
 
-            $correctCount = 0;
+            SkbExamAnswer::query()
+                ->where('skb_exam_attempt_id', $attempt->id)
+                ->update([
+                    'is_correct' => DB::raw('CASE WHEN skb_exam_answers.selected_option_id IS NOT NULL AND skb_exam_answers.selected_option_id = ('.$correctOption->toRawSql().') THEN 1 ELSE 0 END'),
+                    'updated_at' => now(),
+                ]);
 
-            foreach ($attempt->answers as $answer) {
-                $correctOption = $answer->question->correctOption();
-                $isCorrect = $answer->selected_option_id !== null
-                    && $correctOption !== null
-                    && $answer->selected_option_id === $correctOption->id;
-
-                $answer->update(['is_correct' => $isCorrect]);
-
-                if ($isCorrect) {
-                    $correctCount++;
-                }
-            }
+            $correctCount = SkbExamAnswer::query()
+                ->where('skb_exam_attempt_id', $attempt->id)
+                ->where('is_correct', true)
+                ->count();
 
             $attempt->update([
                 'status' => ExamAttemptStatus::Submitted,
@@ -236,7 +259,7 @@ class SkbExamService
      */
     public function resetAttempt(SkbExamAttempt $attempt): SkbExamAttempt
     {
-        return DB::transaction(function () use ($attempt) {
+        $attempt = DB::transaction(function () use ($attempt) {
             $attempt = SkbExamAttempt::query()
                 ->whereKey($attempt->id)
                 ->lockForUpdate()
@@ -256,5 +279,12 @@ class SkbExamService
 
             return $attempt->fresh();
         });
+
+        // The board shows the restarted attempt straight away.
+        if ($attempt->event_id !== null) {
+            LiveScoreCache::bust($attempt->event_id);
+        }
+
+        return $attempt;
     }
 }

@@ -14,9 +14,12 @@ use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\User;
 use App\Models\XpReward;
+use App\Support\LiveScoreCache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Throwable;
 
 class ExamService
 {
@@ -51,7 +54,7 @@ class ExamService
             $difficulty = $exam->settings['difficulty'] ?? 'all';
 
             try {
-                $generator->assertSufficientQuestions($difficulty);
+                $questions = $generator->generate($difficulty);
             } catch (ValidationException $exception) {
                 throw ValidationException::withMessages([
                     'exam' => 'Bank soal tidak cukup untuk memulai ujian. Hubungi admin.',
@@ -70,15 +73,22 @@ class ExamService
                 'stress_test_enabled' => $stressTestEnabled && $eventId === null,
             ]);
 
-            foreach ($generator->generate($difficulty) as $item) {
-                ExamAnswer::query()->create([
+            // One multi-row insert instead of one query per question: with
+            // hundreds of participants starting at the same minute that was
+            // tens of thousands of round trips.
+            $now = now();
+            ExamAnswer::query()->insert($questions
+                ->map(fn (array $item) => [
                     'exam_attempt_id' => $attempt->id,
                     'question_id' => $item['id'],
                     'sort_order' => $item['sort_order'],
-                ]);
-            }
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])
+                ->values()
+                ->all());
 
-            return $attempt->load(['answers.question.options', 'answers.question.subject']);
+            return $attempt;
         });
     }
 
@@ -125,7 +135,7 @@ class ExamService
      */
     public function resetAttempt(ExamAttempt $attempt): ExamAttempt
     {
-        return DB::transaction(function () use ($attempt) {
+        $attempt = DB::transaction(function () use ($attempt) {
             $attempt = ExamAttempt::query()
                 ->whereKey($attempt->id)
                 ->lockForUpdate()
@@ -144,7 +154,7 @@ class ExamService
             $difficulty = $exam->settings['difficulty'] ?? 'all';
 
             try {
-                $generator->assertSufficientQuestions($difficulty);
+                $questions = $generator->generate($difficulty);
             } catch (ValidationException $exception) {
                 throw ValidationException::withMessages([
                     'reset' => 'Bank soal tidak cukup untuk mengulang ujian.',
@@ -186,16 +196,30 @@ class ExamService
             ]);
 
             // Fresh randomised question set, exactly like a brand new attempt.
-            foreach ($generator->generate($difficulty) as $item) {
-                ExamAnswer::query()->create([
+            // One multi-row insert instead of one query per question: with
+            // hundreds of participants starting at the same minute that was
+            // tens of thousands of round trips.
+            $now = now();
+            ExamAnswer::query()->insert($questions
+                ->map(fn (array $item) => [
                     'exam_attempt_id' => $attempt->id,
                     'question_id' => $item['id'],
                     'sort_order' => $item['sort_order'],
-                ]);
-            }
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])
+                ->values()
+                ->all());
 
             return $attempt->fresh();
         });
+
+        // The board shows the restarted attempt straight away.
+        if ($attempt->event_id !== null) {
+            LiveScoreCache::bust($attempt->event_id);
+        }
+
+        return $attempt;
     }
 
     public function startRemedialAttempt(ExamAttempt $parentAttempt, User $user): ExamAttempt
@@ -441,7 +465,8 @@ class ExamService
                 }
 
                 $attempt->update(['psychology_report_status' => 'pending']);
-                GenerateExamPsychologyReportJob::dispatch($attempt->id);
+                $attemptId = $attempt->id;
+                DB::afterCommit(fn () => $this->queuePsychologyReport($attemptId));
             }
 
             if ($rewardUser !== null) {
@@ -458,5 +483,25 @@ class ExamService
 
             return $attempt->fresh();
         });
+    }
+
+    /**
+     * Queued only after the submit commits: a Redis worker picks a job up at
+     * once and would otherwise read the attempt while it is still in progress,
+     * skip it, and leave the report "pending" forever. A queue outage must not
+     * fail or undo the submit itself, so the report is marked failed instead.
+     */
+    private function queuePsychologyReport(int $attemptId): void
+    {
+        try {
+            GenerateExamPsychologyReportJob::dispatch($attemptId);
+        } catch (Throwable $exception) {
+            Log::warning('Gagal mengantrekan rapor psikologi ujian.', [
+                'attempt_id' => $attemptId,
+                'message' => $exception->getMessage(),
+            ]);
+
+            ExamAttempt::query()->whereKey($attemptId)->update(['psychology_report_status' => 'failed']);
+        }
     }
 }

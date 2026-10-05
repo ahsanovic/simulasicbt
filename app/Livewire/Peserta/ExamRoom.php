@@ -5,14 +5,16 @@ namespace App\Livewire\Peserta;
 use App\Enums\ExamAttemptStatus;
 use App\Enums\HelpItem;
 use App\Livewire\Concerns\EnforcesExamDeadline;
+use App\Livewire\Concerns\VersionsExamAnswers;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
-use App\Models\QuestionOption;
+use App\Models\Question;
 use App\Services\ExamPsychologyTelemetryService;
 use App\Services\ExamService;
 use App\Services\ExamStressResilienceService;
 use App\Services\HelpItemService;
+use App\Support\ExamQuestionCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -26,6 +28,7 @@ use Livewire\Component;
 class ExamRoom extends Component
 {
     use EnforcesExamDeadline;
+    use VersionsExamAnswers;
 
     #[Locked]
     public int $examId;
@@ -65,6 +68,7 @@ class ExamRoom extends Component
     public int $examDurationMinutes = 0;
 
     /** @var array{red_zone_triggers: int, red_zone_questions: list<int>} */
+    #[Locked]
     public array $stressTestTelemetry = [
         'red_zone_triggers' => 0,
         'red_zone_questions' => [],
@@ -88,9 +92,11 @@ class ExamRoom extends Component
     public int $currentIndex = 0;
 
     /** @var list<array{id: int, sort_order: int, question_id: int, selected_option_id: ?int, is_marked: bool}> */
+    #[Locked]
     public array $answerStates = [];
 
     /** @var list<int> */
+    #[Locked]
     public array $currentOptionIds = [];
 
     /**
@@ -105,21 +111,28 @@ class ExamRoom extends Component
     public ?int $savedOptionId = null;
 
     /** @var array<string, int> */
+    #[Locked]
     public array $questionDurations = [];
 
     /** @var array<string, array{first_option_id: ?int, change_count: int, last_change_remaining_seconds: ?int}> */
+    #[Locked]
     public array $answerBehavior = [];
 
+    #[Locked]
     public ?int $questionTimerStartedAt = null;
 
+    #[Locked]
     public bool $showLastQuestionModal = false;
 
+    #[Locked]
     public bool $skipTrackerActive = false;
 
     /** @var array<string, list<int>> */
+    #[Locked]
     public array $fiftyFiftyEliminated = [];
 
     /** @var array<string, int> */
+    #[Locked]
     public array $inventory = [];
 
     public function mount(Exam $exam, HelpItemService $helpItemService): void
@@ -137,6 +150,7 @@ class ExamRoom extends Component
                     'question_id',
                     'sort_order',
                     'selected_option_id',
+                    'answer_version',
                     'is_marked',
                 ),
             ])
@@ -187,6 +201,7 @@ class ExamRoom extends Component
         $this->isEventAttempt = $attempt->event_id !== null;
         $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel && ! $this->isModeUjian;
         $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;
+        $this->answerVersionBase = (int) $attempt->answers->max('answer_version');
         $this->answerStates = $attempt->answers
             ->sortBy(fn (ExamAnswer $answer) => $answer->sort_order ?: 999)
             ->values()
@@ -229,20 +244,13 @@ class ExamRoom extends Component
         return collect($this->answerStates)->map(fn (array $state) => (object) $state);
     }
 
+    /** The question on screen (content, options, subject), from the shared question cache. */
     #[Computed]
-    public function currentAnswer(): ?ExamAnswer
+    public function currentQuestion(): ?Question
     {
         $state = $this->currentAnswerState();
 
-        if ($state === null) {
-            return null;
-        }
-
-        return ExamAnswer::query()
-            ->whereKey($state['id'])
-            ->where('exam_attempt_id', $this->attemptId)
-            ->with(['question.options', 'question.subject', 'question.material.materialGroup'])
-            ->first();
+        return $state === null ? null : ExamQuestionCache::skd($state['question_id']);
     }
 
     public function getAnsweredCountProperty(): int
@@ -283,7 +291,7 @@ class ExamRoom extends Component
             return false;
         }
 
-        $question = $this->currentAnswer?->question;
+        $question = $this->currentQuestion;
 
         if ($question === null) {
             return false;
@@ -326,7 +334,7 @@ class ExamRoom extends Component
             return;
         }
 
-        $question = $this->currentAnswer?->question;
+        $question = $this->currentQuestion;
         $state = $this->currentAnswerState();
 
         if ($question === null || $state === null) {
@@ -369,7 +377,10 @@ class ExamRoom extends Component
             $this->syncMarkedInMemory(true);
         }
 
-        $this->persistCurrentAnswer();
+        if (! $this->persistCurrentAnswer()) {
+            return;
+        }
+
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
 
@@ -402,27 +413,6 @@ class ExamRoom extends Component
         return $this->deadlineRemainingSeconds();
     }
 
-    public function selectOption(int $optionId): void
-    {
-        if (! $this->ensureWithinDeadline()) {
-            return;
-        }
-
-        if (in_array($optionId, $this->currentEliminatedOptionIds, true)) {
-            return;
-        }
-
-        if (! $this->isValidOptionForCurrentQuestion($optionId)) {
-            return;
-        }
-
-        // Selecting only updates the on-screen highlight. The answer is NOT
-        // persisted until the peserta explicitly clicks "Simpan & Lanjutkan"
-        // (next). Navigating away via the navigator / "Sebelumnya" discards an
-        // unsaved pick — loadCurrentAnswer() restores the last saved value.
-        $this->selectedOptionId = $optionId;
-    }
-
     public function saveAnswer(): void
     {
         if (! $this->ensureWithinDeadline()) {
@@ -432,19 +422,24 @@ class ExamRoom extends Component
         $this->persistCurrentAnswer();
     }
 
-    private function persistCurrentAnswer(): void
+    /**
+     * Save the on-screen pick of the current question. Returns false when the
+     * save was refused as stale (see VersionsExamAnswers): the room is then
+     * being reloaded and the caller must stop instead of moving on.
+     */
+    private function persistCurrentAnswer(bool $reloadIfStale = true): bool
     {
         $state = $this->currentAnswerState();
 
         if ($state === null) {
-            return;
+            return true;
         }
 
         $optionId = $this->selectedOptionId;
 
-        // The pick arrives straight from the browser (deferred wire:model), so
-        // re-check here what selectOption() used to: it must belong to this
-        // question and must not be an option removed by the 50:50 help item.
+        // The pick arrives straight from the browser (deferred wire:model): it
+        // must belong to this question and must not be an option removed by
+        // the 50:50 help item, otherwise the saved answer is kept.
         if ($optionId !== null && (
             ! $this->isValidOptionForCurrentQuestion($optionId)
             || in_array($optionId, $this->currentEliminatedOptionIds, true)
@@ -452,17 +447,30 @@ class ExamRoom extends Component
             $optionId = $state['selected_option_id'];
         }
 
-        $this->trackAnswerBehavior($state['selected_option_id'], $optionId);
+        $version = $this->incomingAnswerVersion();
 
-        ExamAnswer::query()
+        $written = ExamAnswer::query()
             ->whereKey($state['id'])
             ->where('exam_attempt_id', $this->attemptId)
+            ->when($version !== null, fn ($query) => $query->where('answer_version', '<', $version))
             ->update([
                 'selected_option_id' => $optionId,
                 'answered_at' => $optionId ? now() : null,
+                ...($version !== null ? ['answer_version' => $version] : []),
             ]);
 
+        if ($version !== null && $written === 0) {
+            if ($reloadIfStale) {
+                $this->reloadForStaleAnswer('exam_answers', $state['id'], $version);
+            }
+
+            return false;
+        }
+
+        $this->trackAnswerBehavior($state['selected_option_id'], $optionId);
         $this->syncAnswerInMemory($optionId);
+
+        return true;
     }
 
     public function toggleMark(): void
@@ -520,7 +528,10 @@ class ExamRoom extends Component
             return;
         }
 
-        $this->persistCurrentAnswer();
+        if (! $this->persistCurrentAnswer()) {
+            return;
+        }
+
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
 
@@ -590,7 +601,11 @@ class ExamRoom extends Component
         }
 
         $this->showLastQuestionModal = false;
-        $this->persistCurrentAnswer();
+
+        if (! $this->persistCurrentAnswer()) {
+            return;
+        }
+
         $this->accumulateCurrentQuestionDuration();
         $this->persistAttemptMetadata();
         $this->persistHelpItemsState();
@@ -614,8 +629,9 @@ class ExamRoom extends Component
         // manual submit, so a selected-but-not-yet-saved answer on the active
         // question isn't lost — but only if it was made before time ran out
         // (the browser locks the screen at zero; the grace covers latency).
+        // A stale pick is just skipped here: time is up, the attempt closes anyway.
         if ($this->withinAnswerGrace()) {
-            $this->persistCurrentAnswer();
+            $this->persistCurrentAnswer(reloadIfStale: false);
         }
 
         $this->accumulateCurrentQuestionDuration();
@@ -629,6 +645,16 @@ class ExamRoom extends Component
         session()->flash('show_result_attempt_id', $attempt->id);
 
         return $this->resultUrl($attempt);
+    }
+
+    protected function submittedResultUrl(): string
+    {
+        return $this->resultUrl($this->resolveAttempt()->loadMissing('event'));
+    }
+
+    protected function examRoomUrl(): string
+    {
+        return route('peserta.exam.room', $this->examId);
     }
 
     private function redirectAfterSubmit(ExamAttempt $attempt): void
@@ -685,7 +711,7 @@ class ExamRoom extends Component
 
     private function invalidateAnswerComputedProperties(): void
     {
-        unset($this->answers, $this->currentAnswer, $this->answeredCount, $this->unansweredCount, $this->progressPercent);
+        unset($this->answers, $this->currentQuestion, $this->answeredCount, $this->unansweredCount, $this->progressPercent);
     }
 
     private function firstUnansweredIndex(): int
@@ -704,19 +730,12 @@ class ExamRoom extends Component
         $state = $this->currentAnswerState();
 
         $this->selectedOptionId = $state['selected_option_id'] ?? null;
-        unset($this->currentAnswer);
+        unset($this->currentQuestion);
 
-        if ($state === null) {
-            $this->currentOptionIds = [];
-
-            return;
-        }
-
-        $this->currentOptionIds = QuestionOption::query()
-            ->where('question_id', $state['question_id'])
+        $this->currentOptionIds = $this->currentQuestion?->options
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
-            ->all();
+            ->all() ?? [];
     }
 
     private function startQuestionTimer(): void

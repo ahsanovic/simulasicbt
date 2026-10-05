@@ -36,19 +36,41 @@ class ModeUjianLiveScoreTest extends TestCase
         $component->assertDontSee('Jenis Ujian');
     }
 
-    public function test_skb_only_board_shows_jabatan_and_registered_participants_who_have_not_started(): void
+    public function test_skb_only_board_lists_participants_who_started_and_counts_the_rest(): void
     {
         [$admin, $event, $session, $jabatan] = $this->makeModeUjianEvent(EventExamMode::Skb);
 
-        $user = User::factory()->create(['role' => UserRole::Peserta]);
+        $waiting = User::factory()->create(['role' => UserRole::Peserta]);
         EventParticipant::query()->create([
             'event_id' => $event->id,
             'event_session_id' => $session->id,
-            'user_id' => $user->id,
+            'user_id' => $waiting->id,
             'name' => 'Belum Mulai SKB',
             'nik' => '3201010101010001',
             'jabatan_label' => $jabatan->name,
             'jabatan_skb_id' => $jabatan->id,
+        ]);
+
+        $started = User::factory()->create(['role' => UserRole::Peserta]);
+        $participant = EventParticipant::query()->create([
+            'event_id' => $event->id,
+            'event_session_id' => $session->id,
+            'user_id' => $started->id,
+            'name' => 'Sudah Mulai SKB',
+            'nik' => '3201010101010002',
+            'jabatan_label' => $jabatan->name,
+            'jabatan_skb_id' => $jabatan->id,
+        ]);
+        SkbExamAttempt::query()->create([
+            'event_id' => $event->id,
+            'event_session_id' => $session->id,
+            'event_participant_id' => $participant->id,
+            'user_id' => $started->id,
+            'jabatan_skb_id' => $jabatan->id,
+            'started_at' => now()->subMinutes(5),
+            'expires_at' => now()->addMinutes(55),
+            'status' => ExamAttemptStatus::InProgress,
+            'correct_score' => 5,
         ]);
 
         $component = Livewire::actingAs($admin)
@@ -56,15 +78,20 @@ class ModeUjianLiveScoreTest extends TestCase
 
         $component->assertViewHas('category', 'skb');
         $component->assertViewHas('showExamTypePicker', false);
-        $component->assertSee('Belum Mulai SKB');
-        $component->assertSee('Belum Mulai');
+        $component->assertSee('Sudah Mulai SKB');
         $component->assertSee($jabatan->name);
+        // Not started yet: not listed on the board, only counted.
+        $component->assertDontSee('Belum Mulai SKB');
 
         $rows = $component->instance()->allRows();
         $this->assertCount(1, $rows);
-        $this->assertNull($rows[0]['attempt_id']);
-        $this->assertSame(0, $rows[0]['benar']);
+        $this->assertSame('Sudah Mulai SKB', $rows[0]['name']);
         $this->assertSame($jabatan->name, $rows[0]['jabatan']);
+
+        $summary = $component->get('summary');
+        $this->assertSame(1, $summary['not_started']);
+        $this->assertSame(1, $summary['in_progress']);
+        $this->assertSame(2, $summary['total']);
     }
 
     public function test_skb_only_board_shows_finished_score_for_submitted_attempt(): void

@@ -309,3 +309,42 @@ html.exam-protected.exam-unfocused [data-exam-content] {
     cursor: grabbing !important;
 }
 
+
+/* Public livescore rows. Every participant is listed (public transparency),
+   so the row markup is kept short: hundreds of rows are re-sent on every
+   refresh, and long utility class lists per row made the page ~4 KB/row. */
+@layer components {
+    .ls-row {
+        @apply flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-nowrap sm:px-5 dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-none;
+    }
+    .ls-row-1 { @apply border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10; }
+    .ls-row-2 { @apply border-slate-300 bg-slate-100 dark:border-slate-400/40 dark:bg-slate-400/10; }
+    .ls-row-3 { @apply border-orange-300 bg-orange-50 dark:border-orange-600/40 dark:bg-orange-500/10; }
+
+    .ls-rank {
+        @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-lg font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300;
+    }
+    .ls-row-1 .ls-rank { @apply bg-amber-400 text-amber-950; }
+    .ls-row-2 .ls-rank { @apply bg-slate-300 text-slate-800; }
+    .ls-row-3 .ls-rank { @apply bg-orange-500 text-orange-950; }
+
+    .ls-who { @apply min-w-0 flex-1; }
+    .ls-name { @apply truncate text-lg font-bold text-slate-900 sm:text-xl dark:text-white; }
+    .ls-meta { @apply truncate text-xs text-slate-500 dark:text-slate-400; }
+    .ls-scores {
+        @apply flex w-full items-center justify-between gap-4 border-t border-black/5 pt-3 sm:w-auto sm:justify-end sm:border-0 sm:pt-0 dark:border-white/10;
+    }
+    .ls-group { @apply flex shrink-0 items-center gap-3; }
+    .ls-stat { @apply w-11 text-center sm:w-12; }
+    .ls-done { @apply hidden shrink-0 text-center sm:block; }
+    .ls-label { @apply text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500; }
+    .ls-value { @apply text-base font-bold tabular-nums text-slate-700 dark:text-slate-200; }
+    .ls-of { @apply text-slate-400 dark:text-slate-500; }
+    .ls-sum { @apply shrink-0 text-center; }
+    .ls-total { @apply text-2xl font-black tabular-nums text-slate-900 sm:text-3xl dark:text-white; }
+    .ls-state { @apply shrink-0 text-right sm:w-24; }
+    .ls-pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold; }
+    .ls-pill::before { @apply h-1.5 w-1.5 rounded-full; content: ''; }
+    .ls-live { @apply bg-amber-100 text-amber-700 before:bg-amber-500 dark:bg-amber-500/15 dark:text-amber-400 dark:before:bg-amber-400; }
+    .ls-end { @apply bg-emerald-100 text-emerald-700 before:bg-emerald-500 dark:bg-emerald-500/15 dark:text-emerald-400 dark:before:bg-emerald-400; }
+}

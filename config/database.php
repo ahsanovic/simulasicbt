@@ -145,7 +145,14 @@ return [
 
     'redis' => [
 
-        'client' => env('REDIS_CLIENT', 'phpredis'),
+        // predis (pure PHP, installed by composer) by default. "phpredis" is
+        // only used when that PHP extension is really loaded: the app image
+        // does not ship it, and a missing client would take every page down
+        // once sessions live in Redis (e.g. REDIS_CLIENT=phpredis left over
+        // from .env.example).
+        'client' => env('REDIS_CLIENT', 'predis') === 'phpredis' && ! extension_loaded('redis')
+            ? 'predis'
+            : env('REDIS_CLIENT', 'predis'),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),

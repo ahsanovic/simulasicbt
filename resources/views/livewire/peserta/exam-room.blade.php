@@ -21,7 +21,7 @@
 
     @unless ($timeUp)
         {{-- Deadline sync, start offset randomised per participant (see exam-timer.js). --}}
-        <div x-data="examDeadlinePoll({{ $isEventAttempt ? 10000 : 30000 }})" class="hidden"></div>
+        <div x-data="examDeadlinePoll(30000)" class="hidden"></div>
     @endunless
 
     @if ($isModeUjian)
@@ -29,7 +29,7 @@
     @endif
 
     <x-ui.flash-toast />
-    <x-peserta.exam-connection-banner />
+    <x-peserta.exam-connection-banner attempt-key="skd-{{ $attemptId }}" :answer-version="$answerVersionBase" />
     <x-peserta.exam-time-up-overlay :time-up="$timeUp" :result-url="$resultUrl" />
 
     @include('livewire.peserta.exam-room.header')
@@ -49,7 +49,7 @@
         </div>
     </main>
 
-    @if (! $isModeUjian && $this->currentAnswer?->question->subject->code->value === 'tiu')
+    @if (! $isModeUjian && $this->currentQuestion?->subject->code->value === 'tiu')
         @include('livewire.peserta.exam-room.scratchpad')
     @endif
     @include('livewire.peserta.exam-room.last-question-modal')

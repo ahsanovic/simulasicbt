@@ -19,8 +19,10 @@
 
         @if ($currentIndex < count($answerStates) - 1)
             <button type="button" wire:click="next" wire:loading.attr="disabled" class="ui-btn-primary disabled:opacity-70">
-                Simpan &amp; Lanjutkan
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                <span wire:loading.remove wire:target="next">Simpan &amp; Lanjutkan</span>
+                <span wire:loading wire:target="next">Menyimpan…</span>
+                <svg wire:loading.remove wire:target="next" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                <svg wire:loading wire:target="next" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
             </button>
         @else
             {{-- Saved/unsaved state is worked out in the browser from the pick on screen
@@ -38,7 +40,9 @@
                     x-bind:disabled="! $wire.selectedOptionId"
                     @style(['display: none' => $this->currentPickSaved])
                     class="ui-btn-primary disabled:cursor-not-allowed disabled:opacity-50">
-                Simpan Jawaban
+                <span wire:loading.remove wire:target="saveAnswer">Simpan Jawaban</span>
+                <span wire:loading wire:target="saveAnswer">Menyimpan…</span>
+                <svg wire:loading wire:target="saveAnswer" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
             </button>
             <button type="button"
                     wire:click="submitExam"

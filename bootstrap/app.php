@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\BlockDuringExamLockdown;
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsPeserta;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,10 +21,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
-            'peserta' => \App\Http\Middleware\EnsureUserIsPeserta::class,
-            'exam-lockdown' => \App\Http\Middleware\BlockDuringExamLockdown::class,
+            'admin' => EnsureUserIsAdmin::class,
+            'peserta' => EnsureUserIsPeserta::class,
+            'exam-lockdown' => BlockDuringExamLockdown::class,
         ]);
+
+        // A logged-in user opening /login or /ujian/login goes to their own
+        // dashboard. Without this the "guest" middleware fell back to "/",
+        // which redirects to /login again: an endless redirect loop.
+        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->homeUrl() ?? '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -118,13 +118,20 @@ class SkbExamRoomSaveAnswerTest extends TestCase
         [$user, $attempt] = $this->startSkbAttempt();
         $optionId = $this->answerAt($attempt, 3)->question->options->first()->id;
 
-        Livewire::actingAs($user)
+        // The "Jawaban Tersimpan" badge and the "Simpan Jawaban" button are both
+        // in the page; the browser shows one of them by comparing the pick on
+        // screen with savedOptionId. The server renders the right one visible.
+        $savedBadgeHidden = '/style="display: none;?"\s+class="inline-flex[^"]*emerald[^"]*">\s*<svg[^>]*>.*?<\/svg>\s*Jawaban Tersimpan/s';
+
+        $component = Livewire::actingAs($user)
             ->test(SkbExamRoom::class)
             ->call('goToQuestion', 2)
-            ->call('selectOption', $optionId)
-            ->assertDontSee('Jawaban Tersimpan')
-            ->call('saveAnswer')
-            ->assertSee('Jawaban Tersimpan');
+            ->set('selectedOptionId', $optionId)
+            ->assertSet('savedOptionId', null);
+        $this->assertMatchesRegularExpression($savedBadgeHidden, $component->html());
+
+        $component->call('saveAnswer')->assertSet('savedOptionId', $optionId);
+        $this->assertDoesNotMatchRegularExpression($savedBadgeHidden, $component->html());
     }
 
     public function test_option_from_another_question_is_rejected(): void

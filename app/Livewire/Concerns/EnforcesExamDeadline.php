@@ -36,7 +36,13 @@ trait EnforcesExamDeadline
     abstract protected function closeTimedOutAttempt(): string;
 
     /**
-     * Called by wire:poll and by the browser timer the moment it reaches zero.
+     * Called by the background deadline poll and by the browser timer the
+     * moment it reaches zero.
+     *
+     * While time remains nothing on screen changes, so the page is NOT
+     * re-rendered: only the fresh deadline goes back (exam-deadline-synced).
+     * With dozens of participants polling, re-sending the whole exam page
+     * every few seconds was the main source of lag on answer clicks.
      */
     public function checkExpiry(): void
     {
@@ -44,13 +50,18 @@ trait EnforcesExamDeadline
             // A poll that slips in before the time-up screen redirects must
             // not use up flash data meant for the result page.
             session()->reflash();
+            $this->skipRender();
 
             return;
         }
 
         if (! $this->syncDeadline() || $this->deadlineRemainingSeconds() <= 0) {
             $this->closeForTimeUp();
+
+            return;
         }
+
+        $this->skipRender();
     }
 
     /**

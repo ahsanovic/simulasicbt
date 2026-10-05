@@ -7,16 +7,9 @@
                 $isMarked = $state['is_marked'];
                 $isAnswered = (bool) $state['selected_option_id'];
             @endphp
-            <button type="button"
-                    wire:key="nav-{{ $state['id'] }}-{{ (int) $isMarked }}-{{ (int) $isAnswered }}-{{ $currentIndex }}"
-                    wire:click="goToQuestion({{ $index }})"
-                    @class([
-                        'relative flex h-10 items-center justify-center rounded-xl text-sm font-bold transition',
-                        'bg-primary-600 text-white shadow-md shadow-primary-500/30 ring-2 ring-primary-300' => $isCurrent,
-                        'bg-amber-400 text-amber-950 ring-2 ring-amber-500 hover:bg-amber-500' => ! $isCurrent && $isMarked,
-                        'bg-emerald-500 text-white hover:bg-emerald-600' => ! $isCurrent && ! $isMarked && $isAnswered,
-                        'bg-rose-500 text-white hover:bg-rose-600' => ! $isCurrent && ! $isMarked && ! $isAnswered,
-                    ])>
+            {{-- Short class names (see app.css .qnav): this grid is re-sent on every action. --}}
+            <button type="button" wire:key="n{{ $index }}" wire:click="goToQuestion({{ $index }})"
+                    class="qnav {{ $isCurrent ? 'qnav-current' : ($isMarked ? 'qnav-marked' : ($isAnswered ? 'qnav-answered' : 'qnav-empty')) }}">
                 {{ $index + 1 }}
             </button>
         @endforeach

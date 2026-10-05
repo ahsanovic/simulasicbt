@@ -12,7 +12,7 @@
 
 <div
     x-data="{ pending: false }"
-    x-on:exam-time-up.window="if (! pending) { pending = true; $wire.checkExpiry(); }"
+    x-on:exam-time-up.window="if (! pending) { pending = true; Promise.resolve($wire.checkExpiry()).catch(() => {}); }"
     x-on:exam-deadline-synced.window="if ($event.detail.remainingSeconds > 0) pending = false"
 >
     @if ($timeUp)

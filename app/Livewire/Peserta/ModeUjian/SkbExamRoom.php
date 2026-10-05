@@ -11,6 +11,7 @@ use App\Services\SkbExamService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -26,7 +27,20 @@ class SkbExamRoom extends Component
 
     public int $currentIndex = 0;
 
+    /**
+     * The option highlighted on screen. Bound with a deferred wire:model, so
+     * picking an answer is instant in the browser and only travels to the
+     * server together with "Simpan" / navigation — no request per click.
+     */
     public ?int $selectedOptionId = null;
+
+    /** Saved option of the current question, for the browser-side "Tersimpan" state. */
+    #[Locked]
+    public ?int $savedOptionId = null;
+
+    /** Unanswered count by saved answers, for the browser-side finish confirmation. */
+    #[Locked]
+    public int $unansweredSaved = 0;
 
     /** @var array<int, array{id: int, sort_order: int, question_id: int, selected_option_id: ?int, is_marked: bool}> */
     public array $answerStates = [];
@@ -62,7 +76,12 @@ class SkbExamRoom extends Component
             'selected_option_id' => $answer->selected_option_id,
             'is_marked' => (bool) $answer->is_marked,
         ])->all();
-        $this->selectedOptionId = $this->answerStates[0]['selected_option_id'] ?? null;
+
+        // Back after a refresh, lost connection or anti-cheat logout: continue
+        // at the first question without a saved answer, not at question 1.
+        $firstUnanswered = collect($this->answerStates)->search(fn (array $state) => $state['selected_option_id'] === null);
+        $this->currentIndex = $firstUnanswered === false ? 0 : $firstUnanswered;
+        $this->selectedOptionId = $this->answerStates[$this->currentIndex]['selected_option_id'] ?? null;
     }
 
     public function getRemainingSecondsProperty(): int
@@ -175,8 +194,10 @@ class SkbExamRoom extends Component
 
         $optionId = $this->selectedOptionId;
 
+        // The pick arrives straight from the browser (deferred wire:model):
+        // ignore one that does not belong to this question, keep the saved one.
         if ($optionId !== null && ! $this->isValidOptionForCurrentQuestion($optionId)) {
-            $optionId = null;
+            $optionId = $state['selected_option_id'];
         }
 
         $saved = app(SkbExamService::class)->saveAnswer(
@@ -300,6 +321,9 @@ class SkbExamRoom extends Component
 
     public function render()
     {
+        $this->savedOptionId = $this->answerStates[$this->currentIndex]['selected_option_id'] ?? null;
+        $this->unansweredSaved = $this->unansweredCount;
+
         return view('livewire.peserta.mode-ujian.skb-exam-room');
     }
 }

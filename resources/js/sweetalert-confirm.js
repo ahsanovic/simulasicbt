@@ -84,6 +84,20 @@ function getConfirmElement(target) {
 }
 
 function getConfirmMessage(el) {
+    // data-confirm-message="fnName": message worked out at click time from the
+    // component's current browser state (e.g. a pick not yet sent to the
+    // server). Falls back to the server-rendered wire:confirm text.
+    const builder = window[el.dataset.confirmMessage];
+    const componentEl = el.closest('[wire\\:id]');
+
+    if (typeof builder === 'function' && componentEl && window.Livewire) {
+        const wire = window.Livewire.find(componentEl.getAttribute('wire:id'));
+
+        if (wire) {
+            return builder(wire);
+        }
+    }
+
     return el.getAttribute('wire:confirm')
         ?? el.getAttribute('wire:confirm.prompt')
         ?? '';

@@ -6,7 +6,6 @@
     @include('livewire.peserta.exam-room.confirm-name')
 @else
 <div class="min-h-screen bg-slate-100"
-     @unless ($timeUp) wire:poll.{{ $isEventAttempt ? '10s' : '30s' }}="checkExpiry" @endunless
      @if ($stressTestEnabled)
          x-data="examStressTest({
              enabled: true,
@@ -20,11 +19,17 @@
          :class="{ 'ring-4 ring-inset ring-rose-500/40 transition-shadow duration-150': showRedZoneFlash }"
      @endif>
 
+    @unless ($timeUp)
+        {{-- Deadline sync, start offset randomised per participant (see exam-timer.js). --}}
+        <div x-data="examDeadlinePoll({{ $isEventAttempt ? 10000 : 30000 }})" class="hidden"></div>
+    @endunless
+
     @if ($isModeUjian)
         <x-peserta.mode-ujian-guard />
     @endif
 
     <x-ui.flash-toast />
+    <x-peserta.exam-connection-banner />
     <x-peserta.exam-time-up-overlay :time-up="$timeUp" :result-url="$resultUrl" />
 
     @include('livewire.peserta.exam-room.header')

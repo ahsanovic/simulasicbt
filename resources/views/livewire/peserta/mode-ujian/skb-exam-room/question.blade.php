@@ -13,20 +13,13 @@
 
         <div class="space-y-3">
             @foreach ($this->currentAnswer->question->options as $option)
-                <label @class([
-                    'flex cursor-pointer items-start gap-4 rounded-2xl border-2 p-4 transition',
-                    'border-primary-500 bg-primary-50/50 ring-4 ring-primary-500/10' => $selectedOptionId === $option->id,
-                    'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50' => $selectedOptionId !== $option->id,
-                ])>
-                    <span @class([
-                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
-                        'bg-primary-600 text-white' => $selectedOptionId === $option->id,
-                        'bg-slate-100 text-slate-600' => $selectedOptionId !== $option->id,
-                    ])>{{ $option->label }}</span>
+                {{-- Picking is browser-only (deferred wire:model): instant highlight, no request. --}}
+                <label wire:key="opt-{{ $option->id }}" class="exam-option">
+                    <span class="exam-option-letter">{{ $option->label }}</span>
                     <input type="radio"
                            name="option"
                            value="{{ $option->id }}"
-                           wire:click="selectOption({{ $option->id }})"
+                           wire:model="selectedOptionId"
                            @checked($selectedOptionId === $option->id)
                            class="sr-only">
                     <span class="flex-1 pt-1 text-sm leading-relaxed text-slate-800">

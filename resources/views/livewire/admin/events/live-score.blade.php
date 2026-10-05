@@ -1,4 +1,4 @@
-<div @if (! $showAddTimeModal) wire:poll.10s="pollBoard" @endif>
+<div @if (! $showAddTimeModal) wire:poll.30s="pollBoard" @endif>
     <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
             <a href="{{ route('admin.events.sessions', $eventId) }}" wire:navigate class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">
@@ -305,7 +305,11 @@
 
                         <div>
                             <label class="ui-label">Tambah berapa menit?</label>
-                            <input type="number" min="1" max="{{ $ctx['max'] }}" wire:model.live="addMinutes" class="ui-input w-32 text-center">
+                            {{-- Deferred: typing sends nothing; the value goes with "Tambah Waktu"
+                                 (clamped again on the server). It used to re-render the whole board per keystroke. --}}
+                            <input type="number" min="1" max="{{ $ctx['max'] }}" wire:model="addMinutes"
+                                   x-on:change="const v = Math.max(1, Math.min({{ $ctx['max'] }}, parseInt($el.value) || 1)); if (String(v) !== $el.value) { $el.value = v; $el.dispatchEvent(new Event('input')); }"
+                                   class="ui-input w-32 text-center">
                             <p class="mt-1.5 text-xs text-slate-500">Otomatis dibatasi maksimal {{ $ctx['max'] }} menit.</p>
                         </div>
                     @endif
@@ -313,7 +317,7 @@
 
                 <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
                     <button type="button" wire:click="closeAddTimeModal" class="ui-btn-secondary">Batal</button>
-                    <button type="button" wire:click="confirmAddTime"
+                    <button type="button" wire:click="confirmAddTime" wire:loading.attr="disabled"
                             @disabled($ctx['max'] <= 0)
                             @class([
                                 'ui-btn-primary',

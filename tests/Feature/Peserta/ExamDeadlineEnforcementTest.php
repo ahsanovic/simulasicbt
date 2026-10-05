@@ -295,7 +295,7 @@ class ExamDeadlineEnforcementTest extends TestCase
     /**
      * @return array{0: User, 1: SkbExamAttempt}
      */
-    private function startSkbAttempt(): array
+    protected function startSkbAttempt(): array
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);
         $user = User::factory()->create(['role' => UserRole::Peserta]);
@@ -361,7 +361,7 @@ class ExamDeadlineEnforcementTest extends TestCase
         return [$user, $attempt];
     }
 
-    private function skbAnswerAt(SkbExamAttempt $attempt, int $sortOrder): SkbExamAnswer
+    protected function skbAnswerAt(SkbExamAttempt $attempt, int $sortOrder): SkbExamAnswer
     {
         return SkbExamAnswer::query()
             ->where('skb_exam_attempt_id', $attempt->id)
@@ -373,7 +373,7 @@ class ExamDeadlineEnforcementTest extends TestCase
     /**
      * @return array{user: User, exam: Exam, attempt: ExamAttempt, firstOptionId: int}
      */
-    private function createSkdAttempt(int $expiresInMinutes, bool $modeUjian = false, SubjectCode $subject = SubjectCode::Twk): array
+    protected function createSkdAttempt(int $expiresInMinutes, bool $modeUjian = false, SubjectCode $subject = SubjectCode::Twk): array
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);
         $user = User::factory()->create(['role' => UserRole::Peserta]);

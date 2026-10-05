@@ -32,6 +32,7 @@
                 <button type="button"
                         wire:click="submitExam"
                         wire:confirm="{{ $this->submitConfirmMessage }}"
+                        data-confirm-message="skbFinishConfirmMessage"
                         class="ui-btn-danger shrink-0">
                     Selesai Ujian
                 </button>

@@ -7,10 +7,12 @@ use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamAttemptType;
 use App\Enums\ExamHistoryFilter;
 use App\Enums\SkdTarget;
+use App\Enums\SubjectCode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class ExamAttempt extends Model
 {
@@ -323,6 +325,63 @@ class ExamAttempt extends Model
         }
 
         return (int) now()->diffInSeconds($this->expires_at);
+    }
+
+    /**
+     * Answered counts and live scores for many attempts at once (livescore
+     * boards). Same result as calculateScores() per attempt, but from two
+     * aggregate queries instead of loading every answer, option, question and
+     * subject as models — with dozens of participants that was thousands of
+     * models on every board refresh.
+     *
+     * @param  list<int>  $attemptIds
+     * @return array<int, array{total: int, answered: int, twk: int, tiu: int, tkp: int, score: int}>
+     */
+    public static function liveBoardStats(array $attemptIds): array
+    {
+        $stats = [];
+
+        foreach ($attemptIds as $id) {
+            $stats[$id] = ['total' => 0, 'answered' => 0, 'twk' => 0, 'tiu' => 0, 'tkp' => 0, 'score' => 0];
+        }
+
+        if ($attemptIds === []) {
+            return $stats;
+        }
+
+        DB::table('exam_answers')
+            ->whereIn('exam_attempt_id', $attemptIds)
+            ->groupBy('exam_attempt_id')
+            ->selectRaw('exam_attempt_id, COUNT(*) as total, COUNT(selected_option_id) as answered')
+            ->get()
+            ->each(function (object $row) use (&$stats): void {
+                $stats[$row->exam_attempt_id]['total'] = (int) $row->total;
+                $stats[$row->exam_attempt_id]['answered'] = (int) $row->answered;
+            });
+
+        // Like calculateScores(): answers whose question was (soft) deleted
+        // or has no subject earn nothing.
+        DB::table('exam_answers as a')
+            ->join('question_options as o', 'o.id', '=', 'a.selected_option_id')
+            ->join('questions as q', 'q.id', '=', 'a.question_id')
+            ->join('subjects as s', 's.id', '=', 'q.subject_id')
+            ->whereIn('a.exam_attempt_id', $attemptIds)
+            ->whereNull('q.deleted_at')
+            ->groupBy('a.exam_attempt_id', 's.code', 'o.score_weight', 'o.is_correct')
+            ->selectRaw('a.exam_attempt_id, s.code, o.score_weight, o.is_correct, COUNT(*) as picks')
+            ->get()
+            ->each(function (object $row) use (&$stats): void {
+                $subject = SubjectCode::from($row->code);
+                $points = $subject->pointsFromSelectedOption(
+                    $row->score_weight === null ? null : (int) $row->score_weight,
+                    (bool) $row->is_correct,
+                ) * (int) $row->picks;
+
+                $stats[$row->exam_attempt_id][$subject->value] += $points;
+                $stats[$row->exam_attempt_id]['score'] += $points;
+            });
+
+        return $stats;
     }
 
     /** @return array{twk: int, tiu: int, tkp: int, total: int} */

@@ -1,4 +1,122 @@
+/**
+ * "Selesai Ujian" confirmation for the SKB room, counted in the browser so a
+ * pick made on the last question (not yet sent to the server) already counts.
+ */
+window.skbFinishConfirmMessage = (wire) => {
+    const pendingPick = Boolean(wire.selectedOptionId) && ! wire.savedOptionId;
+    const unanswered = Math.max(0, Number(wire.unansweredSaved || 0) - (pendingPick ? 1 : 0));
+
+    return unanswered > 0
+        ? `Masih ada ${unanswered} soal belum dijawab. Yakin ingin menyelesaikan ujian SKB sekarang? Skor akan disimpan.`
+        : 'Semua soal sudah dijawab. Selesaikan ujian SKB ini? Skor akan disimpan.';
+};
+
+/**
+ * Report failed Livewire requests to the exam connection banner. Livewire
+ * ignores a network failure silently, and on a 5xx (server overloaded) shows
+ * a full-page error modal; inside an exam room both become the banner.
+ */
+document.addEventListener('livewire:init', () => {
+    window.Livewire.interceptRequest(({ request, onFailure, onError, onSuccess }) => {
+        // The background deadline poll succeeding must not clear a "not
+        // saved" warning left by a failed click, so tell the two apart.
+        const background = [...request.messages].every((message) => [...message.actions].every((action) => action.name === 'checkExpiry'));
+        const notify = (name) => window.dispatchEvent(new CustomEvent(name, { detail: { background } }));
+
+        onFailure(() => notify('exam-request-failed'));
+        onError(({ response, preventDefault }) => {
+            if (response.status >= 500 && document.querySelector('[data-exam-connection]')) {
+                preventDefault();
+                notify('exam-request-failed');
+            }
+        });
+        onSuccess(() => notify('exam-request-ok'));
+    });
+});
+
 document.addEventListener('alpine:init', () => {
+    Alpine.data('examConnection', () => ({
+        offline: ! navigator.onLine,
+        // A click (Simpan / Selesai / navigation) failed: the answer is not saved.
+        saveFailed: false,
+        // Only the background poll failed: the server can't be reached.
+        serverUnreachable: false,
+
+        get problem() {
+            return this.offline || this.saveFailed || this.serverUnreachable;
+        },
+
+        get title() {
+            if (this.offline) return 'Koneksi internet terputus';
+
+            return this.saveFailed ? 'Jawaban belum tersimpan' : 'Koneksi ke server terputus';
+        },
+
+        init() {
+            this.handlers = {
+                offline: () => { this.offline = true; },
+                online: () => { this.offline = false; },
+                'exam-request-failed': (event) => {
+                    this.offline = ! navigator.onLine;
+                    if (event.detail?.background) this.serverUnreachable = true;
+                    else this.saveFailed = true;
+                },
+                'exam-request-ok': (event) => {
+                    this.offline = false;
+                    this.serverUnreachable = false;
+                    if (! event.detail?.background) this.saveFailed = false;
+                },
+            };
+            Object.entries(this.handlers).forEach(([name, fn]) => window.addEventListener(name, fn));
+        },
+
+        destroy() {
+            Object.entries(this.handlers).forEach(([name, fn]) => window.removeEventListener(name, fn));
+        },
+    }));
+
+    /**
+     * Background deadline sync for exam rooms (replaces wire:poll).
+     *
+     * Participants usually enter at the same moment, so a fixed wire:poll made
+     * all of them hit the server in the same second every interval and their
+     * answer clicks queued behind that burst. Each browser starts at a random
+     * offset instead, spreading the load evenly. The server answers without
+     * re-rendering the page (see EnforcesExamDeadline::checkExpiry).
+     */
+    Alpine.data('examDeadlinePoll', (intervalMs = 10000) => ({
+        starter: null,
+        timer: null,
+
+        init() {
+            this.starter = setTimeout(() => {
+                this.poll();
+                this.timer = setInterval(() => this.poll(), intervalMs);
+            }, Math.random() * intervalMs);
+
+            // Back online: sync soon (closes the attempt if the time ran out
+            // while the connection was down). Jittered, because when the room's
+            // network comes back every participant comes back at once.
+            this.onOnline = () => setTimeout(() => this.poll(), Math.random() * 3000);
+            window.addEventListener('online', this.onOnline);
+        },
+
+        poll() {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+
+            // A failed poll (offline) is reported by the connection banner.
+            Promise.resolve(this.$wire.checkExpiry()).catch(() => {});
+        },
+
+        destroy() {
+            clearTimeout(this.starter);
+            clearInterval(this.timer);
+            window.removeEventListener('online', this.onOnline);
+        },
+    }));
+
     Alpine.data('examTimer', (initialSeconds, options = {}) => ({
         seconds: Math.max(0, Number(initialSeconds) || 0),
         // Wall-clock end time, so a throttled/backgrounded tab can't make the

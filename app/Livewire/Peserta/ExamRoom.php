@@ -93,7 +93,16 @@ class ExamRoom extends Component
     /** @var list<int> */
     public array $currentOptionIds = [];
 
+    /**
+     * The option highlighted on screen. Bound with a deferred wire:model, so
+     * picking an answer is instant in the browser and only travels to the
+     * server together with "Simpan & Lanjutkan" / navigation.
+     */
     public ?int $selectedOptionId = null;
+
+    /** Saved option of the current question, for browser-side button states. */
+    #[Locked]
+    public ?int $savedOptionId = null;
 
     /** @var array<string, int> */
     public array $questionDurations = [];
@@ -205,6 +214,10 @@ class ExamRoom extends Component
             ->all();
 
         $this->inventory = $helpItemService->inventory(auth()->user());
+
+        // Back after a refresh, lost connection or anti-cheat logout: continue
+        // at the first question without a saved answer, not at question 1.
+        $this->currentIndex = $this->firstUnansweredIndex();
 
         $this->loadCurrentAnswer();
         $this->startQuestionTimer();
@@ -429,8 +442,14 @@ class ExamRoom extends Component
 
         $optionId = $this->selectedOptionId;
 
-        if ($optionId !== null && ! $this->isValidOptionForCurrentQuestion($optionId)) {
-            $optionId = null;
+        // The pick arrives straight from the browser (deferred wire:model), so
+        // re-check here what selectOption() used to: it must belong to this
+        // question and must not be an option removed by the 50:50 help item.
+        if ($optionId !== null && (
+            ! $this->isValidOptionForCurrentQuestion($optionId)
+            || in_array($optionId, $this->currentEliminatedOptionIds, true)
+        )) {
+            $optionId = $state['selected_option_id'];
         }
 
         $this->trackAnswerBehavior($state['selected_option_id'], $optionId);
@@ -669,6 +688,17 @@ class ExamRoom extends Component
         unset($this->answers, $this->currentAnswer, $this->answeredCount, $this->unansweredCount, $this->progressPercent);
     }
 
+    private function firstUnansweredIndex(): int
+    {
+        foreach ($this->answerStates as $index => $state) {
+            if ($state['selected_option_id'] === null) {
+                return $index;
+            }
+        }
+
+        return 0;
+    }
+
     private function loadCurrentAnswer(): void
     {
         $state = $this->currentAnswerState();
@@ -853,6 +883,8 @@ class ExamRoom extends Component
 
     public function render()
     {
+        $this->savedOptionId = $this->currentAnswerState()['selected_option_id'] ?? null;
+
         return view('livewire.peserta.exam-room');
     }
 }

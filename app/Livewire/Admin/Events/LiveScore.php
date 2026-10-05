@@ -186,24 +186,21 @@ class LiveScore extends Component
             ->with([
                 'user:id,name,instansi_id',
                 'user.instansi:id,nama',
-                'answers:id,exam_attempt_id,question_id,selected_option_id',
-                'answers.selectedOption:id,question_id,score_weight,is_correct',
-                'answers.question:id,subject_id',
-                'answers.question.subject:id,code',
             ])
             ->get();
 
+        $stats = ExamAttempt::liveBoardStats($attempts->modelKeys());
+
         return $attempts
-            ->map(function (ExamAttempt $attempt) {
-                $total = $attempt->answers->count();
-                $answered = $attempt->answers
-                    ->filter(fn ($answer) => $answer->selected_option_id !== null)
-                    ->count();
+            ->map(function (ExamAttempt $attempt) use ($stats) {
+                $live = $stats[$attempt->id];
+                $total = $live['total'];
+                $answered = $live['answered'];
 
                 $inProgress = $attempt->status === ExamAttemptStatus::InProgress;
 
                 if ($inProgress) {
-                    $scores = $attempt->calculateScores();
+                    $scores = ['twk' => $live['twk'], 'tiu' => $live['tiu'], 'tkp' => $live['tkp'], 'total' => $live['score']];
                 } else {
                     $scores = [
                         'twk' => (int) $attempt->score_twk,
@@ -313,12 +310,12 @@ class LiveScore extends Component
     public function filteredRows(): array
     {
         if (blank($this->search)) {
-            return $this->allRows();
+            return $this->allRows;
         }
 
         $search = strtolower(trim($this->search));
 
-        return collect($this->allRows())
+        return collect($this->allRows)
             ->filter(fn ($row) => str_contains(strtolower($row['name']), $search)
                 || str_contains(strtolower($row['instansi'] ?? $row['jabatan'] ?? ''), $search))
             ->values()
@@ -328,7 +325,7 @@ class LiveScore extends Component
     #[Computed]
     public function rows(): array
     {
-        $all = $this->filteredRows();
+        $all = $this->filteredRows;
         $start = ($this->currentPage - 1) * $this->perPage;
 
         return array_slice($all, $start, $this->perPage);
@@ -337,13 +334,13 @@ class LiveScore extends Component
     #[Computed]
     public function totalPages(): int
     {
-        return (int) ceil(count($this->filteredRows()) / $this->perPage);
+        return (int) ceil(count($this->filteredRows) / $this->perPage);
     }
 
     #[Computed]
     public function summary(): array
     {
-        $rows = collect($this->filteredRows());
+        $rows = collect($this->filteredRows);
 
         return [
             'total' => $rows->count(),
@@ -351,6 +348,18 @@ class LiveScore extends Component
             'in_progress' => $rows->where('status', ExamAttemptStatus::InProgress)->count(),
             'finished' => $rows->filter(fn ($row) => $row['status'] !== null && $row['status'] !== ExamAttemptStatus::InProgress)->count(),
         ];
+    }
+
+    /**
+     * Drop the cached board after attempts changed (add time, reset), so the
+     * render that follows reads fresh data. The board is read through the
+     * computed properties ($this->allRows, not $this->allRows()) so it is
+     * built once per request — calling the methods directly skipped the
+     * cache and rebuilt every answer of every participant several times.
+     */
+    private function forgetBoard(): void
+    {
+        unset($this->allRows, $this->filteredRows, $this->rows, $this->totalPages, $this->summary);
     }
 
     /** @return list<string> Every attempt in this session — reset applies to finished ones too. */
@@ -379,12 +388,12 @@ class LiveScore extends Component
     public function updatedViewMode(): void
     {
         $this->currentPage = 1;
-        unset($this->allRows, $this->filteredRows, $this->rows, $this->totalPages, $this->summary);
+        $this->forgetBoard();
     }
 
     public function goToPage(int $page): void
     {
-        $this->currentPage = max(1, min($page, $this->totalPages()));
+        $this->currentPage = max(1, min($page, $this->totalPages));
     }
 
     /** selectAll as it was before this update, to tell which board's checkbox actually changed. */
@@ -446,7 +455,7 @@ class LiveScore extends Component
             return;
         }
 
-        unset($this->rows, $this->summary);
+        $this->forgetBoard();
         session()->flash('success', "Ujian {$attempt->resolvedDisplayName()} direset — dimulai dari awal.");
     }
 
@@ -465,7 +474,7 @@ class LiveScore extends Component
 
         $skbExamService->resetAttempt($attempt);
 
-        unset($this->rows, $this->summary);
+        $this->forgetBoard();
         session()->flash('success', "Ujian SKB {$attempt->user?->name} direset — dimulai dari awal.");
     }
 
@@ -489,7 +498,7 @@ class LiveScore extends Component
 
             $this->selected[$board] = [];
             $this->selectAll[$board] = false;
-            unset($this->rows, $this->summary);
+            $this->forgetBoard();
 
             session()->flash('success', "Ujian SKB {$attempts->count()} peserta direset — dimulai dari awal.");
 
@@ -512,7 +521,7 @@ class LiveScore extends Component
 
         $this->selected[$board] = [];
         $this->selectAll[$board] = false;
-        unset($this->rows, $this->summary);
+        $this->forgetBoard();
 
         session()->flash('success', "Ujian {$done} peserta direset — dimulai dari awal.");
     }
@@ -627,7 +636,7 @@ class LiveScore extends Component
 
     private function clampAddMinutes(): void
     {
-        $max = $this->addTimeContext()['max'];
+        $max = $this->addTimeContext['max'];
         $this->addMinutes = $max > 0
             ? max(1, min((int) $this->addMinutes ?: 1, $max))
             : 0;
@@ -671,7 +680,7 @@ class LiveScore extends Component
 
         $minutes = min($requested, $headroom);
         $this->extendAttempt($attempt, $minutes);
-        unset($this->rows, $this->summary);
+        $this->forgetBoard();
 
         $message = "Waktu +{$minutes} menit untuk {$this->targetDisplayName($attempt)}.";
 
@@ -726,7 +735,7 @@ class LiveScore extends Component
 
         $this->selected[$board] = [];
         $this->selectAll[$board] = false;
-        unset($this->rows, $this->summary);
+        $this->forgetBoard();
 
         if ($applied === 0) {
             session()->flash('error', 'Sisa waktu semua peserta terpilih sudah mencapai durasi ujian.');

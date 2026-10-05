@@ -168,24 +168,21 @@ class LiveScoreShow extends Component
                 'user:id,name,instansi_id',
                 'user.instansi:id,nama',
                 'eventSession:id,name',
-                'answers:id,exam_attempt_id,question_id,selected_option_id',
-                'answers.selectedOption:id,question_id,score_weight,is_correct',
-                'answers.question:id,subject_id',
-                'answers.question.subject:id,code',
             ])
             ->get();
 
+        $stats = ExamAttempt::liveBoardStats($attempts->modelKeys());
+
         return $attempts
-            ->map(function (ExamAttempt $attempt) {
-                $total = $attempt->answers->count();
-                $answered = $attempt->answers
-                    ->filter(fn ($answer) => $answer->selected_option_id !== null)
-                    ->count();
+            ->map(function (ExamAttempt $attempt) use ($stats) {
+                $live = $stats[$attempt->id];
+                $total = $live['total'];
+                $answered = $live['answered'];
 
                 $inProgress = $attempt->status === ExamAttemptStatus::InProgress;
 
                 if ($inProgress) {
-                    $scores = $attempt->calculateScores();
+                    $scores = ['twk' => $live['twk'], 'tiu' => $live['tiu'], 'tkp' => $live['tkp'], 'total' => $live['score']];
                 } else {
                     $scores = [
                         'twk' => (int) $attempt->score_twk,

@@ -12,6 +12,57 @@
     display: none !important;
 }
 
+/*
+ * Exam room answer options. The highlight comes from the radio's own :checked
+ * state, so a pick shows instantly without waiting for the server.
+ */
+@layer components {
+    .exam-option {
+        @apply flex cursor-pointer items-start gap-4 rounded-2xl border-2 border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:bg-slate-50/50;
+    }
+
+    .exam-option:has(input:checked) {
+        @apply border-primary-500 bg-primary-50/50 ring-4 ring-primary-500/10;
+    }
+
+    .exam-option:has(input:focus-visible) {
+        @apply outline-2 outline-offset-2 outline-primary-500;
+    }
+
+    .exam-option-letter {
+        @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600;
+    }
+
+    .exam-option:has(input:checked) .exam-option-letter {
+        @apply bg-primary-600 text-white;
+    }
+
+    .exam-option-eliminated {
+        @apply pointer-events-none border-slate-200 bg-slate-100 opacity-40;
+    }
+
+    /* Question navigator buttons — short class names keep the re-rendered page small. */
+    .qnav {
+        @apply relative flex h-10 items-center justify-center rounded-xl text-sm font-bold text-white transition;
+    }
+
+    .qnav-current {
+        @apply bg-primary-600 shadow-md shadow-primary-500/30 ring-2 ring-primary-300;
+    }
+
+    .qnav-marked {
+        @apply bg-amber-400 text-amber-950 ring-2 ring-amber-500 hover:bg-amber-500;
+    }
+
+    .qnav-answered {
+        @apply bg-emerald-500 hover:bg-emerald-600;
+    }
+
+    .qnav-empty {
+        @apply bg-rose-500 hover:bg-rose-600;
+    }
+}
+
 /* Mode Ujian content protection (see resources/js/exam-content-protection.js). */
 html.exam-protected body {
     -webkit-user-select: none;

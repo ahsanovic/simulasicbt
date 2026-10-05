@@ -1,4 +1,4 @@
-<div class="ui-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+<div class="ui-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between" x-data>
     <button type="button"
             wire:click="previous"
             @disabled($currentIndex === 0)
@@ -16,13 +16,12 @@
                 ])>
             {{ ($this->answerStates[$currentIndex]['is_marked'] ?? false) ? '★ Hapus Tanda' : '☆ Tandai Soal' }}
         </button>
+        {{-- Enabled from the browser-side pick; locked while the request runs so it can't be sent twice. --}}
         <button type="button"
                 wire:click="next"
-                @disabled(! $selectedOptionId)
-                @class([
-                    'ui-btn-primary',
-                    'opacity-50 cursor-not-allowed' => ! $selectedOptionId,
-                ])>
+                wire:loading.attr="disabled"
+                x-bind:disabled="! $wire.selectedOptionId"
+                class="ui-btn-primary disabled:cursor-not-allowed disabled:opacity-50">
             Simpan & Lanjutkan
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>

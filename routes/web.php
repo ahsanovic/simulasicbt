@@ -34,6 +34,7 @@ use App\Livewire\Admin\Questions\Index as QuestionsIndex;
 use App\Livewire\Admin\Reports\Index as ReportsIndex;
 use App\Livewire\Admin\Results\Index as ResultsIndex;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
+use App\Livewire\Admin\SystemHealth\Index as SystemHealthIndex;
 use App\Livewire\Admin\Testimonials\Index as TestimonialsIndex;
 use App\Livewire\Admin\Users\ExamHistory as UserExamHistory;
 use App\Livewire\Admin\Users\Index as UsersIndex;
@@ -66,6 +67,7 @@ use App\Livewire\Peserta\Testimonials;
 use App\Livewire\Public\LiveScoreIndex as PublicLiveScoreIndex;
 use App\Livewire\Public\LiveScoreShow as PublicLiveScoreShow;
 use App\Models\Instansi;
+use App\Models\SystemHealthLog;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -165,6 +167,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         return Excel::download(new ParticipantsExport($instansiId), $filename);
     })->name('reports.export-participants');
     Route::get('/settings', SettingsIndex::class)->name('settings.index');
+    Route::get('/kesehatan-sistem', SystemHealthIndex::class)->name('system-health.index');
+    Route::get('/kesehatan-sistem/{systemHealthLog}/laporan', fn (SystemHealthLog $systemHealthLog) => view('admin.system-health.report', [
+        'log' => $systemHealthLog->load('user:id,name'),
+    ]))->name('system-health.report');
 });
 
 Route::middleware(['auth', 'peserta', 'exam-lockdown', TrackPesertaPresence::class])->prefix('peserta')->name('peserta.')->group(function () {

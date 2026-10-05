@@ -45,6 +45,7 @@
             'label' => 'Sistem',
             'items' => [
                 ['route' => 'admin.settings.index', 'label' => 'Pengaturan', 'icon' => 'settings'],
+                ['route' => 'admin.system-health.index', 'label' => 'Kesehatan Sistem', 'icon' => 'shield-check'],
             ],
         ],
     ];

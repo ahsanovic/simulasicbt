@@ -53,6 +53,13 @@ class SessionParticipantsQuickLinkTest extends TestCase
             ->test(Participants::class, ['event' => $event])
             ->assertSet('sessionFilter', $sessionB->id)
             ->assertSee('Peserta B')
-            ->assertDontSee('Peserta A');
+            ->assertDontSee('Peserta A')
+            // The toolbar's "Reset" button clears the search and the session.
+            ->set('search', 'Peserta B')
+            ->call('resetFilters')
+            ->assertSet('search', '')
+            ->assertSet('sessionFilter', null)
+            ->assertSee('Peserta A')
+            ->assertSee('Peserta B');
     }
 }

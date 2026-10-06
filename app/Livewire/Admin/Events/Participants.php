@@ -69,6 +69,12 @@ class Participants extends Component
         $this->resetPage();
     }
 
+    public function resetFilters(): void
+    {
+        $this->reset(['search', 'sessionFilter']);
+        $this->resetPage();
+    }
+
     public function openCreateModal(): void
     {
         $this->resetForm();

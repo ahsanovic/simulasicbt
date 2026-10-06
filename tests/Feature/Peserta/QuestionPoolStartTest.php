@@ -103,6 +103,38 @@ class QuestionPoolStartTest extends TestCase
         }
     }
 
+    public function test_a_question_moved_to_another_subject_behind_the_pool_never_lands_in_the_wrong_block(): void
+    {
+        $exam = $this->seedSkdBank();
+        app(ExamService::class)->startAttempt($exam, $this->peserta()); // pools cached
+
+        // Five TWK questions become TIU without model events: the TWK pool
+        // still lists them, so a pick almost always contains one.
+        $tiu = Subject::query()->where('code', SubjectCode::Tiu)->value('id');
+        $moved = Question::query()->whereHas('subject', fn ($q) => $q->where('code', SubjectCode::Twk))->limit(self::EXTRA_PER_SUBJECT)->pluck('id');
+        Question::query()->whereKey($moved)->update(['subject_id' => $tiu]);
+
+        foreach (range(1, 3) as $i) {
+            $answers = app(ExamService::class)->startAttempt($exam, $this->peserta())->answers()->with('question.subject')->orderBy('sort_order')->get();
+            $this->assertTrue($answers->take(30)->every(fn ($a) => $a->question->subject->code === SubjectCode::Twk), 'TWK block holds TWK questions only.');
+        }
+    }
+
+    public function test_a_difficulty_changed_behind_the_pool_is_caught(): void
+    {
+        $exam = $this->seedSkdBank();
+        $exam->update(['settings' => ['difficulty' => 'medium']]);
+        app(ExamService::class)->startAttempt($exam, $this->peserta()); // "medium" pools cached
+
+        $changed = Question::query()->whereHas('subject', fn ($q) => $q->where('code', SubjectCode::Twk))->limit(self::EXTRA_PER_SUBJECT)->pluck('id');
+        Question::query()->whereKey($changed)->update(['difficulty' => 'hard']);
+
+        foreach (range(1, 3) as $i) {
+            $ids = app(ExamService::class)->startAttempt($exam, $this->peserta())->answers()->pluck('question_id');
+            $this->assertEmpty($ids->intersect($changed), 'Only questions of the exam difficulty.');
+        }
+    }
+
     public function test_too_small_bank_still_reports_the_exact_shortage(): void
     {
         $exam = $this->seedSkdBank(extra: 0);

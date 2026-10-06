@@ -4,8 +4,7 @@ import './exam-timer.js';
 import './exam-content-protection.js';
 import './exam-stress-test.js';
 import './exam-scratchpad.js';
-import './readiness-radar-chart.js';
-import './peserta-statistics-charts.js';
+import './charts.js';
 import './audio-mode-player.js';
 import './planner-kanban.js';
 

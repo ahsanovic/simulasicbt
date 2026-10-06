@@ -58,6 +58,19 @@ class ExamRoomHardeningTest extends ExamDeadlineEnforcementTest
         Livewire::actingAs($ctx['user'])->test(ExamRoom::class, ['exam' => $ctx['exam']])->set('answerStates.0.question_id', 1);
     }
 
+    public function test_mode_ujian_room_does_not_reload_the_exam_or_query_help_items(): void
+    {
+        $ctx = $this->createSkdAttempt(expiresInMinutes: 60, modeUjian: true);
+
+        DB::enableQueryLog();
+        Livewire::actingAs($ctx['user'])->test(ExamRoom::class, ['exam' => $ctx['exam']])->assertSee('Soal nomor 1?');
+        $queries = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        $this->assertSame(0, $queries->filter(fn (string $sql) => preg_match('/from [`"]exams[`"]/', $sql))->count(), 'The route already loaded the exam.');
+        $this->assertSame(0, $queries->filter(fn (string $sql) => str_contains($sql, 'user_help_items'))->count(), 'Help items are hidden in Mode Ujian.');
+    }
+
     public function test_skb_submit_scores_like_the_correct_option_rule_in_a_fixed_number_of_queries(): void
     {
         [, $attempt] = $this->startSkbAttempt();

@@ -75,13 +75,13 @@ class Dashboard extends Component
         if ($phase === null
             || ($phase === 'skd' && ! $event->exam_mode->includesSkd())
             || ($phase === 'skb' && ! $event->exam_mode->includesSkb())) {
-            $this->pinError = 'Tahap ujian ini tidak tersedia pada event Anda.';
+            $this->failPin('Tahap ujian ini tidak tersedia pada event Anda.');
 
             return;
         }
 
         if ($session === null) {
-            $this->pinError = 'Sesi belum diset oleh admin untuk akun Anda. Hubungi admin.';
+            $this->failPin('Sesi belum diset oleh admin untuk akun Anda. Hubungi admin.');
 
             return;
         }
@@ -89,7 +89,7 @@ class Dashboard extends Component
         $expectedPin = $phase === 'skd' ? $session->skd_pin : $session->skb_pin;
 
         if ($expectedPin === null || trim($this->pinInput) !== (string) $expectedPin) {
-            $this->pinError = 'PIN sesi salah.';
+            $this->failPin('PIN sesi salah.');
 
             return;
         }
@@ -107,8 +107,8 @@ class Dashboard extends Component
             });
         } catch (ValidationException $exception) {
             // e.g. finished already, session not open, question bank too small.
-            $this->pinError = collect($exception->errors())->flatten()->first()
-                ?? 'Ujian tidak dapat dimulai. Hubungi pengawas.';
+            $this->failPin(collect($exception->errors())->flatten()->first()
+                ?? 'Ujian tidak dapat dimulai. Hubungi pengawas.');
 
             return;
         }
@@ -135,8 +135,7 @@ class Dashboard extends Component
 
         $this->ensureSessionIsOpen($session);
 
-        $attempt = $examService->startAttempt($event->exam, Auth::user(), $event->id, $this->participant->event_session_id);
-        $attempt->update(['display_name' => $this->participant->name]);
+        $examService->startAttempt($event->exam, Auth::user(), $event->id, $this->participant->event_session_id, displayName: $this->participant->name);
     }
 
     private function resumeOrStartSkb(Event $event, EventSession $session, SkbExamService $skbExamService): void
@@ -158,6 +157,13 @@ class Dashboard extends Component
         $this->ensureSessionIsOpen($session);
 
         $skbExamService->startAttempt($event, $this->participant);
+    }
+
+    /** Shows the error and re-enables the "Mulai" button (it stays disabled until the room opens). */
+    private function failPin(string $message): void
+    {
+        $this->pinError = $message;
+        $this->dispatch('pin-failed');
     }
 
     /** New attempts only start while the proctor has the session open (status Aktif). */

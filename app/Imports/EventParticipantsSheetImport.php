@@ -9,9 +9,9 @@ use App\Models\EventSession;
 use App\Models\Formation;
 use App\Models\JabatanSkb;
 use App\Models\User;
+use App\Support\ModeUjianPassword;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -59,7 +59,7 @@ class EventParticipantsSheetImport
             [
                 'name' => $name,
                 'email' => $nik.'@mode-ujian.local',
-                'password' => Hash::make($nik),
+                'password' => ModeUjianPassword::hash($nik),
                 'role' => UserRole::Peserta,
                 'is_pegawai' => false,
                 'is_active' => true,

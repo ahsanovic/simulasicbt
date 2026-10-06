@@ -47,7 +47,17 @@ class ExamResultsExportService
             'total_rows' => $totalRows,
         ]);
 
-        ExportExamResultsJob::dispatch($exportRequest->id)->afterResponse();
+        // On the queue worker, not in this PHP-FPM worker after the response:
+        // a long export must not hold a web worker (and the database) away
+        // from participants during an exam. If the queue is unreachable the
+        // request is failed at once instead of blocking the next export.
+        try {
+            ExportExamResultsJob::dispatch($exportRequest->id);
+        } catch (Throwable $exception) {
+            $exportRequest->markFailed('Antrean export tidak dapat dihubungi. Coba lagi beberapa saat lagi.');
+
+            throw new RuntimeException('Antrean export tidak dapat dihubungi. Coba lagi beberapa saat lagi.', previous: $exception);
+        }
 
         return $exportRequest;
     }

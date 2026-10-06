@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\SubjectCode;
 use App\Models\Question;
+use App\Support\QuestionPool;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -48,29 +49,7 @@ class ExamQuestionGeneratorService
      */
     public function generate(string $difficulty = 'all'): Collection
     {
-        // Picks only the IDs (not every question's full content) and checks
-        // the bank from what it picked: a short pick means too few questions,
-        // so no separate COUNT per subject is needed when hundreds of
-        // participants start at once.
-        $picked = [];
-
-        foreach (self::SUBJECT_ORDER as $code) {
-            $required = self::COUNTS_BY_SUBJECT[$code->value];
-
-            $ids = $this->baseQuery($code, $difficulty)
-                ->inRandomOrder()
-                ->limit($required)
-                ->pluck('id');
-
-            if ($ids->count() < $required) {
-                throw ValidationException::withMessages([
-                    'difficulty' => $this->insufficientMessage($code, $ids->count(), $required),
-                ]);
-            }
-
-            $picked[] = $ids->shuffle();
-        }
-
+        $picked = $this->pickFromPool($difficulty) ?? $this->pickFromDatabase($difficulty);
         $sortOrder = 1;
 
         return collect($picked)
@@ -95,6 +74,71 @@ class ExamQuestionGeneratorService
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    /**
+     * Random IDs per subject from the shared cached pools: no ORDER BY RAND()
+     * over the bank for every participant who presses "Mulai". The pick is
+     * re-checked against the database in one indexed query; null (use the
+     * database) when the pool is off, unreachable, too small or stale.
+     *
+     * @return list<list<int>>|null
+     */
+    private function pickFromPool(string $difficulty): ?array
+    {
+        $picked = [];
+
+        foreach (self::SUBJECT_ORDER as $code) {
+            $required = self::COUNTS_BY_SUBJECT[$code->value];
+            $pool = QuestionPool::ids('skd', "{$code->value}:{$difficulty}", fn () => $this->baseQuery($code, $difficulty)->pluck('id')->all());
+
+            if ($pool === null || count($pool) < $required) {
+                return null; // the database path gives the exact "bank too small" answer
+            }
+
+            $picked[] = QuestionPool::sample($pool, $required);
+        }
+
+        $ids = array_merge(...$picked);
+        $stillActive = Question::query()->whereKey($ids)->where('is_active', true)->count();
+
+        if ($stillActive !== count($ids)) {
+            QuestionPool::bust('skd'); // changed without model events (bulk update)
+
+            return null;
+        }
+
+        return $picked;
+    }
+
+    /**
+     * The original pick: only the IDs (not every question's content), and the
+     * bank is checked from what it picked, so no separate COUNT is needed.
+     *
+     * @return list<list<int>>
+     */
+    private function pickFromDatabase(string $difficulty): array
+    {
+        $picked = [];
+
+        foreach (self::SUBJECT_ORDER as $code) {
+            $required = self::COUNTS_BY_SUBJECT[$code->value];
+
+            $ids = $this->baseQuery($code, $difficulty)
+                ->inRandomOrder()
+                ->limit($required)
+                ->pluck('id');
+
+            if ($ids->count() < $required) {
+                throw ValidationException::withMessages([
+                    'difficulty' => $this->insufficientMessage($code, $ids->count(), $required),
+                ]);
+            }
+
+            $picked[] = $ids->map(fn ($id) => (int) $id)->shuffle()->all();
+        }
+
+        return $picked;
     }
 
     private function insufficientMessage(SubjectCode $code, int $available, int $required): string

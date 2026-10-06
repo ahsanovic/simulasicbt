@@ -11,6 +11,7 @@ use App\Models\SkbQuestion;
 use App\Models\SkbQuestionOption;
 use App\Support\ExamDeadline;
 use App\Support\LiveScoreCache;
+use App\Support\QuestionPool;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -44,13 +45,8 @@ class SkbExamService
         }
 
         $questionCount = (int) $event->skb_question_count;
-
-        $questionIds = SkbQuestion::query()
-            ->where('jabatan_skb_id', $participant->jabatan_skb_id)
-            ->where('is_active', true)
-            ->inRandomOrder()
-            ->limit($questionCount)
-            ->pluck('id');
+        $questionIds = collect($this->pickQuestionsFromPool($participant->jabatan_skb_id, $questionCount)
+            ?? $this->activeQuestions($participant->jabatan_skb_id)->inRandomOrder()->limit($questionCount)->pluck('id')->all());
 
         if ($questionIds->count() < $questionCount) {
             throw ValidationException::withMessages([
@@ -85,6 +81,38 @@ class SkbExamService
 
             return $attempt;
         });
+    }
+
+    /**
+     * Random question IDs for the jabatan from the shared cached pool (no
+     * ORDER BY RAND() per participant), re-checked against the database in one
+     * indexed query. Null = use the database: pool off, unreachable, too small
+     * (the database gives the exact count for the error) or stale.
+     *
+     * @return list<int>|null
+     */
+    private function pickQuestionsFromPool(int $jabatanSkbId, int $count): ?array
+    {
+        $pool = QuestionPool::ids('skb', (string) $jabatanSkbId, fn () => $this->activeQuestions($jabatanSkbId)->pluck('id')->all());
+
+        if ($pool === null || count($pool) < $count) {
+            return null;
+        }
+
+        $picked = QuestionPool::sample($pool, $count);
+
+        if ($this->activeQuestions($jabatanSkbId)->whereKey($picked)->count() !== count($picked)) {
+            QuestionPool::bust('skb'); // changed without model events (bulk update)
+
+            return null;
+        }
+
+        return $picked;
+    }
+
+    private function activeQuestions(int $jabatanSkbId)
+    {
+        return SkbQuestion::query()->where('jabatan_skb_id', $jabatanSkbId)->where('is_active', true);
     }
 
     /**

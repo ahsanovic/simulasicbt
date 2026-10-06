@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ExamQuestionCache;
+use App\Support\QuestionPool;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,10 +15,15 @@ class SkbQuestion extends Model
 
     protected static function booted(): void
     {
-        // Shown content changed: drop the cached copy used by the exam rooms.
-        static::saved(fn (SkbQuestion $question) => ExamQuestionCache::forgetSkb($question->id));
-        static::deleted(fn (SkbQuestion $question) => ExamQuestionCache::forgetSkb($question->id));
-        static::restored(fn (SkbQuestion $question) => ExamQuestionCache::forgetSkb($question->id));
+        // Shown content or the active bank changed: drop the cached copy used
+        // by the exam rooms and the question pools exams draw from.
+        $forget = function (SkbQuestion $question): void {
+            ExamQuestionCache::forgetSkb($question->id);
+            QuestionPool::bust('skb');
+        };
+        static::saved($forget);
+        static::deleted($forget);
+        static::restored($forget);
     }
 
     protected $fillable = [

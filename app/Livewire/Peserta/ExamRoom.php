@@ -156,6 +156,8 @@ class ExamRoom extends Component
             ])
             ->firstOrFail();
 
+        $attempt->setRelation('exam', $exam); // already loaded by the route: no second query
+
         if (! $attempt->isActive()) {
             if ($attempt->event_id !== null) {
                 // Event exam whose time ran out while the peserta was away
@@ -228,7 +230,9 @@ class ExamRoom extends Component
             ->mapWithKeys(fn (array $optionIds, $sortOrder) => [(string) $sortOrder => array_map('intval', $optionIds)])
             ->all();
 
-        $this->inventory = $helpItemService->inventory(auth()->user());
+        // Only shown (and usable) when help items are enabled: no query for
+        // Mode Ujian, drill, duel or remedial attempts.
+        $this->inventory = $this->helpItemsEnabled ? $helpItemService->inventory(auth()->user()) : [];
 
         // Back after a refresh, lost connection or anti-cheat logout: continue
         // at the first question without a saved answer, not at question 1.

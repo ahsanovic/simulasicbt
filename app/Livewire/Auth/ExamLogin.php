@@ -48,6 +48,7 @@ class ExamLogin extends Component
             ]);
         }
 
+        $this->rehashPassword($user, modeUjianLogin: true);
         $this->completeLogin($user);
     }
 

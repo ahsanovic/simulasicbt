@@ -56,7 +56,9 @@ class Login extends Component
 
         $this->validateCredentials();
 
-        $this->completeLogin($this->resolveUserFromCredentials(), $this->remember);
+        $user = $this->resolveUserFromCredentials();
+        $this->rehashPassword($user, modeUjianLogin: false);
+        $this->completeLogin($user, $this->remember);
     }
 
     public function openRegisterModal(): void

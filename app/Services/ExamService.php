@@ -48,8 +48,9 @@ class ExamService
         ?int $eventId = null,
         ?int $eventSessionId = null,
         bool $stressTestEnabled = false,
+        ?string $displayName = null,
     ): ExamAttempt {
-        return DB::transaction(function () use ($exam, $user, $eventId, $eventSessionId, $stressTestEnabled) {
+        return DB::transaction(function () use ($exam, $user, $eventId, $eventSessionId, $stressTestEnabled, $displayName) {
             $generator = app(ExamQuestionGeneratorService::class);
             $difficulty = $exam->settings['difficulty'] ?? 'all';
 
@@ -66,6 +67,7 @@ class ExamService
                 'event_id' => $eventId,
                 'event_session_id' => $eventSessionId,
                 'user_id' => $user->id,
+                'display_name' => $displayName,
                 'skd_target' => $exam->skdTarget(),
                 'started_at' => now(),
                 'expires_at' => now()->addMinutes($exam->duration_minutes),

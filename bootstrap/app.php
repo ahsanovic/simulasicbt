@@ -3,6 +3,7 @@
 use App\Http\Middleware\BlockDuringExamLockdown;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsPeserta;
+use App\Http\Middleware\LogSlowRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // dashboard. Without this the "guest" middleware fell back to "/",
         // which redirects to /login again: an endless redirect loop.
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->homeUrl() ?? '/');
+
+        // Evidence for lag during an exam: slow web/Livewire requests are logged.
+        $middleware->web(append: [LogSlowRequests::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

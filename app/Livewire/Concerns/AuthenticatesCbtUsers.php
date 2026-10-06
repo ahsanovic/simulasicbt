@@ -4,6 +4,7 @@ namespace App\Livewire\Concerns;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Support\ModeUjianPassword;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -44,14 +45,20 @@ trait AuthenticatesCbtUsers
             ->first();
 
         if ($user === null) {
+            // username OR nip OR nik as three indexed lookups joined on the
+            // primary key: a single OR over the three columns made MySQL read
+            // the whole users table on every login (e.g. an 18-digit NIP is
+            // longer than the nik column, which ruled out the index merge).
+            $matches = User::query()->select('id')->where('username', $this->login)
+                ->union(User::query()->select('id')->where('nip', $this->login))
+                ->union(User::query()->select('id')->where('nik', $this->login));
+
             $user = User::query()
-                ->where('is_active', true)
-                ->where('role', UserRole::Peserta)
-                ->where(function ($query) {
-                    $query->where('username', $this->login)
-                        ->orWhere('nip', $this->login)
-                        ->orWhere('nik', $this->login);
-                })
+                ->joinSub($matches, 'login_matches', 'login_matches.id', '=', 'users.id')
+                ->select('users.*')
+                ->where('users.is_active', true)
+                ->where('users.role', UserRole::Peserta)
+                ->orderBy('users.id')
                 ->first();
         }
 
@@ -64,6 +71,21 @@ trait AuthenticatesCbtUsers
         }
 
         return $user;
+    }
+
+    /**
+     * Keep the stored hash at the cost of the page the user logged in on:
+     * Mode Ujian participants on the exam login get the cheaper Mode Ujian
+     * cost (ModeUjianPassword), everyone else the application default. The
+     * typed password was just verified, so it can be re-hashed.
+     */
+    protected function rehashPassword(User $user, bool $modeUjianLogin): void
+    {
+        $options = $modeUjianLogin && $user->isPeserta() ? ['rounds' => ModeUjianPassword::rounds()] : [];
+
+        if (Hash::needsRehash($user->password, $options)) {
+            $user->forceFill(['password' => Hash::make($this->password, $options)])->saveQuietly();
+        }
     }
 
     protected function completeLogin(User $user, bool $remember = false): void

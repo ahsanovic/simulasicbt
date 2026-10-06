@@ -33,20 +33,16 @@ final class ExamQuestionCache
 {
     public const TTL_SECONDS = 1800;
 
+    public const WARM_TTL_SECONDS = 4 * 3600;
+
+    private const SKD_RELATIONS = ['options', 'subject', 'material.materialGroup'];
+
     public static function skd(int $questionId): ?Question
     {
         $data = Cache::remember(self::skdKey($questionId), self::TTL_SECONDS, function () use ($questionId) {
-            $question = Question::withTrashed()
-                ->with(['options', 'subject', 'material.materialGroup'])
-                ->find($questionId);
+            $question = Question::withTrashed()->with(self::SKD_RELATIONS)->find($questionId);
 
-            return $question === null ? false : [
-                'question' => $question->getAttributes(),
-                'options' => $question->options->map(fn (QuestionOption $option) => $option->getAttributes())->all(),
-                'subject' => $question->subject?->getAttributes(),
-                'material' => $question->material?->getAttributes(),
-                'material_group' => $question->material?->materialGroup?->getAttributes(),
-            ];
+            return $question === null ? false : self::skdPayload($question);
         });
 
         if (! is_array($data)) {
@@ -69,10 +65,7 @@ final class ExamQuestionCache
         $data = Cache::remember(self::skbKey($questionId), self::TTL_SECONDS, function () use ($questionId) {
             $question = SkbQuestion::withTrashed()->with('options')->find($questionId);
 
-            return $question === null ? false : [
-                'question' => $question->getAttributes(),
-                'options' => $question->options->map(fn (SkbQuestionOption $option) => $option->getAttributes())->all(),
-            ];
+            return $question === null ? false : self::skbPayload($question);
         });
 
         if (! is_array($data)) {
@@ -83,6 +76,31 @@ final class ExamQuestionCache
         $question->setRelation('options', self::models(SkbQuestionOption::class, $data['options']));
 
         return $question;
+    }
+
+    /**
+     * Fill the cache for every active question ahead of an exam, a chunk at a
+     * time (a few queries per chunk instead of several per question), so the
+     * first participants to reach a question do not all load it at once.
+     * Kept for WARM_TTL_SECONDS, long enough to cover a whole exam.
+     *
+     * @return array{skd: int, skb: int}
+     */
+    public static function warm(int $chunk = 200): array
+    {
+        $counts = ['skd' => 0, 'skb' => 0];
+
+        Question::query()->where('is_active', true)->with(self::SKD_RELATIONS)->chunkById($chunk, function ($questions) use (&$counts) {
+            Cache::putMany($questions->mapWithKeys(fn (Question $q) => [self::skdKey($q->id) => self::skdPayload($q)])->all(), self::WARM_TTL_SECONDS);
+            $counts['skd'] += $questions->count();
+        });
+
+        SkbQuestion::query()->where('is_active', true)->with('options')->chunkById($chunk, function ($questions) use (&$counts) {
+            Cache::putMany($questions->mapWithKeys(fn (SkbQuestion $q) => [self::skbKey($q->id) => self::skbPayload($q)])->all(), self::WARM_TTL_SECONDS);
+            $counts['skb'] += $questions->count();
+        });
+
+        return $counts;
     }
 
     public static function forgetSkd(?int $questionId): void
@@ -97,6 +115,25 @@ final class ExamQuestionCache
         if ($questionId !== null) {
             Cache::forget(self::skbKey($questionId));
         }
+    }
+
+    private static function skdPayload(Question $question): array
+    {
+        return [
+            'question' => $question->getAttributes(),
+            'options' => $question->options->map(fn (QuestionOption $option) => $option->getAttributes())->all(),
+            'subject' => $question->subject?->getAttributes(),
+            'material' => $question->material?->getAttributes(),
+            'material_group' => $question->material?->materialGroup?->getAttributes(),
+        ];
+    }
+
+    private static function skbPayload(SkbQuestion $question): array
+    {
+        return [
+            'question' => $question->getAttributes(),
+            'options' => $question->options->map(fn (SkbQuestionOption $option) => $option->getAttributes())->all(),
+        ];
     }
 
     /**

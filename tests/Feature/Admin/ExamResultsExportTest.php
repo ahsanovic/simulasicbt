@@ -7,6 +7,7 @@ use App\Enums\ExamStatus;
 use App\Enums\ExportRequestStatus;
 use App\Enums\SkdTarget;
 use App\Enums\UserRole;
+use App\Jobs\ExportExamResultsJob;
 use App\Livewire\Admin\Results\Index;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
@@ -14,7 +15,7 @@ use App\Models\ExportRequest;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -50,6 +51,33 @@ class ExamResultsExportTest extends TestCase
         $csv = Storage::disk('local')->get($exportRequest->file_path);
         $this->assertStringContainsString('Target SKD', $csv);
         $this->assertStringContainsString('CPNS', $csv);
+    }
+
+    public function test_export_runs_on_the_queue_worker_not_in_the_web_request(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $this->seedSubmittedAttempt('Budi Queue');
+
+        Livewire::actingAs($admin)->test(Index::class)->call('requestExport')->assertHasNoErrors();
+
+        Queue::assertPushed(ExportExamResultsJob::class);
+        $this->assertSame(ExportRequestStatus::Pending, ExportRequest::query()->sole()->status);
+    }
+
+    public function test_an_unreachable_queue_fails_the_export_instead_of_blocking_the_next_one(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $this->seedSubmittedAttempt('Budi Down');
+        config(['queue.default' => 'redis', 'database.redis.client' => 'predis', 'database.redis.default.port' => 1]);
+
+        Livewire::actingAs($admin)->test(Index::class)->call('requestExport')->assertHasErrors('export');
+        $this->assertSame(ExportRequestStatus::Failed, ExportRequest::query()->sole()->status);
+
+        config(['queue.default' => 'sync']);
+        Livewire::actingAs($admin)->test(Index::class)->call('requestExport')->assertHasNoErrors();
+        $this->assertSame(ExportRequestStatus::Completed, ExportRequest::query()->latest('id')->first()->status);
     }
 
     public function test_export_includes_skd_target_column_for_kedinasan_attempt(): void
@@ -211,7 +239,7 @@ class ExamResultsExportTest extends TestCase
     /**
      * @return array{0: Exam, 1: User}
      */
-    private function seedSubmittedAttempt(string $name, CarbonInterface|null $submittedAt = null): array
+    private function seedSubmittedAttempt(string $name, ?CarbonInterface $submittedAt = null): array
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);
         $peserta = User::factory()->create([

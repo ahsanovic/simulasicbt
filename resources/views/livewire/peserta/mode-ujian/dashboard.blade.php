@@ -84,15 +84,25 @@
             <div class="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
                 <h2 class="text-lg font-bold text-slate-900">PIN Sesi {{ strtoupper($pinPhase) }}</h2>
                 <p class="mt-1 text-sm text-slate-500">Minta PIN sesi kepada pengawas ujian.</p>
-                <form wire:submit="submitPin" class="mt-4">
+                {{-- The button stays disabled from the click until the exam room opens:
+                     re-enabled only when the server answers with an error, or after
+                     30 s as a safety net (pressing again just resumes the same exam). --}}
+                <form wire:submit="submitPin" class="mt-4"
+                      x-data="{ busy: false, timer: null }"
+                      x-on:submit="busy = true; clearTimeout(timer); timer = setTimeout(() => busy = false, 30000)"
+                      x-on:pin-failed.window="busy = false; clearTimeout(timer)">
                     <input type="text" wire:model="pinInput" class="ui-input text-center text-lg tracking-widest" autofocus placeholder="PIN">
                     @if ($pinError)
-                        <p class="mt-2 text-xs text-rose-600">{{ $pinError }}</p>
+                        <p class="mt-2 text-xs text-rose-600" x-show="! busy">{{ $pinError }}</p>
                     @endif
                     <div class="mt-4 flex justify-end gap-2">
-                        <button type="button" wire:click="closePinModal" class="ui-btn-secondary">Batal</button>
-                        <button type="submit" class="ui-btn-primary">Mulai</button>
+                        <button type="button" wire:click="closePinModal" class="ui-btn-secondary" x-show="! busy">Batal</button>
+                        <button type="submit" class="ui-btn-primary" x-bind:disabled="busy">
+                            <svg x-show="busy" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                            <span x-text="busy ? 'Menyiapkan soal…' : 'Mulai'">Mulai</span>
+                        </button>
                     </div>
+                    <p x-show="busy" x-cloak class="mt-3 text-center text-xs text-slate-500">Mohon tunggu, jangan muat ulang halaman.</p>
                 </form>
             </div>
         </div>

@@ -12,8 +12,8 @@ use App\Models\Formation;
 use App\Models\JabatanSkb;
 use App\Models\User;
 use App\Models\XpReward;
+use App\Support\ModeUjianPassword;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -182,7 +182,7 @@ class Participants extends Component
             [
                 'name' => $validated['editName'],
                 'email' => $validated['editNik'].'@mode-ujian.local',
-                'password' => Hash::make($validated['editNik']),
+                'password' => ModeUjianPassword::hash($validated['editNik']),
                 'role' => UserRole::Peserta,
                 'is_pegawai' => false,
                 'is_active' => true,

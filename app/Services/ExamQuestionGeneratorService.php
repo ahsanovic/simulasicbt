@@ -99,13 +99,25 @@ class ExamQuestionGeneratorService
             $picked[] = QuestionPool::sample($pool, $required);
         }
 
-        $ids = array_merge(...$picked);
-        $stillActive = Question::query()->whereKey($ids)->where('is_active', true)->count();
+        // Every pick must still be active, of the requested difficulty and of
+        // the subject block it was drawn for: a bulk update that skipped the
+        // model events (e.g. a question moved to another subject) leaves the
+        // cached pool stale.
+        $subjectOf = Question::query()
+            ->join('subjects', 'subjects.id', '=', 'questions.subject_id')
+            ->whereKey(array_merge(...$picked))
+            ->where('questions.is_active', true)
+            ->when($difficulty !== 'all', fn ($query) => $query->where('questions.difficulty', $difficulty))
+            ->pluck('subjects.code', 'questions.id');
 
-        if ($stillActive !== count($ids)) {
-            QuestionPool::bust('skd'); // changed without model events (bulk update)
+        foreach (self::SUBJECT_ORDER as $block => $code) {
+            foreach ($picked[$block] as $id) {
+                if (($subjectOf[$id] ?? null) !== $code->value) {
+                    QuestionPool::bust('skd');
 
-            return null;
+                    return null;
+                }
+            }
         }
 
         return $picked;

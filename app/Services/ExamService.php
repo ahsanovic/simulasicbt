@@ -416,6 +416,11 @@ class ExamService
 
             $scores = $attempt->calculateScores();
 
+            // Mode Ujian is an official exam scored on its own result page: no
+            // AI weakness stats, psychology report, XP or coins, so the submit
+            // stops at the score and releases the row lock right away.
+            $modeUjian = $attempt->event_id !== null && (bool) $attempt->event()->value('is_mode_ujian');
+
             $attempt->update([
                 'status' => ExamAttemptStatus::Submitted,
                 'submitted_at' => now(),
@@ -423,7 +428,12 @@ class ExamService
                 'score_tiu' => $scores['tiu'],
                 'score_tkp' => $scores['tkp'],
                 'total_score' => $scores['total'],
+                ...($modeUjian ? ['psychology_report_status' => 'skipped', 'psychology_report_generated_at' => now()] : []),
             ]);
+
+            if ($modeUjian) {
+                return $attempt->fresh();
+            }
 
             $gamification = app(GamificationService::class);
             $rewardUser = $user ?? User::query()->find($attempt->user_id);
@@ -452,7 +462,8 @@ class ExamService
                     );
                 }
             } else {
-                app(ExamWeaknessAnalysisService::class)->forget($attempt->user_id);
+                $userId = $attempt->user_id;
+                DB::afterCommit(fn () => $this->forgetWeaknessAnalysis($userId));
 
                 if ($rewardUser !== null) {
                     $gamification->awardExamAttemptXp($attempt, $rewardUser);
@@ -485,6 +496,23 @@ class ExamService
 
             return $attempt->fresh();
         });
+    }
+
+    /**
+     * The cached AI weakness stats now miss this attempt. Cleared after the
+     * submit commits: a cache hiccup must not roll back an official submit
+     * (the stats then refresh when their cache expires).
+     */
+    private function forgetWeaknessAnalysis(int $userId): void
+    {
+        try {
+            app(ExamWeaknessAnalysisService::class)->forget($userId);
+        } catch (Throwable $exception) {
+            Log::warning('Gagal menghapus cache analisis kelemahan.', [
+                'user_id' => $userId,
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 
     /**

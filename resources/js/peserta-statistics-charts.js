@@ -266,17 +266,5 @@ function initStatisticsCharts(root = document) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => initStatisticsCharts());
-document.addEventListener('livewire:navigated', () => initStatisticsCharts());
-
-document.addEventListener('livewire:init', () => {
-    Livewire.hook('commit', ({ succeed }) => {
-        succeed(() => {
-            requestAnimationFrame(() => initStatisticsCharts());
-        });
-    });
-});
-
-window.initStatisticsCharts = initStatisticsCharts;
-
+// Loaded on demand by charts.js, which also wires the page lifecycle.
 export { initStatisticsCharts };

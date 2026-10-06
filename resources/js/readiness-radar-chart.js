@@ -105,27 +105,17 @@ function initReadinessCharts(root = document) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => initReadinessCharts());
-document.addEventListener('livewire:navigated', () => initReadinessCharts());
+/** The AI readiness report changed: redraw the chart with the new stats. */
+function updateReadinessChart(stats) {
+    const wrapper = document.querySelector('[data-readiness-chart]');
 
-document.addEventListener('livewire:init', () => {
-    Livewire.on('readiness-chart-updated', ({ stats }) => {
-        const wrapper = document.querySelector('[data-readiness-chart]');
+    if (!wrapper) {
+        return;
+    }
 
-        if (!wrapper) {
-            return;
-        }
+    wrapper.dataset.stats = JSON.stringify(stats ?? {});
+    renderChart(wrapper.querySelector('canvas'), stats ?? {});
+}
 
-        wrapper.dataset.stats = JSON.stringify(stats ?? {});
-        const canvas = wrapper.querySelector('canvas');
-        renderChart(canvas, stats ?? {});
-    });
-
-    Livewire.hook('commit', ({ succeed }) => {
-        succeed(() => {
-            queueMicrotask(() => initReadinessCharts());
-        });
-    });
-});
-
-export { initReadinessCharts };
+// Loaded on demand by charts.js, which also wires the page lifecycle.
+export { initReadinessCharts, updateReadinessChart };

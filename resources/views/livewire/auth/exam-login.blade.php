@@ -6,7 +6,14 @@
 
     <x-ui.flash-toast />
 
-    <form wire:submit="authenticate" class="space-y-5">
+    {{-- With every participant logging in at the same second, the button stays
+         on "Memproses..." from the click until the dashboard opens (no second
+         click while the server is busy). Re-enabled only when the server answers
+         with an error, or after 30 s as a safety net. --}}
+    <form wire:submit="authenticate" class="space-y-5"
+          x-data="{ busy: false, timer: null }"
+          x-on:submit="busy = true; clearTimeout(timer); timer = setTimeout(() => busy = false, 30000)"
+          x-on:login-failed.window="busy = false; clearTimeout(timer)">
         <div>
             <label for="login" class="ui-label">NIK / Username</label>
             <input id="login" type="text" wire:model="login" autocomplete="username" class="ui-input" placeholder="NIK atau username">
@@ -35,10 +42,10 @@
             @error('password') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
         </div>
 
-        <button type="submit" wire:loading.attr="disabled" class="ui-btn-primary w-full py-3">
-            <svg class="h-4 w-4 shrink-0 animate-spin" wire:loading wire:target="authenticate" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-            <span wire:loading.remove wire:target="authenticate">Masuk Ujian</span>
-            <span wire:loading wire:target="authenticate">Memproses...</span>
+        <button type="submit" x-bind:disabled="busy" class="ui-btn-primary w-full py-3">
+            <svg x-show="busy" x-cloak class="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <span x-text="busy ? 'Memproses...' : 'Masuk Ujian'">Masuk Ujian</span>
         </button>
+        <p x-show="busy" x-cloak class="text-center text-xs text-slate-500">Mohon tunggu, jangan muat ulang halaman.</p>
     </form>
 </div>

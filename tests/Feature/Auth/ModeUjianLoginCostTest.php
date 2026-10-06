@@ -13,6 +13,8 @@ use App\Models\EventSession;
 use App\Models\User;
 use App\Support\ExamLockdown;
 use App\Support\ModeUjianPassword;
+use Closure;
+use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -39,6 +41,15 @@ class ModeUjianLoginCostTest extends TestCase
         // Production cost (tests run with BCRYPT_ROUNDS=4).
         config(['hashing.bcrypt.rounds' => 12]);
         $this->app['hash']->forgetDrivers();
+    }
+
+    protected function tearDown(): void
+    {
+        // UserFactory caches its default password hash for the whole run: drop
+        // the cost-12 one made here, later tests (cost 4) would refuse it.
+        Closure::bind(fn () => UserFactory::$password = null, null, UserFactory::class)();
+
+        parent::tearDown();
     }
 
     public function test_peserta_logs_in_with_username_nip_or_nik(): void
@@ -73,6 +84,19 @@ class ModeUjianLoginCostTest extends TestCase
         ExamLockdown::save(false, null, null);
         Livewire::test(Login::class)->set('login', self::NIK)->set('password', self::NIK)->call('authenticate')->assertHasNoErrors();
         $this->assertSame(12, $this->cost($user->fresh()));
+    }
+
+    public function test_exam_login_button_is_released_only_when_the_login_fails(): void
+    {
+        $this->participant();
+        ExamLockdown::save(true, null, null);
+
+        Livewire::test(ExamLogin::class)->set('login', self::NIK)->set('password', 'salah')->call('authenticate')
+            ->assertHasErrors('login')->assertDispatched('login-failed');
+        Livewire::test(ExamLogin::class)->set('login', '')->set('password', '')->call('authenticate')
+            ->assertHasErrors('login')->assertDispatched('login-failed');
+        Livewire::test(ExamLogin::class)->set('login', self::NIK)->set('password', self::NIK)->call('authenticate')
+            ->assertHasNoErrors()->assertNotDispatched('login-failed')->assertRedirect(route('peserta.mode-ujian.dashboard'));
     }
 
     public function test_admin_keeps_the_default_cost_on_the_exam_login(): void

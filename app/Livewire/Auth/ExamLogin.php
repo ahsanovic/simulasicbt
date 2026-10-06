@@ -38,14 +38,20 @@ class ExamLogin extends Component
             return;
         }
 
-        $this->validateCredentials();
+        try {
+            $this->validateCredentials();
 
-        $user = $this->resolveUserFromCredentials();
+            $user = $this->resolveUserFromCredentials();
 
-        if (! $user->isAdmin() && ! $user->isActiveModeUjianParticipant()) {
-            throw ValidationException::withMessages([
-                'login' => 'Akun tidak terdaftar sebagai peserta ujian yang sedang berlangsung.',
-            ]);
+            if (! $user->isAdmin() && ! $user->isActiveModeUjianParticipant()) {
+                throw ValidationException::withMessages([
+                    'login' => 'Akun tidak terdaftar sebagai peserta ujian yang sedang berlangsung.',
+                ]);
+            }
+        } catch (ValidationException $exception) {
+            $this->dispatch('login-failed'); // re-enables the "Masuk Ujian" button
+
+            throw $exception;
         }
 
         $this->rehashPassword($user, modeUjianLogin: true);

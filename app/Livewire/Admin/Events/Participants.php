@@ -12,6 +12,7 @@ use App\Models\Formation;
 use App\Models\JabatanSkb;
 use App\Models\User;
 use App\Models\XpReward;
+use App\Services\EventParticipantNikGuard;
 use App\Support\ModeUjianPassword;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -159,6 +160,19 @@ class Participants extends Component
         if ($this->editingId) {
             $participant = $this->event->participants()->findOrFail($this->editingId);
 
+            // users.nik is unique: a NIK that already logs in another account
+            // (this event, another event, or a closed one) cannot be taken over.
+            $nikTaken = User::query()
+                ->where('nik', $validated['editNik'])
+                ->whereKeyNot($participant->user_id)
+                ->exists();
+
+            if ($nikTaken) {
+                $this->addError('editNik', 'NIK sudah dipakai peserta lain.');
+
+                return;
+            }
+
             $participant->update([
                 'name' => $validated['editName'],
                 'nik' => $validated['editNik'],
@@ -181,8 +195,20 @@ class Participants extends Component
 
         // Manual add: mirrors the Excel-import row-write logic exactly
         // (find-or-create the User by NIK, then upsert the EventParticipant),
-        // so a NIK already used in another event correctly reuses that same
-        // login instead of creating a duplicate account.
+        // so a NIK already used in a closed event correctly reuses that same
+        // login instead of creating a duplicate account. The import's NIK
+        // rules apply here too, or the form would get around them.
+        $conflict = app(EventParticipantNikGuard::class)->conflicts(
+            $this->event->id,
+            [$validated['editNik'] => $validated['editSessionId'] ? (int) $validated['editSessionId'] : null],
+        );
+
+        if ($conflict !== []) {
+            $this->addError('editNik', reset($conflict));
+
+            return;
+        }
+
         $user = User::query()->updateOrCreate(
             ['nik' => $validated['editNik']],
             [

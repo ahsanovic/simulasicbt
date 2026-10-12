@@ -5,6 +5,7 @@ namespace Tests\Feature\Peserta;
 use App\Enums\ExamAttemptStatus;
 use App\Livewire\Peserta\ExamRoom;
 use App\Livewire\Peserta\ModeUjian\SkbExamRoom;
+use App\Models\ExamTelemetry;
 use App\Models\Question;
 use App\Models\SkbExamAnswer;
 use App\Models\SkbQuestion;
@@ -69,6 +70,45 @@ class ExamRoomHardeningTest extends ExamDeadlineEnforcementTest
 
         $this->assertSame(0, $queries->filter(fn (string $sql) => preg_match('/from [`"]exams[`"]/', $sql))->count(), 'The route already loaded the exam.');
         $this->assertSame(0, $queries->filter(fn (string $sql) => str_contains($sql, 'user_help_items'))->count(), 'Help items are hidden in Mode Ujian.');
+    }
+
+    public function test_mode_ujian_answer_click_sends_and_writes_no_time_or_behaviour_data(): void
+    {
+        $ctx = $this->createSkdAttempt(expiresInMinutes: 60, modeUjian: true);
+        $room = Livewire::actingAs($ctx['user'])->test(ExamRoom::class, ['exam' => $ctx['exam']]);
+
+        DB::enableQueryLog();
+        $room->set('selectedOptionId', $ctx['firstOptionId'])->call('next')->assertSet('currentIndex', 1);
+        $queries = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        // Only the answer itself is written; nothing grows in the snapshot.
+        $this->assertSame(0, $queries->filter(fn (string $sql) => preg_match('/^update [`"]exam_attempts[`"]/', $sql))->count());
+        $this->assertSame([], $room->get('questionDurations'));
+        $this->assertSame([], $room->get('answerBehavior'));
+        $this->assertNull($room->get('questionTimerStartedAt'));
+
+        $room->call('submitExam');
+
+        $attempt = $ctx['attempt']->fresh();
+        $this->assertSame(ExamAttemptStatus::Submitted, $attempt->status);
+        $this->assertNull($attempt->question_duration);
+        $this->assertNull($attempt->answer_behavior);
+        $this->assertSame(0, ExamTelemetry::query()->where('exam_attempt_id', $attempt->id)->count());
+    }
+
+    public function test_regular_simulasi_still_records_time_and_behaviour_per_question(): void
+    {
+        $ctx = $this->createSkdAttempt(expiresInMinutes: 60);
+        $room = Livewire::actingAs($ctx['user'])->test(ExamRoom::class, ['exam' => $ctx['exam']]);
+
+        $room->set('selectedOptionId', $ctx['firstOptionId'])->call('next')->call('submitExam');
+
+        $attempt = $ctx['attempt']->fresh();
+        $this->assertSame(ExamAttemptStatus::Submitted, $attempt->status);
+        $this->assertArrayHasKey('1', $attempt->question_duration['by_sort_order']);
+        $this->assertSame($ctx['firstOptionId'], $attempt->answer_behavior['by_sort_order']['1']['first_option_id']);
+        $this->assertSame(2, ExamTelemetry::query()->where('exam_attempt_id', $attempt->id)->count());
     }
 
     public function test_skb_submit_scores_like_the_correct_option_rule_in_a_fixed_number_of_queries(): void

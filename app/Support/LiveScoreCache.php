@@ -4,6 +4,9 @@ namespace App\Support;
 
 use Closure;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Shared, short-lived snapshot of livescore boards.
@@ -38,6 +41,30 @@ final class LiveScoreCache
             self::TTL_SECONDS,
             $build,
         );
+    }
+
+    /**
+     * An attempt of the event was just scored: the boards show the saved score
+     * on their next poll instead of a snapshot taken while it was in progress
+     * (which misses the answers sent together with "Selesai"). Runs after the
+     * submit commits; a cache hiccup must not fail or undo the submit.
+     */
+    public static function bustAfterSubmit(?int $eventId): void
+    {
+        if ($eventId === null) {
+            return;
+        }
+
+        DB::afterCommit(function () use ($eventId) {
+            try {
+                self::bust($eventId);
+            } catch (Throwable $exception) {
+                Log::warning('Livescore not refreshed after submit.', [
+                    'event_id' => $eventId,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        });
     }
 
     /** Make every cached board of the event stale at once. */

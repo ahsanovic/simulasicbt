@@ -247,6 +247,8 @@ class SkbExamService
                 'total_score' => $correctCount * $attempt->correct_score,
             ]);
 
+            LiveScoreCache::bustAfterSubmit($attempt->event_id);
+
             return $attempt->fresh();
         });
     }

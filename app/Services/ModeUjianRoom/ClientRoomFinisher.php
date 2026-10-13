@@ -5,6 +5,7 @@ namespace App\Services\ModeUjianRoom;
 use App\Enums\ExamAttemptStatus;
 use App\Support\ExamDeadline;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -21,11 +22,15 @@ final class ClientRoomFinisher
     /**
      * @param  list<array{id: int, option_id: ?int, is_marked: bool, version: int}>  $answers
      * @return array{status: 'submitted'|'extended'|'device', attempt: Model}
+     *
+     * @throws ModelNotFoundException when the attempt is not the user's
      */
-    public function finish(RoomKind $kind, Model $attempt, string $deviceToken, array $answers, bool $timeUp): array
+    public function finish(RoomKind $kind, int $userId, int $attemptId, string $deviceToken, array $answers, bool $timeUp): array
     {
-        return DB::transaction(function () use ($kind, $attempt, $deviceToken, $answers, $timeUp) {
-            $attempt = $kind->lockAttempt((int) $attempt->getKey());
+        return DB::transaction(function () use ($kind, $userId, $attemptId, $deviceToken, $answers, $timeUp) {
+            // Owner check and row lock in one query.
+            $attempt = $kind->lockOwnedAttempt($userId, $attemptId)
+                ?? throw new ModelNotFoundException('Mode Ujian attempt not found.');
 
             if ($attempt->status !== ExamAttemptStatus::InProgress) {
                 return ['status' => 'submitted', 'attempt' => $attempt];
@@ -37,7 +42,7 @@ final class ClientRoomFinisher
 
             if (ExamDeadline::acceptsAnswers($attempt->expires_at)) {
                 try {
-                    $this->writer->write($kind, $attempt, $deviceToken, $answers);
+                    $this->writer->writeLocked($kind, $attempt, $deviceToken, $answers);
                 } catch (ValidationException $exception) {
                     // A malformed leftover must not block the submit itself.
                     Log::warning('Mode Ujian finish: leftover answers ignored', [

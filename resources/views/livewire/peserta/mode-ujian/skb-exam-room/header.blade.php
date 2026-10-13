@@ -3,7 +3,10 @@
         <div class="min-w-0">
             <p class="text-xs font-semibold uppercase tracking-wider text-primary-600">Sedang Ujian</p>
             <h1 class="truncate text-lg font-bold text-slate-900">Ujian SKB</h1>
-            <p class="text-sm text-slate-500">Soal <span class="font-semibold text-slate-800">{{ $currentIndex + 1 }}</span> dari {{ $this->answers->count() }}</p>
+            <p class="flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500">
+                <x-peserta.exam-identity :name="$participantName" :nik="$participantNik" />
+                <span>Soal <span class="font-semibold text-slate-800">{{ $currentIndex + 1 }}</span> dari {{ $this->answers->count() }}</span>
+            </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3 sm:gap-4">

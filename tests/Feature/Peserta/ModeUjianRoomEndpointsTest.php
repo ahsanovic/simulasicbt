@@ -7,6 +7,7 @@ use App\Enums\ExamAttemptStatus;
 use App\Services\ModeUjianRoom\DeviceToken;
 use App\Support\ExamLockdown;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\Feature\Peserta\Concerns\CreatesExamAttempts;
 use Tests\TestCase;
@@ -135,5 +136,18 @@ class ModeUjianRoomEndpointsTest extends TestCase
         $this->actingAs($ctx['user'])
             ->postJson(route('peserta.mode-ujian.finish'), $this->body($ctx, ['reason' => 'manual']))
             ->assertOk()->assertJsonStructure(['result_url']);
+    }
+
+    public function test_an_answer_request_reads_the_attempt_once_checking_owner_and_lock_together(): void
+    {
+        $ctx = $this->skd();
+        $this->actingAs($ctx['user']);
+
+        DB::enableQueryLog();
+        $this->postJson(route('peserta.mode-ujian.answers'), $this->body($ctx))->assertOk();
+        $attemptReads = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql) => preg_match('/^select .* from [`"]exam_attempts[`"]/i', $sql));
+        DB::disableQueryLog();
+
+        $this->assertCount(1, $attemptReads, $attemptReads->implode(PHP_EOL));
     }
 }

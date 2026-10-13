@@ -57,6 +57,13 @@ class ExamRoom extends Component
     #[Locked]
     public bool $isModeUjian = false;
 
+    /** Mode Ujian: who sits the exam, shown in the header for the proctor. */
+    #[Locked]
+    public ?string $participantName = null;
+
+    #[Locked]
+    public ?string $participantNik = null;
+
     /** Event attempts can get extra time from the livescore board, so poll more often. */
     #[Locked]
     public bool $isEventAttempt = false;
@@ -207,6 +214,11 @@ class ExamRoom extends Component
         $this->isDrill = $attempt->isDrill();
         $this->isDuel = $attempt->isDuelAttempt();
         $this->isModeUjian = (bool) ($attempt->event?->is_mode_ujian ?? false);
+
+        if ($this->isModeUjian) {
+            $this->participantName = $attempt->display_name ?: auth()->user()->name;
+            $this->participantNik = auth()->user()->nik;
+        }
         $this->isEventAttempt = $attempt->event_id !== null;
         $this->helpItemsEnabled = $attempt->isFull() && ! $this->isRemedial && ! $this->isDrill && ! $this->isDuel && ! $this->isModeUjian;
         $this->stressTestEnabled = (bool) $attempt->stress_test_enabled;

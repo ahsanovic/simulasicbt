@@ -48,6 +48,13 @@ class SkbExamRoom extends Component
     #[Locked]
     public int $unansweredSaved = 0;
 
+    /** Who sits the exam, shown in the header for the proctor. */
+    #[Locked]
+    public ?string $participantName = null;
+
+    #[Locked]
+    public ?string $participantNik = null;
+
     /** @var array<int, array{id: int, sort_order: int, question_id: int, selected_option_id: ?int, is_marked: bool}> */
     #[Locked]
     public array $answerStates = [];
@@ -83,6 +90,8 @@ class SkbExamRoom extends Component
         $this->attemptId = $attempt->id;
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
         $this->answerVersionBase = (int) $attempt->answers->max('answer_version');
+        $this->participantName = Auth::user()->name;
+        $this->participantNik = Auth::user()->nik;
         $this->answerStates = $attempt->answers->map(fn ($answer) => [
             'id' => $answer->id,
             'sort_order' => $answer->sort_order,

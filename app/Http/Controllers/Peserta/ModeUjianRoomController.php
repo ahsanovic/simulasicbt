@@ -8,9 +8,7 @@ use App\Services\ModeUjianRoom\AnswerBatchWriter;
 use App\Services\ModeUjianRoom\ClientRoomFinisher;
 use App\Services\ModeUjianRoom\DeviceReplaced;
 use App\Services\ModeUjianRoom\RoomClosed;
-use App\Services\ModeUjianRoom\RoomKind;
 use App\Services\ModeUjianRoom\RoomKinds;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -22,26 +20,31 @@ class ModeUjianRoomController extends Controller
 {
     public function answers(ModeUjianAnswersRequest $request, AnswerBatchWriter $writer): JsonResponse
     {
-        [$kind, $attempt] = $this->resolve($request);
-
         try {
-            $result = $writer->write($kind, $attempt, $request->validated('device_token'), $request->answers());
+            $result = $writer->write(
+                RoomKinds::get($request->validated('kind')),
+                (int) $request->user()->id,
+                (int) $request->validated('attempt_id'),
+                $request->validated('device_token'),
+                $request->answers(),
+            );
         } catch (RoomClosed) {
             return response()->json(['error' => 'closed'], 409);
         } catch (DeviceReplaced) {
             return response()->json(['error' => 'device'], 409);
         }
 
-        return response()->json([...$result, 'remaining' => $this->remaining($attempt)]);
+        return response()->json($result);
     }
 
     public function finish(ModeUjianAnswersRequest $request, ClientRoomFinisher $finisher): JsonResponse
     {
-        [$kind, $attempt] = $this->resolve($request);
+        $kind = RoomKinds::get($request->validated('kind'));
 
         $result = $finisher->finish(
             $kind,
-            $attempt,
+            (int) $request->user()->id,
+            (int) $request->validated('attempt_id'),
             $request->validated('device_token'),
             $request->answers(),
             $request->validated('reason', 'manual') === 'time_up',
@@ -49,24 +52,8 @@ class ModeUjianRoomController extends Controller
 
         return match ($result['status']) {
             'device' => response()->json(['error' => 'device'], 409),
-            'extended' => response()->json(['remaining' => $this->remaining($result['attempt'])]),
+            'extended' => response()->json(['remaining' => max(0, $result['attempt']->expires_at->timestamp - now()->timestamp)]),
             default => response()->json(['result_url' => $kind->resultUrl($result['attempt'])]),
         };
-    }
-
-    /** @return array{0: RoomKind, 1: Model} */
-    private function resolve(ModeUjianAnswersRequest $request): array
-    {
-        $kind = RoomKinds::get($request->validated('kind'));
-        $attempt = $kind->ownedAttempt((int) $request->user()->id, (int) $request->validated('attempt_id'));
-
-        abort_if($attempt === null, 404);
-
-        return [$kind, $attempt];
-    }
-
-    private function remaining(Model $attempt): int
-    {
-        return max(0, $attempt->expires_at->timestamp - now()->timestamp);
     }
 }

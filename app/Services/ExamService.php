@@ -431,6 +431,8 @@ class ExamService
                 ...($modeUjian ? ['psychology_report_status' => 'skipped', 'psychology_report_generated_at' => now()] : []),
             ]);
 
+            LiveScoreCache::bustAfterSubmit($attempt->event_id);
+
             if ($modeUjian) {
                 return $attempt->fresh();
             }

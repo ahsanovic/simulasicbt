@@ -40,6 +40,11 @@ class ClientExamRoom extends Component
     /** Sent with the first render only, never kept in the Livewire snapshot. */
     protected ?array $room = null;
 
+    /** Who sits the exam (header, for the proctor); first render only, like $room. */
+    protected ?string $participantName = null;
+
+    protected ?string $participantNik = null;
+
     public function mount(string $kind): void
     {
         $roomKind = RoomKinds::get($kind);
@@ -70,6 +75,8 @@ class ClientExamRoom extends Component
         $this->attemptId = (int) $attempt->getKey();
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
         $this->room = app(RoomPayload::class)->build($roomKind, $attempt, DeviceToken::issue($attempt));
+        $this->participantName = $attempt->display_name ?: auth()->user()->name;
+        $this->participantNik = auth()->user()->nik;
     }
 
     /**
@@ -120,6 +127,8 @@ class ClientExamRoom extends Component
             'answersUrl' => route('peserta.mode-ujian.answers'),
             'finishUrl' => route('peserta.mode-ujian.finish'),
             'remaining' => $this->deadlineRemainingSeconds(),
+            'participantName' => $this->participantName,
+            'participantNik' => $this->participantNik,
         ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Imports\Concerns;
 
 use App\Models\EventSession;
+use App\Services\EventParticipantNikGuard;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -33,11 +34,17 @@ trait ValidatesEventParticipantImportRows
     {
         $errors = [];
 
-        $sessionNames = EventSession::query()
+        $sessionIdsByName = EventSession::query()
             ->where('event_id', $eventId)
-            ->pluck('name')
-            ->map(fn ($name) => Str::lower($name))
+            ->pluck('id', 'name')
+            ->mapWithKeys(fn ($id, $name) => [Str::lower($name) => (int) $id])
             ->all();
+
+        /** @var array<string, int> $firstRowByNik */
+        $firstRowByNik = [];
+
+        /** @var array<string, int|null> $sessionIdByNik */
+        $sessionIdByNik = [];
 
         foreach ($rows as $index => $row) {
             $rowNumber = $rowOffset + $index + 2;
@@ -51,7 +58,7 @@ trait ValidatesEventParticipantImportRows
                     'value' => $sesi,
                     'message' => 'Sesi wajib diisi dan harus cocok dengan nama sesi yang sudah dibuat.',
                 ];
-            } elseif (! in_array(Str::lower($sesi), $sessionNames, true)) {
+            } elseif (! array_key_exists(Str::lower($sesi), $sessionIdsByName)) {
                 $errors[] = [
                     'row' => $rowNumber,
                     'column' => 'Sesi',
@@ -85,6 +92,16 @@ trait ValidatesEventParticipantImportRows
                     'value' => $nik,
                     'message' => 'NIK harus berupa 16 digit angka.',
                 ];
+            } elseif (isset($firstRowByNik[$nik])) {
+                $errors[] = [
+                    'row' => $rowNumber,
+                    'column' => 'NIK',
+                    'value' => $nik,
+                    'message' => "NIK sama dengan baris {$firstRowByNik[$nik]}. Satu NIK hanya boleh muncul sekali dalam file.",
+                ];
+            } else {
+                $firstRowByNik[$nik] = $rowNumber;
+                $sessionIdByNik[$nik] = $sessionIdsByName[Str::lower($sesi)] ?? null;
             }
 
             if ($this->eventParticipantCellIsBlank($row['jabatan'] ?? null)) {
@@ -97,6 +114,15 @@ trait ValidatesEventParticipantImportRows
                         : 'Jabatan wajib diisi.',
                 ];
             }
+        }
+
+        foreach (app(EventParticipantNikGuard::class)->conflicts($eventId, $sessionIdByNik) as $nik => $message) {
+            $errors[] = [
+                'row' => $firstRowByNik[$nik],
+                'column' => 'NIK',
+                'value' => (string) $nik,
+                'message' => $message,
+            ];
         }
 
         return $errors;

@@ -216,12 +216,15 @@ class ExamRoom extends Component
             ])
             ->all();
 
-        $stored = $attempt->question_duration ?? [];
-        $this->questionDurations = collect($stored['by_sort_order'] ?? [])
-            ->mapWithKeys(fn ($seconds, $key) => [(string) $key => max(0, (int) $seconds)])
-            ->all();
+        if ($this->recordsAnswerTelemetry()) {
+            $stored = $attempt->question_duration ?? [];
+            $this->questionDurations = collect($stored['by_sort_order'] ?? [])
+                ->mapWithKeys(fn ($seconds, $key) => [(string) $key => max(0, (int) $seconds)])
+                ->all();
 
-        $this->loadAnswerBehavior($attempt);
+            $this->loadAnswerBehavior($attempt);
+        }
+
         $this->loadStressTestTelemetry($attempt);
 
         $helpState = $attempt->help_items_state ?? $helpItemService->defaultHelpItemsState();
@@ -742,8 +745,24 @@ class ExamRoom extends Component
             ->all() ?? [];
     }
 
+    /**
+     * Time per question and answer changes feed the psychology report, stress
+     * analysis and time-management review of simulasi attempts. Mode Ujian has
+     * none of them, so it records nothing: otherwise both maps grow with every
+     * question and travel in every request (snapshot ~12 KB -> ~24 KB by
+     * question 110) and every click rewrites them on exam_attempts.
+     */
+    private function recordsAnswerTelemetry(): bool
+    {
+        return ! $this->isModeUjian;
+    }
+
     private function startQuestionTimer(): void
     {
+        if (! $this->recordsAnswerTelemetry()) {
+            return;
+        }
+
         $this->questionTimerStartedAt = now()->timestamp;
     }
 
@@ -763,6 +782,10 @@ class ExamRoom extends Component
 
     private function persistAttemptMetadata(): void
     {
+        if (! $this->recordsAnswerTelemetry()) {
+            return;
+        }
+
         ExamAttempt::query()
             ->whereKey($this->attemptId)
             ->where('user_id', auth()->id())
@@ -802,7 +825,7 @@ class ExamRoom extends Component
     {
         $state = $this->currentAnswerState();
 
-        if ($state === null) {
+        if ($state === null || ! $this->recordsAnswerTelemetry()) {
             return;
         }
 
@@ -828,6 +851,10 @@ class ExamRoom extends Component
 
     private function persistTelemetries(): void
     {
+        if (! $this->recordsAnswerTelemetry()) {
+            return;
+        }
+
         $attempt = ExamAttempt::query()
             ->whereKey($this->attemptId)
             ->where('user_id', auth()->id())

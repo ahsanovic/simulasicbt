@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
@@ -42,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAppUrl();
         $this->configureLivewireRoutes();
         $this->configureLivewireFileUploads();
+        $this->configureRateLimits();
 
         Date::use(CarbonImmutable::class);
 
@@ -69,6 +73,16 @@ class AppServiceProvider extends ServiceProvider
         }
 
         URL::forceRootUrl(rtrim($appUrl, '/'));
+    }
+
+    /**
+     * The browser exam room sends about one request per question change; this
+     * only stops a runaway loop from one browser.
+     */
+    protected function configureRateLimits(): void
+    {
+        RateLimiter::for('mode-ujian-answers', fn (Request $request) => Limit::perMinute(120)
+            ->by((string) ($request->user()?->id ?? $request->ip())));
     }
 
     protected function configureLivewireFileUploads(): void

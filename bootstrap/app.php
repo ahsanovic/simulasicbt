@@ -36,7 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [LogSlowRequests::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // The browser exam room's JSON calls must get 401/422 as JSON (not a
+        // redirect to the login page) so it can tell the participant why.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*')
+                || $request->routeIs('peserta.mode-ujian.answers', 'peserta.mode-ujian.finish'),
         );
     })->create();

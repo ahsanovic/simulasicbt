@@ -152,3 +152,6 @@ document.addEventListener('click', (event) => {
         }
     });
 }, true);
+
+// For Alpine-driven buttons (the browser exam room) that have no wire:confirm.
+window.examConfirm = (message) => showConfirmDialog(message).then((result) => result.isConfirmed);

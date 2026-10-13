@@ -9,7 +9,9 @@ use App\Models\QuestionOption;
 use App\Models\SkbQuestion;
 use App\Models\SkbQuestionOption;
 use App\Models\Subject;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -45,19 +47,26 @@ final class ExamQuestionCache
             return $question === null ? false : self::skdPayload($question);
         });
 
-        if (! is_array($data)) {
-            return null;
-        }
+        return is_array($data) ? self::skdFromPayload($data) : null;
+    }
 
-        $question = self::model(Question::class, $data['question']);
-        $question->setRelation('options', self::models(QuestionOption::class, $data['options']));
-        $question->setRelation('subject', $data['subject'] ? self::model(Subject::class, $data['subject']) : null);
-
-        $material = $data['material'] ? self::model(Material::class, $data['material']) : null;
-        $material?->setRelation('materialGroup', $data['material_group'] ? self::model(MaterialGroup::class, $data['material_group']) : null);
-        $question->setRelation('material', $material);
-
-        return $question;
+    /**
+     * Every question of an attempt at once (the browser exam room): one cache
+     * round trip, and the questions not cached yet are loaded together and
+     * cached, so a cold cache costs a handful of queries, not a set per question.
+     *
+     * @param  list<int>  $questionIds
+     * @return array<int, Question> keyed by id; missing questions left out
+     */
+    public static function skdMany(array $questionIds): array
+    {
+        return self::many(
+            $questionIds,
+            self::skdKey(...),
+            fn (array $missing) => Question::withTrashed()->with(self::SKD_RELATIONS)->whereKey($missing)->get(),
+            self::skdPayload(...),
+            self::skdFromPayload(...),
+        );
     }
 
     public static function skb(int $questionId): ?SkbQuestion
@@ -68,14 +77,61 @@ final class ExamQuestionCache
             return $question === null ? false : self::skbPayload($question);
         });
 
-        if (! is_array($data)) {
-            return null;
+        return is_array($data) ? self::skbFromPayload($data) : null;
+    }
+
+    /**
+     * @param  list<int>  $questionIds
+     * @return array<int, SkbQuestion> keyed by id; missing questions left out
+     */
+    public static function skbMany(array $questionIds): array
+    {
+        return self::many(
+            $questionIds,
+            self::skbKey(...),
+            fn (array $missing) => SkbQuestion::withTrashed()->with('options')->whereKey($missing)->get(),
+            self::skbPayload(...),
+            self::skbFromPayload(...),
+        );
+    }
+
+    /**
+     * @param  list<int>  $questionIds
+     * @param  Closure(int): string  $key
+     * @param  Closure(list<int>): Collection<int, Model>  $load
+     * @param  Closure(Model): array  $payload
+     * @param  Closure(array): Model  $fromPayload
+     * @return array<int, Model>
+     */
+    private static function many(array $questionIds, Closure $key, Closure $load, Closure $payload, Closure $fromPayload): array
+    {
+        $cached = Cache::many(array_map($key, $questionIds));
+        $missing = array_values(array_filter($questionIds, fn (int $id) => $cached[$key($id)] === null));
+
+        if ($missing !== []) {
+            $loaded = $load($missing)->keyBy('id');
+            $fresh = [];
+
+            foreach ($missing as $id) {
+                // false = "no such question", cached too (same as skd()/skb()).
+                $fresh[$key($id)] = isset($loaded[$id]) ? $payload($loaded[$id]) : false;
+            }
+
+            Cache::putMany($fresh, self::TTL_SECONDS);
+            $cached = [...$cached, ...$fresh];
         }
 
-        $question = self::model(SkbQuestion::class, $data['question']);
-        $question->setRelation('options', self::models(SkbQuestionOption::class, $data['options']));
+        $questions = [];
 
-        return $question;
+        foreach ($questionIds as $id) {
+            $data = $cached[$key($id)];
+
+            if (is_array($data)) {
+                $questions[$id] = $fromPayload($data);
+            }
+        }
+
+        return $questions;
     }
 
     /**
@@ -115,6 +171,27 @@ final class ExamQuestionCache
         if ($questionId !== null) {
             Cache::forget(self::skbKey($questionId));
         }
+    }
+
+    private static function skdFromPayload(array $data): Question
+    {
+        $question = self::model(Question::class, $data['question']);
+        $question->setRelation('options', self::models(QuestionOption::class, $data['options']));
+        $question->setRelation('subject', $data['subject'] ? self::model(Subject::class, $data['subject']) : null);
+
+        $material = $data['material'] ? self::model(Material::class, $data['material']) : null;
+        $material?->setRelation('materialGroup', $data['material_group'] ? self::model(MaterialGroup::class, $data['material_group']) : null);
+        $question->setRelation('material', $material);
+
+        return $question;
+    }
+
+    private static function skbFromPayload(array $data): SkbQuestion
+    {
+        $question = self::model(SkbQuestion::class, $data['question']);
+        $question->setRelation('options', self::models(SkbQuestionOption::class, $data['options']));
+
+        return $question;
     }
 
     private static function skdPayload(Question $question): array

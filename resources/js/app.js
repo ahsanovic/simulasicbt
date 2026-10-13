@@ -1,6 +1,7 @@
 import './sweetalert-confirm.js';
 import './sweetalert-toast.js';
 import './exam-timer.js';
+import './mode-ujian-room.js';
 import './exam-content-protection.js';
 import './exam-stress-test.js';
 import './exam-scratchpad.js';

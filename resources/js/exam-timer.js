@@ -176,6 +176,12 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            // The browser exam room syncs the deadline with every answer it
+            // sends: skip the poll when that happened within this interval.
+            if (Date.now() - (window.examLastSyncAt || 0) < intervalMs) {
+                return;
+            }
+
             // Fired as a "poll" action (like wire:poll): a click on "Simpan &
             // Lanjutkan" then cancels a poll still in flight instead of waiting
             // behind it — a slow or stalled poll used to block the click.

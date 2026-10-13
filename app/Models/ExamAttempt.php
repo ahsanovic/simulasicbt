@@ -8,6 +8,7 @@ use App\Enums\ExamAttemptType;
 use App\Enums\ExamHistoryFilter;
 use App\Enums\SkdTarget;
 use App\Enums\SubjectCode;
+use App\Support\ExamDeadline;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -274,14 +275,16 @@ class ExamAttempt extends Model
     }
 
     /**
-     * Still marked as running even though the deadline has passed — these need
-     * closing out before their status is reported anywhere.
+     * Still marked as running even though the deadline (plus the answer grace)
+     * has passed — these need closing out before their status is reported
+     * anywhere. Within the grace the exam room may still be sending the last
+     * answers together with its own submit.
      */
     public function scopeExpiredButOpen(Builder $query): Builder
     {
         return $query
             ->where('status', ExamAttemptStatus::InProgress)
-            ->where('expires_at', '<=', now());
+            ->where('expires_at', '<=', now()->subSeconds(ExamDeadline::GRACE_SECONDS));
     }
 
     public function wrongAnswerCount(): int

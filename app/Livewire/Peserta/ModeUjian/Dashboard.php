@@ -10,6 +10,7 @@ use App\Models\EventSession;
 use App\Models\ExamAttempt;
 use App\Models\SkbExamAttempt;
 use App\Services\ExamService;
+use App\Services\ModeUjianRoom\RoomKinds;
 use App\Services\SkbExamService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -113,10 +114,7 @@ class Dashboard extends Component
             return;
         }
 
-        $this->redirect(
-            $phase === 'skd' ? route('peserta.exam.room', $event->exam_id) : route('peserta.mode-ujian.skb.room'),
-            navigate: false,
-        );
+        $this->redirect(RoomKinds::entryUrl($phase, $event->exam_id), navigate: false);
     }
 
     private function resumeOrStartSkd(Event $event, EventSession $session, ExamService $examService): void

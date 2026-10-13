@@ -7,12 +7,14 @@
       (`exam-deadline-synced` > 0) and the lock lifts.
     - Once the server has submitted the attempt ($timeUp) the lock stays, tells
       the peserta their answers were collected, and moves on to the result page.
+    - callsServer=false: the browser exam room sends its own "selesai" with the
+      unsent answers; the overlay only shows the lock.
 --}}
-@props(['timeUp' => false, 'resultUrl' => null])
+@props(['timeUp' => false, 'resultUrl' => null, 'callsServer' => true])
 
 <div
     x-data="{ pending: false }"
-    x-on:exam-time-up.window="if (! pending) { pending = true; Promise.resolve($wire.checkExpiry()).catch(() => {}); }"
+    x-on:exam-time-up.window="if (! pending) { pending = true; @if ($callsServer) Promise.resolve($wire.checkExpiry()).catch(() => {}); @endif }"
     x-on:exam-deadline-synced.window="if ($event.detail.remainingSeconds > 0) pending = false"
 >
     @if ($timeUp)

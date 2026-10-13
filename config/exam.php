@@ -12,6 +12,12 @@ return [
     // on the admin Kesehatan Sistem page). 0 turns the logging off.
     'slow_request_ms' => (int) env('EXAM_SLOW_REQUEST_MS', 1000),
 
+    // Mode Ujian rooms run in the browser: questions load once, moving between
+    // questions is local, answers go in the background to a small JSON
+    // endpoint (App\Livewire\Peserta\ModeUjian\ClientExamRoom). false = the
+    // Livewire rooms (ExamRoom / SkbExamRoom).
+    'client_room' => (bool) env('EXAM_CLIENT_ROOM', false),
+
     'passing_grades' => [
         'cpns' => [
             'twk' => 65,

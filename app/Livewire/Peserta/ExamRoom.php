@@ -176,6 +176,13 @@ class ExamRoom extends Component
             return;
         }
 
+        // Mode Ujian runs in the browser room when switched on (ClientExamRoom).
+        if ($attempt->event?->is_mode_ujian && config('exam.client_room') && ! $attempt->needsNameConfirmation()) {
+            $this->redirect(route('peserta.mode-ujian.room', 'skd'), navigate: false);
+
+            return;
+        }
+
         $this->examId = $exam->id;
         $this->examTitle = $attempt->isDrill() ? $attempt->displayTitle() : $exam->title;
         $this->attemptId = $attempt->id;

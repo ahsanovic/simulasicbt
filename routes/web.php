@@ -15,7 +15,9 @@ use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Admin\SkbQuestionImportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Peserta\CertificateController;
+use App\Http\Controllers\Peserta\ModeUjianRoomController;
 use App\Http\Controllers\PublicStorageController;
+use App\Http\Middleware\BlockDuringExamLockdown;
 use App\Http\Middleware\TrackPesertaPresence;
 use App\Livewire\Admin\CoinPurchases\Index as CoinPurchasesIndex;
 use App\Livewire\Admin\Dashboard;
@@ -54,6 +56,7 @@ use App\Livewire\Peserta\KartuSakti;
 use App\Livewire\Peserta\LeaderboardHub;
 use App\Livewire\Peserta\MateriBelajar;
 use App\Livewire\Peserta\MateriBelajarShow;
+use App\Livewire\Peserta\ModeUjian\ClientExamRoom;
 use App\Livewire\Peserta\ModeUjian\Dashboard as ModeUjianDashboard;
 use App\Livewire\Peserta\ModeUjian\SkbExamRoom;
 use App\Livewire\Peserta\ModeUjian\SkbResult;
@@ -200,5 +203,17 @@ Route::middleware(['auth', 'peserta', 'exam-lockdown', TrackPesertaPresence::cla
     Route::get('/mode-ujian/skd/{attempt}/hasil', SkdResult::class)->name('mode-ujian.skd-result');
     Route::get('/mode-ujian/skb', SkbExamRoom::class)->name('mode-ujian.skb.room');
     Route::get('/mode-ujian/skb/{attempt}/hasil', SkbResult::class)->name('mode-ujian.skb-result');
+    // Only the participant's own running Mode Ujian attempt is touched, so
+    // Mode Sedang Ujian must not block them (e.g. the event closed meanwhile).
+    Route::post('/mode-ujian/jawaban', [ModeUjianRoomController::class, 'answers'])
+        ->middleware('throttle:mode-ujian-answers')
+        ->withoutMiddleware(BlockDuringExamLockdown::class)
+        ->name('mode-ujian.answers');
+    Route::post('/mode-ujian/selesai', [ModeUjianRoomController::class, 'finish'])
+        ->withoutMiddleware(BlockDuringExamLockdown::class)
+        ->name('mode-ujian.finish');
+    Route::get('/mode-ujian/ruang/{kind}', ClientExamRoom::class)
+        ->whereIn('kind', ['skd', 'skb'])
+        ->name('mode-ujian.room');
 });
 });

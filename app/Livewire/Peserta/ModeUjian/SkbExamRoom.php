@@ -74,6 +74,12 @@ class SkbExamRoom extends Component
             return;
         }
 
+        if (config('exam.client_room')) {
+            $this->redirect(route('peserta.mode-ujian.room', 'skb'), navigate: false);
+
+            return;
+        }
+
         $this->attemptId = $attempt->id;
         $this->attemptExpiresAt = $attempt->expires_at->timestamp;
         $this->answerVersionBase = (int) $attempt->answers->max('answer_version');

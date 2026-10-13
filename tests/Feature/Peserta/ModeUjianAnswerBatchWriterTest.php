@@ -9,6 +9,7 @@ use App\Services\ModeUjianRoom\DeviceToken;
 use App\Services\ModeUjianRoom\RoomClosed;
 use App\Services\ModeUjianRoom\RoomKinds;
 use App\Support\ExamDeadline;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -36,7 +37,12 @@ class ModeUjianAnswerBatchWriterTest extends TestCase
 
     private function write(array $ctx, array $answers, ?string $token = null): array
     {
-        return app(AnswerBatchWriter::class)->write(RoomKinds::get('skd'), $ctx['attempt']->fresh(), $token ?? $ctx['token'], $answers);
+        return $this->savedAndStale(app(AnswerBatchWriter::class)->write(RoomKinds::get('skd'), $ctx['user']->id, $ctx['attempt']->id, $token ?? $ctx['token'], $answers));
+    }
+
+    private function savedAndStale(array $result): array
+    {
+        return ['saved' => $result['saved'], 'stale' => $result['stale']];
     }
 
     public function test_it_saves_the_option_the_mark_and_the_version(): void
@@ -154,7 +160,7 @@ class ModeUjianAnswerBatchWriterTest extends TestCase
         $answer = $this->skbAnswerAt($attempt, 1);
         $optionId = $answer->question->options->first()->id;
 
-        $result = app(AnswerBatchWriter::class)->write(RoomKinds::get('skb'), $attempt->fresh(), $token, [
+        $result = app(AnswerBatchWriter::class)->write(RoomKinds::get('skb'), $attempt->user_id, $attempt->id, $token, [
             ['id' => $answer->id, 'option_id' => $optionId, 'is_marked' => true, 'version' => 3],
         ]);
 
@@ -209,9 +215,9 @@ class ModeUjianAnswerBatchWriterTest extends TestCase
         $answers[2]->forceFill(['answer_version' => 9])->save(); // a newer copy is already stored
 
         DB::enableQueryLog();
-        $result = app(AnswerBatchWriter::class)->write(RoomKinds::get('skb'), $attempt->fresh(), $token, $answers->values()->map(fn ($answer, int $i) => [
+        $result = $this->savedAndStale(app(AnswerBatchWriter::class)->write(RoomKinds::get('skb'), $attempt->user_id, $attempt->id, $token, $answers->values()->map(fn ($answer, int $i) => [
             'id' => $answer->id, 'option_id' => $answer->question->options->first()->id, 'is_marked' => $i === 0, 'version' => $i + 1,
-        ])->all());
+        ])->all()));
         $updates = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql) => preg_match('/^update [`"]skb_exam_answers[`"]/i', $sql));
         DB::disableQueryLog();
 
@@ -223,5 +229,30 @@ class ModeUjianAnswerBatchWriterTest extends TestCase
         $this->assertFalse((bool) $answers[1]->fresh()->is_marked);
         $this->assertNull($answers[2]->fresh()->selected_option_id);
         $this->assertSame(9, (int) $answers[2]->fresh()->answer_version);
+    }
+
+    public function test_answers_arriving_after_the_attempt_was_scored_are_refused(): void
+    {
+        $ctx = $this->skd();
+        // "Selesai" scored the attempt while this request was on its way.
+        $ctx['attempt']->update(['status' => ExamAttemptStatus::Submitted]);
+
+        try {
+            app(AnswerBatchWriter::class)->write(RoomKinds::get('skd'), $ctx['user']->id, $ctx['attempt']->id, $ctx['token'], [
+                ['id' => $ctx['answers'][0]->id, 'option_id' => $ctx['firstOptionId'], 'is_marked' => false, 'version' => 50],
+            ]);
+            $this->fail('An answer must never change after the attempt was scored.');
+        } catch (RoomClosed) {
+            $this->assertNull($ctx['answers'][0]->fresh()->selected_option_id);
+        }
+    }
+
+    public function test_another_users_attempt_is_not_found(): void
+    {
+        $ctx = $this->skd();
+
+        $this->expectException(ModelNotFoundException::class);
+
+        app(AnswerBatchWriter::class)->write(RoomKinds::get('skd'), $ctx['user']->id + 1, $ctx['attempt']->id, $ctx['token'], []);
     }
 }

@@ -6,6 +6,8 @@ use App\Enums\ExamAttemptStatus;
 use App\Support\ExamDeadline;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -16,14 +18,39 @@ use Illuminate\Validation\ValidationException;
 final class AnswerBatchWriter
 {
     /**
-     * @param  list<array{id: int, option_id: ?int, is_marked: bool, version: int}>  $answers
-     * @return array{saved: list<int>, stale: list<int>}
+     * The attempt is read once: owner check and row lock in one query. Locked
+     * like "Selesai" (ClientRoomFinisher): the two take turns, so an answer is
+     * either in before the attempt is scored or refused after — never changed
+     * once scored, never missed by the score.
      *
+     * @param  list<array{id: int, option_id: ?int, is_marked: bool, version: int}>  $answers
+     * @return array{saved: list<int>, stale: list<int>, remaining: int}
+     *
+     * @throws ModelNotFoundException when the attempt is not the user's
      * @throws RoomClosed
      * @throws DeviceReplaced
      * @throws ValidationException
      */
-    public function write(RoomKind $kind, Model $attempt, string $deviceToken, array $answers): array
+    public function write(RoomKind $kind, int $userId, int $attemptId, string $deviceToken, array $answers): array
+    {
+        return DB::transaction(function () use ($kind, $userId, $attemptId, $deviceToken, $answers) {
+            $attempt = $kind->lockOwnedAttempt($userId, $attemptId)
+                ?? throw new ModelNotFoundException('Mode Ujian attempt not found.');
+
+            return [
+                ...$this->writeLocked($kind, $attempt, $deviceToken, $answers),
+                'remaining' => max(0, $attempt->expires_at->timestamp - now()->timestamp),
+            ];
+        });
+    }
+
+    /**
+     * For a caller already holding the attempt's row lock (ClientRoomFinisher).
+     *
+     * @param  list<array{id: int, option_id: ?int, is_marked: bool, version: int}>  $answers
+     * @return array{saved: list<int>, stale: list<int>}
+     */
+    public function writeLocked(RoomKind $kind, Model $attempt, string $deviceToken, array $answers): array
     {
         if ($attempt->status !== ExamAttemptStatus::InProgress || ! ExamDeadline::acceptsAnswers($attempt->expires_at)) {
             throw new RoomClosed;

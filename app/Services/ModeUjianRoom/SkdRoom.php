@@ -30,9 +30,9 @@ final class SkdRoom implements RoomKind
         return $this->modeUjianAttempts($userId)->find($attemptId);
     }
 
-    public function lockAttempt(int $attemptId): ExamAttempt
+    public function lockOwnedAttempt(int $userId, int $attemptId): ?ExamAttempt
     {
-        return ExamAttempt::query()->whereKey($attemptId)->lockForUpdate()->firstOrFail();
+        return ExamAttempt::query()->where('user_id', $userId)->lockForUpdate()->find($attemptId);
     }
 
     public function answerModel(): string

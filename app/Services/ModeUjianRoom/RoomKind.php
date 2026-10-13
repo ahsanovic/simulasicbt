@@ -20,8 +20,12 @@ interface RoomKind
     /** The user's Mode Ujian attempt by id (any status), or null. */
     public function ownedAttempt(int $userId, int $attemptId): ?Model;
 
-    /** The attempt row locked for update (call inside a transaction). */
-    public function lockAttempt(int $attemptId): Model;
+    /**
+     * The user's attempt row, locked for update (call inside a transaction).
+     * Only the attempt row is locked: whether it is a Mode Ujian attempt is
+     * settled by the device token, which only the Mode Ujian room hands out.
+     */
+    public function lockOwnedAttempt(int $userId, int $attemptId): ?Model;
 
     /** @return class-string<Model> */
     public function answerModel(): string;

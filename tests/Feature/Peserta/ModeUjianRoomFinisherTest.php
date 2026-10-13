@@ -26,7 +26,8 @@ class ModeUjianRoomFinisherTest extends TestCase
 
         return app(ClientRoomFinisher::class)->finish(
             RoomKinds::get('skd'),
-            $ctx['attempt']->fresh(),
+            $ctx['user']->id,
+            $ctx['attempt']->id,
             $token ?? $ctx['token'],
             [['id' => $answer->id, 'option_id' => $ctx['firstOptionId'], 'is_marked' => false, 'version' => 4]],
             $timeUp,
@@ -119,7 +120,7 @@ class ModeUjianRoomFinisherTest extends TestCase
         $answer = $this->skbAnswerAt($attempt, 1);
         $correct = $answer->question->options->firstWhere('is_correct', true)->id;
 
-        $result = app(ClientRoomFinisher::class)->finish(RoomKinds::get('skb'), $attempt->fresh(), $token, [
+        $result = app(ClientRoomFinisher::class)->finish(RoomKinds::get('skb'), $attempt->user_id, $attempt->id, $token, [
             ['id' => $answer->id, 'option_id' => $correct, 'is_marked' => false, 'version' => 1],
         ], false);
 

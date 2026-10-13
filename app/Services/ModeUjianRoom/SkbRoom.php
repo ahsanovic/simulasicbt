@@ -30,9 +30,9 @@ final class SkbRoom implements RoomKind
         return SkbExamAttempt::query()->where('user_id', $userId)->find($attemptId);
     }
 
-    public function lockAttempt(int $attemptId): SkbExamAttempt
+    public function lockOwnedAttempt(int $userId, int $attemptId): ?SkbExamAttempt
     {
-        return SkbExamAttempt::query()->whereKey($attemptId)->lockForUpdate()->firstOrFail();
+        return SkbExamAttempt::query()->where('user_id', $userId)->lockForUpdate()->find($attemptId);
     }
 
     public function answerModel(): string

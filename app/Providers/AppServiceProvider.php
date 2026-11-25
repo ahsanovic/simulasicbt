@@ -83,6 +83,11 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('mode-ujian-answers', fn (Request $request) => Limit::perMinute(120)
             ->by((string) ($request->user()?->id ?? $request->ip())));
+
+        // "Selesai" / time up locks the attempt row and scores it: a few calls
+        // are normal (retry after a lost response), a loop is not.
+        RateLimiter::for('mode-ujian-finish', fn (Request $request) => Limit::perMinute(20)
+            ->by((string) ($request->user()?->id ?? $request->ip())));
     }
 
     protected function configureLivewireFileUploads(): void

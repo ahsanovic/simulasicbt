@@ -210,6 +210,7 @@ Route::middleware(['auth', 'peserta', 'exam-lockdown', TrackPesertaPresence::cla
         ->withoutMiddleware(BlockDuringExamLockdown::class)
         ->name('mode-ujian.answers');
     Route::post('/mode-ujian/selesai', [ModeUjianRoomController::class, 'finish'])
+        ->middleware('throttle:mode-ujian-finish')
         ->withoutMiddleware(BlockDuringExamLockdown::class)
         ->name('mode-ujian.finish');
     Route::get('/mode-ujian/ruang/{kind}', ClientExamRoom::class)

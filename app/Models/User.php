@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable
@@ -77,12 +78,30 @@ class User extends Authenticatable
     }
 
     /** Registered in a Mode Ujian event that is currently running. */
+    /**
+     * Checked on every peserta request while Mode Sedang Ujian is on. Only a
+     * "yes" is remembered (30 s), so a newly added participant gets in at once;
+     * a removed one loses access within the TTL. Answer saving and the
+     * livescore do not depend on this check.
+     */
     public function isActiveModeUjianParticipant(): bool
     {
-        return EventParticipant::query()
+        $key = 'mode-ujian-participant:'.$this->id;
+
+        if (Cache::get($key) === true) {
+            return true;
+        }
+
+        $active = EventParticipant::query()
             ->where('user_id', $this->id)
             ->whereHas('event', fn ($query) => $query->where('is_mode_ujian', true)->where('status', EventStatus::Active))
             ->exists();
+
+        if ($active) {
+            Cache::put($key, true, 30);
+        }
+
+        return $active;
     }
 
     /** Where this user lands after logging in (and when opening a login page while logged in). */

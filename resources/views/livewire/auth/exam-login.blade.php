@@ -1,7 +1,8 @@
-<div class="space-y-5">
+<div class="space-y-8">
     <div>
-        <h2 class="text-xl font-bold text-slate-900">Masuk Ujian</h2>
-        <p class="mt-1 text-sm text-slate-500">Masuk menggunakan NIK / username dan password yang diberikan panitia.</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary-600">Peserta ujian</p>
+        <h2 class="mt-2 text-3xl font-extrabold tracking-[-0.025em] text-slate-900">Masuk Ujian</h2>
+        <p class="mt-3 text-base leading-relaxed text-slate-500">Masukkan NIK / username dan password yang diberikan panitia.</p>
     </div>
 
     <x-ui.flash-toast />
@@ -10,24 +11,24 @@
          on "Memproses..." from the click until the dashboard opens (no second
          click while the server is busy). Re-enabled only when the server answers
          with an error, or after 30 s as a safety net. --}}
-    <form wire:submit="authenticate" class="space-y-5"
+    <form wire:submit="authenticate" class="space-y-6"
           x-data="{ busy: false, timer: null }"
           x-on:submit="busy = true; clearTimeout(timer); timer = setTimeout(() => busy = false, 30000)"
           x-on:login-failed.window="busy = false; clearTimeout(timer)">
         <div>
             <label for="login" class="ui-label">NIK / Username</label>
-            <input id="login" type="text" wire:model="login" autocomplete="username" class="ui-input" placeholder="NIK atau username">
+            <input id="login" type="text" wire:model="login" autocomplete="username" class="ui-input !py-3 !text-base" placeholder="NIK atau username" autofocus autocapitalize="none" spellcheck="false">
             @error('login') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
         </div>
 
         <div x-data="{ showPassword: false }">
             <label for="password" class="ui-label">Password</label>
             <div class="relative">
-                <input id="password" :type="showPassword ? 'text' : 'password'" wire:model="password" autocomplete="current-password" class="ui-input pr-11" placeholder="••••••••">
+                <input id="password" :type="showPassword ? 'text' : 'password'" wire:model="password" autocomplete="current-password" class="ui-input pr-12 !py-3 !text-base" placeholder="••••••••">
                 <button
                     type="button"
                     @click="showPassword = !showPassword"
-                    class="absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 transition hover:text-slate-600"
+                    class="absolute inset-y-0 right-0 flex items-center px-4 text-slate-400 transition hover:text-slate-600 focus:outline-none focus-visible:text-primary-600"
                     :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
                 >
                     <svg x-show="!showPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -42,10 +43,10 @@
             @error('password') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
         </div>
 
-        <button type="submit" x-bind:disabled="busy" class="ui-btn-primary w-full py-3">
+        <button type="submit" x-bind:disabled="busy" class="ui-btn-primary w-full !py-3.5 !text-base">
             <svg x-show="busy" x-cloak class="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
             <span x-text="busy ? 'Memproses...' : 'Masuk Ujian'">Masuk Ujian</span>
         </button>
-        <p x-show="busy" x-cloak class="text-center text-xs text-slate-500">Mohon tunggu, jangan muat ulang halaman.</p>
+        <p x-show="busy" x-cloak role="status" class="text-center text-sm text-slate-500">Mohon tunggu, jangan muat ulang halaman.</p>
     </form>
 </div>
